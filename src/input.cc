@@ -211,11 +211,9 @@ int InputSocket::getPacket(PandarPacket *pkt) {
 	}
 	ssize_t nbytes;
   	for (int i = 0; i != m_iSocktNumber; ++i) {
-		  printf("m_iSocktNumber %d\n",m_iSocktNumber);
     	if (fds[i].revents & POLLIN) {
-      		nbytes = recvfrom(m_iSockfd, &pkt->data[0], 10000, 0, (sockaddr *)&sender_address, &sender_address_len);
-			
-			printf("fds[%d] size: %d\n",i, nbytes);
+      		nbytes = recvfrom(fds[i].fd, &pkt->data[0], 10000, 0, (sockaddr *)&sender_address, &sender_address_len);
+			// printf("fds[%d] size: %d\n",i, nbytes);
       		break;
     	}
   	}
