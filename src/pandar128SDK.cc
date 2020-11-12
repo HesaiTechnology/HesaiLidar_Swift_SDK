@@ -70,7 +70,7 @@ Pandar128SDK::Pandar128SDK(std::string deviceipaddr, uint16_t lidarport, uint16_
 							boost::function<void(PandarPacketsArray*)> rawcallback, \
 							boost::function<void(double)> gpscallback, \
 							int startangle, int timezone, std::string publishmode, std::string datatype) {
-	m_sSdkVersion = "Pandar128SDK_1.0.0";
+	m_sSdkVersion = "Pandar128SDK_1.2.2";
 	printf("\n--------Pandar128 SDK version: %s--------\n",m_sSdkVersion.c_str());
 	m_sDeviceIpAddr = deviceipaddr;
 	m_sFrameId = frameid;
@@ -94,12 +94,12 @@ Pandar128SDK::Pandar128SDK(std::string deviceipaddr, uint16_t lidarport, uint16_
 	printf("frame id: %s\n", m_sFrameId.c_str());
 	printf("lidar firetime file: %s\n", m_sLidarFiretimeFile.c_str());
 	printf("lidar correction file: %s\n", m_sLidarCorrectionFile.c_str());
-	loadCorrectionFile();
-	loadOffsetFile(m_sLidarFiretimeFile);
 	for (int i = 0; i < PANDAR128_LASER_NUM; i++) {
 		m_fElevAngle[i] = elevAngle[i];
 		m_fHorizatalAzimuth[i] = azimuthOffset[i];
 	}
+	loadCorrectionFile();
+	loadOffsetFile(m_sLidarFiretimeFile);
 	memset(m_fCosAllAngle, 0, sizeof(m_fCosAllAngle));
 	memset(m_fSinAllAngle, 0, sizeof(m_fSinAllAngle));
 	for (int j = 0; j < CIRCLE; j++) {
@@ -316,10 +316,10 @@ int Pandar128SDK::processLiDARData() {
 			if(m_bPublishPointsFlag == false) {
 				m_bPublishPointsFlag = true;
 				m_iPublishPointsIndex = cursor;
+				cursor = (cursor + 1) % 2;
 			} 
 			else
 				printf("publishPoints not done yet, new publish is comming\n");
-			cursor = (cursor + 1) % 2;
 			m_OutMsgArray[cursor]->clear();
 			m_OutMsgArray[cursor]->resize(CIRCLE_ANGLE / m_iAngleSize * PANDAR128_LASER_NUM * m_iReturnBlockSize );
 			uint32_t endTick2 = GetTickCount();

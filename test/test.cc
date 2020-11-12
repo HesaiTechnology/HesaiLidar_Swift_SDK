@@ -21,6 +21,14 @@ void gpsCallback(double timestamp) {
 
 void lidarCallback(boost::shared_ptr<PPointCloud> cld, double timestamp) {
     printf("timestamp: %lf,point_size: %ld\n", timestamp, cld->points.size());
+    // static int item = 0;
+    // item++;
+    // if(10 == item) {
+    //     printf("write pcd file\n");
+    //     pcl::PCDWriter writer;
+    //     writer.write("../P128Pcd.pcd", *cld);
+    //     item++;
+    // }
 }
 
 void rawcallback(PandarPacketsArray *array) {
