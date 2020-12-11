@@ -12,7 +12,6 @@ sites
 *.pch
 
 # Compiled Dynamic libraries
-*.so
 *.dylib
 *.dll
 
@@ -23,7 +22,6 @@ sites
 # Compiled Static libraries
 *.lai
 *.la
-*.a
 *.lib
 
 # Executables

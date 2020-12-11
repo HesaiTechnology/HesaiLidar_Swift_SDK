@@ -6,17 +6,20 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package( Boost REQUIRED )
 find_package( PCL REQUIRED COMPONENTS common )
-find_package(OpenSSL REQUIRED)
  
 SET(CMAKE_BUILD_TYPE "Release") 
 
 include_directories(
     .
     include
+    third/include
     src/taskflow
     ${Boost_INCLUDE_DIRS}
     ${PCL_INCLUDE_DIRS}
-    ${OPENSSL_INCLUDE_DIR}
+)
+
+link_directories(
+ ./third/lib
 )
 
 add_library( ${PROJECT_NAME} SHARED
@@ -32,7 +35,6 @@ add_library( ${PROJECT_NAME} SHARED
 target_link_libraries(${PROJECT_NAME} 
     ${Boost_LIBRARIES}
     ${PCL_IO_LIBRARIES}
-    ${OPENSSL_LIBRARIES}
     pcap
 )
 
@@ -46,5 +48,7 @@ if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR})
         ${PROJECT_NAME}
         ${Boost_LIBRARIES}
         ${PCL_IO_LIBRARIES}
+        libssl.a
+	    libcrypto.a
     )
 endif(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR})
