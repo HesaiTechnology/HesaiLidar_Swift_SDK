@@ -16,3 +16,10 @@ Pandar128SDK_1.2.2
 2. Modify the order of loading the correction file
 3. Modify the change timing of the cursor of the point cloud array
 
+星期五, 11. 十二月 2020 19:25下午 
+##version
+Pandar128SDK_1.2.3 
+
+##modify
+1. Support certificate authentication
+

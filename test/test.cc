@@ -40,8 +40,12 @@ int main(int argc, char** argv) {
     boost::shared_ptr<Pandar128SDK> spPandar128SDK;
     spPandar128SDK.reset(new Pandar128SDK(std::string("192.168.1.201"), 2368, 10110, std::string("Pandar128"), \
                                 std::string("../params/correction.csv"), \
-                                std::string("../params/laser-ts.csv"), \
-                                std::string(""), lidarCallback, rawcallback, gpsCallback, 0, 0, std::string("both_point_raw")));
+                                std::string(""), \
+                                std::string(""), lidarCallback, rawcallback, gpsCallback, \
+                                std::string(""), \
+                                std::string(""), \
+                                std::string(""), \
+                                0, 0, std::string("both_point_raw")));
     while (true) {
         sleep(100);
     }

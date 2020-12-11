@@ -69,8 +69,9 @@ Pandar128SDK::Pandar128SDK(std::string deviceipaddr, uint16_t lidarport, uint16_
 							boost::function<void(boost::shared_ptr<PPointCloud>, double)> pclcallback, \
 							boost::function<void(PandarPacketsArray*)> rawcallback, \
 							boost::function<void(double)> gpscallback, \
+							std::string certFile, std::string privateKeyFile, std::string caFile, \
 							int startangle, int timezone, std::string publishmode, std::string datatype) {
-	m_sSdkVersion = "Pandar128SDK_1.2.2";
+	m_sSdkVersion = "Pandar128SDK_1.2.3";
 	printf("\n--------Pandar128 SDK version: %s--------\n",m_sSdkVersion.c_str());
 	m_sDeviceIpAddr = deviceipaddr;
 	m_sFrameId = frameid;
@@ -91,6 +92,7 @@ Pandar128SDK::Pandar128SDK(std::string deviceipaddr, uint16_t lidarport, uint16_
 	m_funcPclCallback = pclcallback;
 	m_funcGpsCallback = gpscallback;
 	m_spPandarDriver.reset(new Pandar128Driver(deviceipaddr, lidarport, gpsport, frameid, pcapfile, rawcallback, this, publishmode, datatype));
+	TcpCommandSetSsl(certFile.c_str(), privateKeyFile.c_str(), caFile.c_str());
 	printf("frame id: %s\n", m_sFrameId.c_str());
 	printf("lidar firetime file: %s\n", m_sLidarFiretimeFile.c_str());
 	printf("lidar correction file: %s\n", m_sLidarCorrectionFile.c_str());
