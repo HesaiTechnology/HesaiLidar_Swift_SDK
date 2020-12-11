@@ -241,10 +241,32 @@ typedef pcl::PointCloud<PPoint> PPointCloud;
 
 class Pandar128SDK {
  public:
+  /**
+   * @brief Constructor
+   * @param deviceipaddr  	  The ip of the device
+   *        lidarport 		  The port number of lidar data
+   *        gpsport   		  The port number of gps data
+   *        frameid           The id of the point cloud data published to ROS
+   *        correctionfile    The correction file path
+   *        firtimeflie       The firtime flie path
+   *        pcapfile          The pcap flie path
+   *        pclcallback       The callback of PCL data structure
+   *        rawcallback       The callback of raw data structure
+   *        gpscallback       The callback of GPS structure
+   *        certFile          Represents the path of the user's certificate
+   *        privateKeyFile    Represents the path of the user's private key
+   *        caFile            Represents the path of the root certificate
+   *        start_angle       The start angle of every point cloud
+   *                          should be <real angle> * 100.
+   *        timezone          The timezone of local
+   *        publishmode       The mode of publish
+   *        datatype          The model of input data
+   */
 	Pandar128SDK(std::string deviceipaddr, uint16_t lidarport, uint16_t gpsport, std::string frameid, std::string correctionfile, std::string firtimeflie, std::string pcapfile, \
 								boost::function<void(boost::shared_ptr<PPointCloud>, double)> pclcallback, \
 								boost::function<void(PandarPacketsArray*)> rawcallback, \
 								boost::function<void(double)> gpscallback, \
+								std::string certFile, std::string privateKeyFile, std::string caFile, \
 								int startangle, int timezone, std::string publishmode, std::string datatype=LIDAR_DATA_TYPE);
 	~Pandar128SDK() {}
 
