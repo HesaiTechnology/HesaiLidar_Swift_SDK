@@ -49,6 +49,11 @@ typedef struct TcpCommandClient_s {
   int fd;
 } TcpCommandClient;
 
+char *certFile;
+char *privateKeyFile;
+char *caFile;
+CERTIFY_MODE sslFlag = 0;
+
 #ifdef DEBUG
 static void print_mem(char* mem, int len) {
   int i = 0;
@@ -74,19 +79,19 @@ static int tcpCommandHeaderParser(unsigned char* buffer, int len,
 
 static int tcpCommandReadCommand(int connfd, TC_Command* cmd) {
   int ret = 0;
-  if(!cmd) {
+  if (!cmd) {
     return -1;
   }
   memset(cmd, 0, sizeof(TC_Command));
   unsigned char buffer[1500];
   ret = sys_readn(connfd, buffer, 2);
-  if(ret <= 0 || buffer[0] != 0x47 || buffer[1] != 0x74) {
+  if (ret <= 0 || buffer[0] != 0x47 || buffer[1] != 0x74) {
     printf("Server Read failed\n");
     return -1;
   }
 
   ret = sys_readn(connfd, buffer + 2, 6);
-  if(ret != 6) {
+  if (ret != 6) {
     printf("Server Read failed\n");
     return -1;
   }
@@ -95,16 +100,16 @@ static int tcpCommandReadCommand(int connfd, TC_Command* cmd) {
 
   tcpCommandHeaderParser(buffer + 2, 6, &cmd->header);
 
-  if(cmd->header.len > 0) {
+  if (cmd->header.len > 0) {
     cmd->data = malloc(cmd->header.len);
-    if(!cmd->data) {
+    if (!cmd->data) {
       printf("malloc data error\n");
       return -1;
     }
   }
 
   ret = sys_readn(connfd, cmd->data, cmd->header.len);
-  if(ret != cmd->header.len) {
+  if (ret != cmd->header.len) {
     free(cmd->data);
     printf("Server Read failed\n");
     return -1;
@@ -117,8 +122,55 @@ static int tcpCommandReadCommand(int connfd, TC_Command* cmd) {
   return 0;
 }
 
+static int tcpCommandReadCommandBySSL(SSL *ssl, TC_Command* cmd) {
+	int ret = 0;
+	if(!cmd) {
+		return -1;
+	}
+	memset(cmd , 0 , sizeof(TC_Command));
+	unsigned char buffer [1500];
+  printf("reading data....\n");
+	ret = sys_readn_by_ssl(ssl, buffer , 2);
+	if(ret <= 0 || buffer[0] != 0x47 || buffer [1] != 0x74) {
+    printf("ret: %d, buffer[0]: %x,buffer[1]: %x\n",ret, buffer[0], buffer[1]);
+		printf("Server Read failed by ssl!!!\n");
+		return -1;
+	}
+
+	ret = sys_readn_by_ssl(ssl, buffer + 2 , 6);
+	if(ret != 6) {
+		printf("Server Read failed by ssl\n");
+		return -1;
+	}
+	
+	// printf("read response header size = 8:\n");
+	print_mem(buffer , 8);
+	tcpCommandHeaderParser(buffer + 2 , 6 , &cmd->header);
+
+	if(cmd->header.len > 0) {
+		cmd->data = malloc(cmd->header.len + 1);
+		if(!cmd->data) {
+			printf("malloc data error\n");
+			return -1;
+		}
+		memset(cmd->data, 0, cmd->header.len + 1);
+	}
+
+	ret = sys_readn_by_ssl(ssl, cmd->data , cmd->header.len);
+	if(ret != cmd->header.len) {
+		free(cmd->data);
+		printf("Server Read failed by ssl\n");
+		return -1;
+	}
+	printf("read response data size = %d:\n", cmd->header.len);
+	print_mem(cmd->data , cmd->header.len);
+	cmd->ret_data = cmd->data;
+	cmd->ret_size = cmd->header.len;
+	return 0;
+}
+
 static int TcpCommand_buildHeader(char* buffer, TC_Command* cmd) {
-  if(!buffer) {
+  if (!buffer) {
     return -1;
   }
   int index = 0;
@@ -134,20 +186,21 @@ static int TcpCommand_buildHeader(char* buffer, TC_Command* cmd) {
   return index;
 }
 
-static PTC_ErrCode tcpCommandClient_SendCmd(TcpCommandClient* client,
+static PTC_ErrCode tcpCommandClientSendCmdWithoutSecurity(TcpCommandClient* client,
                                             TC_Command* cmd) {
-  if(!client && !cmd) {
+  if (!client && !cmd) {
     printf("Bad Parameter\n");
     return PTC_ERROR_BAD_PARAMETER;
   }
 
-  if(cmd->header.len != 0 && cmd->data == NULL) {
+  if (cmd->header.len != 0 && cmd->data == NULL) {
     printf("Bad Parameter : payload is null\n");
     return PTC_ERROR_BAD_PARAMETER;
   }
   pthread_mutex_lock(&client->lock);
+
   int fd = tcp_open(client->ip, client->port);
-  if(fd < 0) {
+  if (fd < 0) {
     pthread_mutex_unlock(&client->lock);
      printf("connect server failed\n");
     return PTC_ERROR_CONNECT_SERVER_FAILED;
@@ -157,16 +210,16 @@ static PTC_ErrCode tcpCommandClient_SendCmd(TcpCommandClient* client,
 
   print_mem(buffer, size);
   int ret = write(fd, buffer, size);
-  if(ret != size) {
+  if (ret != size) {
     close(fd);
     pthread_mutex_unlock(&client->lock);
     printf("Write header error\n");
     return PTC_ERROR_TRANSFER_FAILED;
   }
-  if(cmd->header.len > 0 && cmd->data) {
+  if (cmd->header.len > 0 && cmd->data) {
     print_mem(cmd->data, cmd->header.len);
     ret = write(fd, cmd->data, cmd->header.len);
-    if(ret != cmd->header.len) {
+    if (ret != cmd->header.len) {
       printf("Write Payload error\n");
       close(fd);
       pthread_mutex_unlock(&client->lock);
@@ -176,7 +229,7 @@ static PTC_ErrCode tcpCommandClient_SendCmd(TcpCommandClient* client,
 
   TC_Command feedBack;
   ret = tcpCommandReadCommand(fd, &feedBack);
-  if(ret != 0) {
+  if (ret != 0) {
     printf("Receive feed back failed!!!\n");
     close(fd);
     pthread_mutex_unlock(&client->lock);
@@ -195,15 +248,129 @@ static PTC_ErrCode tcpCommandClient_SendCmd(TcpCommandClient* client,
   return PTC_ERROR_NO_ERROR;
 }
 
+static PTC_ErrCode tcpCommandClientSendCmdWithSecurity(TcpCommandClient *client , TC_Command *cmd) {
+	if(!client || !cmd) {
+		printf("Bad Parameter\n");
+		return PTC_ERROR_BAD_PARAMETER;
+	}
+
+	if(cmd->header.len != 0 && cmd->data == NULL) {
+		printf("Bad Parameter : payload is null\n");
+		return PTC_ERROR_BAD_PARAMETER;
+	}
+	pthread_mutex_lock(&client->lock);
+	int err_code = PTC_ERROR_NO_ERROR;
+
+	SSL_CTX* ctx = initial_client_ssl(certFile, privateKeyFile, caFile);
+	if(ctx == NULL) {
+    printf("%s:%d, create SSL_CTX failed\n", __func__, __LINE__);
+		// ERR_print_errors_fp(stderr);
+		return PTC_ERROR_CONNECT_SERVER_FAILED;
+	}
+
+	int fd = tcp_open(client->ip , client->port);
+	if(fd < 0) {
+		printf("Connect to Server Failed!~!~\n");
+		err_code = PTC_ERROR_CONNECT_SERVER_FAILED;
+		goto end;
+	}
+
+	SSL *ssl = SSL_new(ctx);
+	if (ssl == NULL) {
+		printf("%s:%d, create ssl failed\n", __func__, __LINE__);
+		err_code = PTC_ERROR_CONNECT_SERVER_FAILED;
+		goto end;
+	}
+
+	SSL_set_fd(ssl, fd);
+	if(SSL_connect(ssl) == 0) {
+		printf("%s:%d, connect ssl failed\n", __func__, __LINE__);
+		// ERR_print_errors_fp(stderr);
+		err_code = PTC_ERROR_CONNECT_SERVER_FAILED;
+		goto end;
+	}
+
+	if(SSL_get_verify_result(ssl) != X509_V_OK) {
+		printf("%s:%d, verify ssl failed\n", __func__, __LINE__);
+		// ERR_print_errors_fp(stderr);
+		err_code = PTC_ERROR_CONNECT_SERVER_FAILED;
+		goto end;
+	}
+
+	unsigned char buffer[128];
+	int size = TcpCommand_buildHeader(buffer , cmd);
+	// printf("cmd header to tx, size = %d: \n",size);
+	print_mem(buffer , size);
+	int ret = SSL_write(ssl , buffer , size);
+	if(ret != size) {
+		printf("Write header error, ret=%d, size=%d\n", ret, size);
+		err_code = PTC_ERROR_TRANSFER_FAILED;
+		goto end;
+	}
+
+	if(cmd->header.len > 0 && cmd->data) {		
+		printf(" cmd data to tx size = %d: \n", cmd->header.len);
+		print_mem(cmd->data , cmd->header.len);
+		ret = SSL_write(ssl, cmd->data , cmd->header.len);
+		if(ret != cmd->header.len) {
+			printf("Write Payload error\n");
+			err_code = PTC_ERROR_TRANSFER_FAILED;
+			goto end;
+		}
+	}
+
+	TC_Command feedBack;
+	ret = tcpCommandReadCommandBySSL(ssl, &feedBack);
+	if(ret != 0) {
+		printf("Receive feed back failed!!!\n");
+		err_code = PTC_ERROR_TRANSFER_FAILED;
+		goto end;
+	}
+	// printf("feed back : %d %d %d \n", cmd->ret_size , cmd->header.ret_code , cmd->header.cmd);
+
+	cmd->ret_data = feedBack.ret_data;
+	cmd->ret_size = feedBack.ret_size;
+	cmd->header.ret_code = feedBack.header.ret_code;
+	printf("certify finished,close ssl and fd now \n");
+
+	end:
+	if (ssl != NULL) SSL_shutdown(ssl);
+	if (fd > 0) close(fd);
+	if (ctx != NULL) {
+		SSL_CTX_free(ctx);
+		pthread_mutex_unlock(&client->lock);
+	}
+	return err_code;
+}
+
+static PTC_ErrCode tcpCommandClient_SendCmd(TcpCommandClient *client, TC_Command *cmd) {
+  if(CERTIFY_MODE_NONE == sslFlag) {
+    printf("Get data without certification now...\n");
+    return tcpCommandClientSendCmdWithoutSecurity(client, cmd);
+  }
+  if(CERTIFY_MODE_SINGLE == sslFlag) {
+    printf("Get data with single certification now...\n");
+    return tcpCommandClientSendCmdWithSecurity(client, cmd);
+  }
+  if(CERTIFY_MODE_DUAL == sslFlag) {
+    printf("Get data with dual certification now...\n");
+    return tcpCommandClientSendCmdWithSecurity(client, cmd);
+  }
+  if(CERTIFY_MODE_ERROR == sslFlag) {
+    printf("No CA file found, please check CA file path!\n");
+    return PTC_ERROR_BAD_PARAMETER;
+  }
+}
+
 void* TcpCommandClientNew(const char* ip, const unsigned short port) {
-  if(!ip) {
+  if (!ip) {
     printf("Bad Parameter\n");
     return NULL;
   }
 
   TcpCommandClient* client =
       (TcpCommandClient*)malloc(sizeof(TcpCommandClient));
-  if(!client) {
+  if (!client) {
     printf("No Memory!!!\n");
     return NULL;
   }
@@ -220,7 +387,7 @@ void* TcpCommandClientNew(const char* ip, const unsigned short port) {
 
 PTC_ErrCode TcpCommandSetCalibration(const void* handle, const char* buffer,
                                      unsigned int len) {
-  if(!handle || !buffer || len <= 0) {
+  if (!handle || !buffer || len <= 0) {
     printf("Bad Parameter!!!\n");
     return PTC_ERROR_BAD_PARAMETER;
   }
@@ -233,13 +400,13 @@ PTC_ErrCode TcpCommandSetCalibration(const void* handle, const char* buffer,
   cmd.data = strdup(buffer);
 
   PTC_ErrCode errorCode = tcpCommandClient_SendCmd(client, &cmd);
-  if(errorCode != PTC_ERROR_NO_ERROR) {
+  if (errorCode != PTC_ERROR_NO_ERROR) {
     free(cmd.data);
     return errorCode;
   }
   free(cmd.data);
 
-  if(cmd.ret_data) {
+  if (cmd.ret_data) {
     // useless data;
     free(cmd.ret_data);
   }
@@ -249,7 +416,7 @@ PTC_ErrCode TcpCommandSetCalibration(const void* handle, const char* buffer,
 
 PTC_ErrCode TcpCommandGetCalibration(const void* handle, char** buffer,
                                      unsigned int* len) {
-  if(!handle || !buffer || !len) {
+  if (!handle || !buffer || !len) {
     printf("Bad Parameter!!!\n");
     return PTC_ERROR_BAD_PARAMETER;
   }
@@ -262,7 +429,7 @@ PTC_ErrCode TcpCommandGetCalibration(const void* handle, char** buffer,
   cmd.data = NULL;
 
   PTC_ErrCode errorCode = tcpCommandClient_SendCmd(client, &cmd);
-  if(errorCode != PTC_ERROR_NO_ERROR) {
+  if (errorCode != PTC_ERROR_NO_ERROR) {
     return errorCode;
   }
 
@@ -279,7 +446,7 @@ PTC_ErrCode TcpCommandGetCalibration(const void* handle, char** buffer,
 }
 PTC_ErrCode TcpCommandGetLidarCalibration(const void* handle, char** buffer,
                                           unsigned int* len) {
-  if(!handle || !buffer || !len) {
+  if (!handle || !buffer || !len) {
     printf("Bad Parameter!!!\n");
     return PTC_ERROR_BAD_PARAMETER;
   }
@@ -291,8 +458,8 @@ PTC_ErrCode TcpCommandGetLidarCalibration(const void* handle, char** buffer,
   cmd.header.len = 0;
   cmd.data = NULL;
   PTC_ErrCode errorCode = tcpCommandClient_SendCmd(client, &cmd);
-  if(errorCode != PTC_ERROR_NO_ERROR) {
-    printf("tcpCommandClient_SendCmd error");
+  if (errorCode != PTC_ERROR_NO_ERROR) {
+    printf("The client failed to send a command by TCP\n");
     return errorCode;
   }
 
@@ -309,7 +476,7 @@ PTC_ErrCode TcpCommandGetLidarCalibration(const void* handle, char** buffer,
 }
 
 PTC_ErrCode TcpCommandResetCalibration(const void* handle) {
-  if(!handle) {
+  if (!handle) {
     printf("Bad Parameter!!!\n");
     return PTC_ERROR_BAD_PARAMETER;
   }
@@ -322,11 +489,11 @@ PTC_ErrCode TcpCommandResetCalibration(const void* handle) {
   cmd.data = NULL;
 
   PTC_ErrCode errorCode = tcpCommandClient_SendCmd(client, &cmd);
-  if(errorCode != PTC_ERROR_NO_ERROR) {
+  if (errorCode != PTC_ERROR_NO_ERROR) {
     return errorCode;
   }
 
-  if(cmd.ret_data) {
+  if (cmd.ret_data) {
     // useless data;
     free(cmd.ret_data);
   }
@@ -335,3 +502,68 @@ PTC_ErrCode TcpCommandResetCalibration(const void* handle) {
 }
 
 void TcpCommandClientDestroy(const void* handle) {}
+
+void TcpCommandSetSsl(const char* cert, const char* private_key, const char* ca) {
+  int len;
+  sslFlag = CERTIFY_MODE_NONE;
+  if(0 != strlen(ca)) {
+    sslFlag = CERTIFY_MODE_SINGLE;
+    len = strlen(ca);
+    caFile = (char*)malloc(len*sizeof(char)+1);
+    strcpy(caFile, ca);
+  }
+  if(0 != strlen(cert) && 0 != strlen(private_key)) {
+    if(CERTIFY_MODE_SINGLE == sslFlag) {
+      sslFlag = CERTIFY_MODE_DUAL;
+      len = strlen(cert);
+      certFile = (char*)malloc(len*sizeof(char)+1);
+      strcpy(certFile, cert);
+      len = strlen(private_key);
+      privateKeyFile = (char*)malloc(len*sizeof(char)+1);
+      strcpy(privateKeyFile, private_key);
+    }
+    else{
+      sslFlag = CERTIFY_MODE_ERROR;
+    }  
+  }
+}
+
+SSL_CTX* initial_client_ssl(const char* cert, const char* private_key, const char* ca) {
+	SSL_library_init();
+	SSL_load_error_strings();
+	OpenSSL_add_all_algorithms();
+	SSL_CTX *ctx = SSL_CTX_new(SSLv23_client_method());
+
+	if(ctx == NULL) {
+		ERR_print_errors_fp(stderr);
+		printf("%s:%d, create SSL_CTX failed\n", __func__, __LINE__);
+		return NULL;
+	}
+
+	if (ca) {
+    printf("ca path: %s\n",ca);
+		if(	SSL_CTX_load_verify_locations(ctx, ca, NULL) == 0) {
+			// ERR_print_errors_fp(stderr);
+			printf("%s:%d, load ca failed,please check ca file path\n", __func__, __LINE__);
+			return NULL;
+		}
+	}
+
+	if (cert && private_key){
+    printf("cert path: %s,\nprivate_key path: %s\n",cert, private_key);
+		SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
+		if(SSL_CTX_use_certificate_file(ctx, cert, SSL_FILETYPE_PEM) == 0) {
+      printf("%s:%d, load cert file failed,please check cert file path\n", __func__, __LINE__);
+			return NULL;
+    }
+    if(SSL_CTX_use_PrivateKey_file(ctx, private_key, SSL_FILETYPE_PEM) == 0) {
+      printf("%s:%d, load private key file failed,please check private key file path\n", __func__, __LINE__);
+			return NULL;
+    }
+    if(SSL_CTX_check_private_key(ctx) == 0) {
+      printf("%s:%d, check private key failed\n", __func__, __LINE__);
+			return NULL;
+    }
+	}
+	return ctx;
+}
