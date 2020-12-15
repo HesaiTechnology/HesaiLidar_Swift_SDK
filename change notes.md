@@ -23,3 +23,11 @@ Pandar128SDK_1.2.3
 ##modify
 1. Support certificate authentication
 
+星期二, 15. 十二月 2020 15:25下午 
+##version
+Pandar128SDK_1.2.4 
+
+##modify
+1. Support save frame data to the local file
+2. Fix that all point cloud values have timestamp and ring
+
