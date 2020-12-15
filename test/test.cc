@@ -15,6 +15,10 @@
  *****************************************************************************/
 #include "pandar128SDK.h"
 
+#define PCD_FILE_WRITE_FLAG (false) //false: don't save point cloud data;
+                                    //true : save a frame of point cloud data
+int frameItem = 0;
+
 void gpsCallback(double timestamp) {
     printf("gps: %lf\n", timestamp);
 }
@@ -30,7 +34,6 @@ void lidarCallback(boost::shared_ptr<PPointCloud> cld, double timestamp) {
     //     pcl::PCDWriter writer;
     //     writer.write("../P128Pcd.pcd", *cld);
     // }
-}
 
 void rawcallback(PandarPacketsArray *array) {
     // printf("array size: %d\n", array->size());
