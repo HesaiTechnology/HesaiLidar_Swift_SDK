@@ -31,4 +31,12 @@ Pandar128SDK_1.2.4
 1. Support save frame data to the local file
 2. Fix that all point cloud values have timestamp and ring
 
+星期五, 18. 十二月 2020 13:00下午 
+##version
+Pandar128SDK_1.2.5
+
+##modify
+1. Fix the problem that point cloud data is put in wrong place in dual model
+
+
 
