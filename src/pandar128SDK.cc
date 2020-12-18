@@ -71,7 +71,7 @@ Pandar128SDK::Pandar128SDK(std::string deviceipaddr, uint16_t lidarport, uint16_
 							boost::function<void(double)> gpscallback, \
 							std::string certFile, std::string privateKeyFile, std::string caFile, \
 							int startangle, int timezone, std::string publishmode, std::string datatype) {
-	m_sSdkVersion = "Pandar128SDK_1.2.4";
+	m_sSdkVersion = "Pandar128SDK_1.2.5";
 	printf("\n--------Pandar128 SDK version: %s--------\n",m_sSdkVersion.c_str());
 	m_sDeviceIpAddr = deviceipaddr;
 	m_sFrameId = frameid;
