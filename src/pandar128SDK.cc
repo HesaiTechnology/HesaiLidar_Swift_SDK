@@ -543,7 +543,7 @@ void Pandar128SDK::calcPointXYZIT(Pandar128Packet &pkt, boost::shared_ptr<PPoint
 			point.ring = i;
 			int index;
 			if(LIDAR_RETURN_BLOCK_SIZE_2 == m_iReturnBlockSize) {
-				index = (block.fAzimuth - m_iLidarRotationStartAngle) / m_iAngleSize * PANDAR128_LASER_NUM *m_iReturnBlockSize + PANDAR128_LASER_NUM * (m_iReturnBlockSize - 1) + i;
+				index = (block.fAzimuth - m_iLidarRotationStartAngle) / m_iAngleSize * PANDAR128_LASER_NUM *m_iReturnBlockSize + PANDAR128_LASER_NUM * blockid + i;
 				// printf("block 2 index:[%d]",index);
 			} 
 			else {
