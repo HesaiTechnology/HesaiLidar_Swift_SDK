@@ -22,6 +22,7 @@ $ sudo apt install libpcap-dev libyaml-cpp-dev
 
 Set the parameters of class Pandar128SDK in test.cc
 ```
+        deviceipaddr  	  The ip of the device
         lidarport 		  The port number of lidar data
         gpsport   		  The port number of gps data
         frameid           The id of the point cloud data published to ROS
