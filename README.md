@@ -20,7 +20,7 @@ $ sudo apt install libpcap-dev libyaml-cpp-dev
 ```
 ## Run
 
-1.Set the parameters of class Pandar128SDK in test.cc
+Set the parameters of class Pandar128SDK in test.cc
 ```
         lidarport 		  The port number of lidar data
         gpsport   		  The port number of gps data
@@ -41,8 +41,10 @@ $ sudo apt install libpcap-dev libyaml-cpp-dev
         datatype          The model of input data
 
 ```
-Set the parameter pcapfile only when you what to read a pcap
-2.$ make 
-3.$ ./pandar128sdkTest
+Set the pcap flie path only when you what to read a pcap
+```
+$ make 
+$ ./pandar128sdkTest
+```
 
 
