@@ -20,26 +20,20 @@ $ sudo apt install libpcap-dev libyaml-cpp-dev
 ```
 ## Run
 
-Set the parameters of class Pandar128SDK in test.cc
+Set the ip and port of lidar in class Pandar128SDK in test.cc
 ```
-        deviceipaddr  	  The ip of the device
-        lidarport 		  The port number of lidar data
-        gpsport   		  The port number of gps data
-        frameid           The id of the point cloud data published to ROS
-        correctionfile    The correction file path
-        firtimeflie       The firtime flie path
-        pcapfile          The pcap flie path
-        pclcallback       The callback of PCL data structure
-        rawcallback       The callback of raw data structure
-        gpscallback       The callback of GPS structure
-        certFile          Represents the path of the user's certificate
-        privateKeyFile    Represents the path of the user's private key
-        caFile            Represents the path of the root certificate
-        start_angle       The start angle of every point cloud
-                          should be <real angle> * 100.
-        timezone          The timezone of local
-        publishmode       The mode of publish
-        datatype          The model of input data
+Pandar128SDK(std::string("192.168.1.201"), \    \\The ip of the device
+            2368, \                             \\The port number of lidar data
+            10110, \                            \\The port number of gps data
+            std::string("Pandar128"), \
+            std::string("../params/correction.csv"), \
+            std::string(""), \
+            std::string(""), \                  \\The pcap flie path
+            lidarCallback, rawcallback, gpsCallback, \
+            std::string(""), \
+            std::string(""), \
+            std::string(""), \
+            0, 0, std::string("both_point_raw")));
 
 ```
 Set the pcap flie path only when you what to read a pcap
