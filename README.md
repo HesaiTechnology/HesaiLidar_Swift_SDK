@@ -10,10 +10,6 @@ LiDAR sensor manufactured by Hesai Technology.
 ```
 $ sudo apt install libpcap-dev libyaml-cpp-dev
 ```
-## Clone
-```
-$ git clone https://github.com/HesaiTechnology/HesaiLidar_General_SDK.git
-```
 ## Build
 ```
 $ cd Pandar128_SDK
