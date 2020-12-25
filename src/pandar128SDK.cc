@@ -152,6 +152,13 @@ void Pandar128SDK::loadCorrectionFile() {
 	if(!loadCorrectionFileSuccess) { //load correction file from locaf file
 		printf("load correction file from local correction.csv now!\n");
 		std::ifstream fin(m_sLidarCorrectionFile);
+		if (fin.is_open()) {
+			printf("Open correction file success\n")
+		}
+		else
+		{
+			printf("Open correction file failed\n")
+		}
 		int length = 0;
 		std::string strlidarCalibration;
 		fin.seekg(0, std::ios::end);
