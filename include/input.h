@@ -91,6 +91,7 @@ public:
 	 *          > 0 if incomplete packet (is this possible?)
 	 */
 	virtual int getPacket(PandarPacket *pkt) = 0;
+	bool checkPacketSize(PandarPacket *pkt);
 	void setUdpVersion(uint8_t major, uint8_t minor);
 	std::string getUdpVersion();
 
