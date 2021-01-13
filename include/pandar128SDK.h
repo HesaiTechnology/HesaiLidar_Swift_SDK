@@ -75,9 +75,10 @@
 #define DISTANCE_SIZE (2)
 #define INTENSITY_SIZE (1)
 #define CONFIDENCE_SIZE (1)
-#define PANDAR128_UNIT_SIZE (DISTANCE_SIZE + INTENSITY_SIZE)
+#define PANDAR128_UNIT_WITHOUT_CONFIDENCE_SIZE (DISTANCE_SIZE + INTENSITY_SIZE)
+#define PANDAR128_UNIT_WITH_CONFIDENCE_SIZE (DISTANCE_SIZE + INTENSITY_SIZE + CONFIDENCE_SIZE)
 #define PANDAR128_BLOCK_SIZE \
-  (PANDAR128_UNIT_SIZE * PANDAR128_LASER_NUM + PANDAR128_AZIMUTH_SIZE)
+  (PANDAR128_UNIT_WITHOUT_CONFIDENCE_SIZE* PANDAR128_LASER_NUM + PANDAR128_AZIMUTH_SIZE)
 #define PANDAR128_TAIL_RESERVED1_SIZE (3)
 #define PANDAR128_TAIL_RESERVED2_SIZE (3)
 #define PANDAR128_SHUTDOWN_FLAG_SIZE (1)
@@ -119,7 +120,7 @@ typedef struct __attribute__((__packed__)) Pandar128Block_s {
   Pandar128Unit units[PANDAR128_LASER_NUM];
 } Pandar128Block;
 
-typedef struct Pandar128Head_s {
+typedef struct Pandar128HeadVersion13_s {
   uint16_t u16Sob;
   uint8_t u8VersionMajor;
   uint8_t u8VersionMinor;
@@ -130,9 +131,28 @@ typedef struct Pandar128Head_s {
   uint8_t u8EchoCount;
   uint8_t u8EchoNum;
   uint16_t u16Reserve1;
-} Pandar128Head;
+} Pandar128HeadVersion13;
 
-typedef struct Pandar128Tail_s {
+typedef struct Pandar128HeadVersion14_s {
+  uint16_t u16Sob;
+  uint8_t u8VersionMajor;
+  uint8_t u8VersionMinor;
+  uint16_t u16Reserve1;
+  uint8_t u8LaserNum;
+  uint8_t u8BlockNum;
+  uint8_t u8EchoCount;
+  uint8_t u8DistUnit;
+  uint8_t u8EchoNum;
+  uint8_t u8Flags;
+  inline bool hasSeqNum() const { return u8Flags & 1; }
+  inline bool hasImu() const { return u8Flags & 2; }
+  inline bool hasFunctionSafety() const { return u8Flags & 4; }
+  inline bool hasSignature() const { return u8Flags & 8; }
+  inline bool hasConfidence() const { return u8Flags & 0x10; }
+
+} Pandar128HeadVersion14;
+
+typedef struct Pandar128TailVersion13_s {
   uint8_t nReserved1[3];
   uint8_t nReserved2[3];
   uint8_t nShutdownFlag;
@@ -143,13 +163,27 @@ typedef struct Pandar128Tail_s {
   uint8_t nFactoryInfo;
   uint8_t nUTCTime[6];
   uint32_t nSeqNum;
-} Pandar128Tail;
+} Pandar128TailVersion13;
 
-typedef struct __attribute__((__packed__)) Pandar128Packet_t {
-  Pandar128Head head;
+typedef struct Pandar128TailVersion14_s {
+  uint8_t nReserved1[3];
+  uint8_t nReserved2[3];
+  uint8_t nReserved3[3];
+  uint16_t nAzimuthFlag;
+  uint8_t nShutdownFlag;
+  uint8_t nReturnMode;
+  uint16_t nMotorSpeed;
+  uint8_t nUTCTime[6];
+  uint32_t nTimestamp;
+  uint8_t nFactoryInfo;
+  uint32_t nSeqNum;
+} Pandar128TailVersion14;
+
+typedef struct __attribute__((__packed__)) Pandar128PacketVersion13_t {
+  Pandar128HeadVersion13 head;
   Pandar128Block blocks[PANDAR128_BLOCK_NUM];
-  Pandar128Tail tail;
-} Pandar128Packet;
+  Pandar128TailVersion13 tail;
+} Pandar128PacketVersion13;
 
 struct PandarGPS_s {
   uint16_t flag;
@@ -162,7 +196,7 @@ struct PandarGPS_s {
   uint32_t fineTime;
 };
 
-typedef std::array<Pandar128Packet, 36000> PktArray;
+typedef std::array<PandarPacket, 36000> PktArray;
 
 typedef struct PacketsBuffer_s {
     PktArray m_buffers{};
@@ -179,7 +213,7 @@ typedef struct PacketsBuffer_s {
         m_startFlag = false;
     }
 
-    inline int push_back(Pandar128Packet pkt) {
+    inline int push_back(PandarPacket pkt) {
         if(!m_startFlag) {
 			*(m_iterPush++) = pkt;
 			m_startFlag = true;
@@ -279,8 +313,8 @@ class Pandar128SDK {
 
  private:
 
-	int parseData(Pandar128Packet &pkt, const uint8_t *buf, const int len);
-	void calcPointXYZIT(Pandar128Packet &pkt, boost::shared_ptr<PPointCloud> &cld);
+	int parseData(Pandar128PacketVersion13 &pkt, const uint8_t *buf, const int len);
+	void calcPointXYZIT(PandarPacket &pkt, boost::shared_ptr<PPointCloud> &cld);
 	void doTaskFlow(int cursor);
 	void loadOffsetFile(std::string file);
 	void loadCorrectionFile();
@@ -322,6 +356,8 @@ class Pandar128SDK {
 	std::string m_sSdkVersion;
 	uint8_t m_u8UdpVersionMajor;
 	uint8_t m_u8UdpVersionMinor;
+  int m_iFirstAzimuthIndex;
+  int m_iLastAzimuthIndex;
 };
 
 #endif  // _PANDAR_POINTCLOUD_Pandar128SDK_H_
