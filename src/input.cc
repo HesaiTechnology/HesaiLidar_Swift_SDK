@@ -60,6 +60,10 @@ Input::Input(std::string deviceipaddr, uint16_t lidarport){
 bool Input::checkPacketSize(PandarPacket *pkt) {
   if(pkt->size < 100)
   return false;
+  if (pkt->data[0] != 0xEE && pkt->data[1] != 0xFF) {    
+    printf("Packet with invaild delimiter\n");
+    return false;
+  }
   if(m_sUdpVresion == UDP_VERSION_1_3){
 	  if(pkt->size == 812){
 		  return true;
@@ -79,22 +83,21 @@ bool Input::checkPacketSize(PandarPacket *pkt) {
   bool hasSignature = (flags & 8);
   bool hasConfidence = (flags & 0x10);
 
-  uint32_t size = 12 + 
+  m_iUtcIindex = 12 +
             (hasConfidence ? 4 * laserNum * blockNum : 3 * laserNum * blockNum) + 
             2 * blockNum + 4 +
             (hasFunctionSafety ? 17 : 0) + 
-            26 + 
-            (hasImu ? 22 : 0) + 
-            (hasSeqNum ? 4 : 0) + 4 +
+            15;
+  m_iTimestampIndex = m_iUtcIindex + 6;
+  m_iSequenceNumberIndex = m_iTimestampIndex +
+              5 +
+              (hasImu ? 22 : 0) + 
+              (hasSeqNum ? 4 : 0);
+
+  uint32_t size = m_iSequenceNumberIndex + 4 +
             (hasSignature ? 32 : 0);
   if(pkt->size == size){
-    if(size == 893 || size == 861){
-      return true;
-    }
-    else{
-      printf("Don't support to parse packet with size %d", size);
-      return false;
-    }
+    return true;
   }
   else{
     printf("Packet size mismatch.caculated size:%d, packet size:%d", size, pkt->size);
