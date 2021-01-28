@@ -83,19 +83,27 @@ bool Input::checkPacketSize(PandarPacket *pkt) {
   bool hasSignature = (flags & 8);
   bool hasConfidence = (flags & 0x10);
 
-  m_iUtcIindex = 12 +
-            (hasConfidence ? 4 * laserNum * blockNum : 3 * laserNum * blockNum) + 
-            2 * blockNum + 4 +
-            (hasFunctionSafety ? 17 : 0) + 
-            15;
-  m_iTimestampIndex = m_iUtcIindex + 6;
+  m_iUtcIindex = PANDAR128_HEAD_SIZE +
+            (hasConfidence ? PANDAR128_UNIT_WITH_CONFIDENCE_SIZE * laserNum * blockNum : PANDAR128_UNIT_WITHOUT_CONFIDENCE_SIZE * laserNum * blockNum) + 
+            PANDAR128_AZIMUTH_SIZE * blockNum + PANDAR128_CRC_SIZE +
+            (hasFunctionSafety ? PANDAR128_FUNCTION_SAFETY_SIZE : 0) + 
+            PANDAR128_TAIL_RESERVED1_SIZE + 
+            PANDAR128_TAIL_RESERVED2_SIZE +
+            PANDAR128_TAIL_RESERVED3_SIZE +
+            PANDAR128_AZIMUTH_FLAG_SIZE +
+            PANDAR128_SHUTDOWN_FLAG_SIZE +
+            PANDAR128_RETURN_MODE_SIZE +
+            PANDAR128_MOTOR_SPEED_SIZE;
+  m_iTimestampIndex = m_iUtcIindex + PANDAR128_UTC_SIZE;
   m_iSequenceNumberIndex = m_iTimestampIndex +
-              5 +
-              (hasImu ? 22 : 0) + 
-              (hasSeqNum ? 4 : 0);
+						   PANDAR128_TS_SIZE +
+						   PANDAR128_FACTORY_INFO;
 
-  uint32_t size = m_iSequenceNumberIndex + 4 +
-            (hasSignature ? 32 : 0);
+  uint32_t size = m_iSequenceNumberIndex + 
+                  (hasImu ? PANDAR128_IMU_SIZE : 0) + 
+                  (hasSeqNum ? PANDAR128_SEQ_NUM_SIZE  : 0) +
+                  PANDAR128_CRC_SIZE +
+                  (hasSignature ? PANDAR128_SIGNATURE_SIZE : 0);
   if(pkt->size == size){
     return true;
   }
