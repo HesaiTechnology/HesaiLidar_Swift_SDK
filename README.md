@@ -56,10 +56,10 @@ Pandar128SDK(std::string("192.168.1.201"), 2368, 10110, std::string("Pandar128")
                                 0, 0, std::string("both_point_raw")));
 
 ```
-
+Parameter description
 ```
         deviceipaddr  	  The ip of the device
-        lidarport 	  The port number of lidar data
+        lidarport 	      The port number of lidar data
         gpsport           The port number of gps data
         frameid           The id of the point cloud data published to ROS
         correctionfile    The correction file path
@@ -68,9 +68,9 @@ Pandar128SDK(std::string("192.168.1.201"), 2368, 10110, std::string("Pandar128")
         pclcallback       The callback of PCL data structure
         rawcallback       The callback of raw data structure
         gpscallback       The callback of GPS structure
-        certFile          Represents the path of the user's certificate
-        privateKeyFile    Represents the path of the user's private key
-        caFile            Represents the path of the root certificate
+        certFile          The path of the user's certificate
+        privateKeyFile    The path of the user's private key
+        caFile            The path of the root certificate
         start_angle       The start angle of every point cloud should be <real angle> * 100.
         timezone          The timezone of local
         publishmode       The mode of publish
