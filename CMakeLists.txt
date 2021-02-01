@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(PandarSwiftSDK)
+project(pandar128sdk)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -38,11 +38,11 @@ target_link_libraries(${PROJECT_NAME}
 
 if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR})
     find_package(PCL REQUIRED)
-    add_executable(PandarSwiftTest
+    add_executable(pandar128sdkTest
         test/test.cc
     )
 
-    target_link_libraries(PandarSwiftTest
+    target_link_libraries(pandar128sdkTest
         ${PROJECT_NAME}
         ${Boost_LIBRARIES}
         ${PCL_IO_LIBRARIES}
