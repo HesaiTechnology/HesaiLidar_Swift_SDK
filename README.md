@@ -18,7 +18,7 @@ $ git clone https://github.com/HesaiTechnology/HesaiLidar_Swift_SDK.git
 
 ## Build
 ```
-1.$ cd HesaiLidar_Swift_SDK
+1.$ cd Pandar128_SDK
 2.$ mkdir build
 3.$ cd build
 4.$ cmake ..
@@ -28,15 +28,15 @@ $ git clone https://github.com/HesaiTechnology/HesaiLidar_Swift_SDK.git
 ## Add to your project
 ### Cmake
 ```
-add_subdirectory(<path_to>HesaiLidar_Swift_SDK)
+add_subdirectory(<path_to>Pandar128_SDK)
 
 include_directories(
-	<path_to>HesaiLidar_Swift_SDK/include
-	<path_to>HesaiLidar_Swift_SDK/src
+	<path_to>Pandar128_SDK/include
+	<path_to>Pandar128_SDK/src
 )
 
 target_link_libraries(<Your project>
-  PandarSwiftSDK
+  pandar128sdk
 )
 ```
 
@@ -80,5 +80,5 @@ Parameter description
 Set the pcap flie path only when you what to read a pcap
 ```
 $ make 
-$ ./PandarSwiftTest
+$ ./pandar128sdkTest
 ```
