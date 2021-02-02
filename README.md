@@ -1,8 +1,8 @@
-# Pandar128_SDK
+# HesaiLidar_Swift_SDK
 
 ## About the project
-Pandar128_SDK project is the software development kit for:
-**Pandar128/Pandar64S/Pandar40S/Pandar80S**
+HesaiLidar_Swift_SDK project is the software development kit for:
+**Pandar128**
 LiDAR sensor manufactured by Hesai Technology.
 ## Environment and Dependencies
 **System environment requirement: Linux + G++ 7.0 or above**
@@ -10,10 +10,12 @@ LiDAR sensor manufactured by Hesai Technology.
 ```
 $ sudo apt install libpcap-dev libyaml-cpp-dev
 ```
+
 ## Clone
 ```
-$ git clone https://github.com/HesaiTechnology/Pandar128_SDK.git
+$ git clone https://github.com/HesaiTechnology/HesaiLidar_Swift_SDK.git
 ```
+
 ## Build
 ```
 1.$ cd Pandar128_SDK
@@ -22,22 +24,57 @@ $ git clone https://github.com/HesaiTechnology/Pandar128_SDK.git
 4.$ cmake ..
 5.$ make
 ```
+
+## Add to your project
+### Cmake
+```
+add_subdirectory(<path_to>Pandar128_SDK)
+
+include_directories(
+	<path_to>Pandar128_SDK/include
+	<path_to>Pandar128_SDK/src
+)
+
+target_link_libraries(<Your project>
+  pandar128sdk
+)
+```
+
 ## Run
 
-Set the ip and port of lidar in class Pandar128SDK in test.cc
+Set the parameters of class Pandar128SDK in test.cc
 ```
-Pandar128SDK(std::string("192.168.1.201"), \    \\The ip of the device
-            2368, \                             \\The port number of lidar data
-            10110, \                            \\The port number of gps data
-            std::string("Pandar128"), \
-            std::string("../params/correction.csv"), \
-            std::string(""), \
-            std::string(""), \                  \\The pcap flie path
-            lidarCallback, rawcallback, gpsCallback, \
-            std::string(""), \
-            std::string(""), \
-            std::string(""), \
-            0, 0, std::string("both_point_raw")));
+// for Pandar128
+Pandar128SDK(std::string("192.168.1.201"), 2368, 10110, std::string("Pandar128"), \
+                                std::string("../params/correction.csv"), \
+                                std::string(""), \
+                                std::string(""), \
+                                lidarCallback, rawcallback, gpsCallback, \
+                                std::string(""), \
+                                std::string(""), \
+                                std::string(""), \
+                                0, 0, std::string("both_point_raw")));
+
+```
+Parameter description
+```
+        deviceipaddr  	  The ip of the device
+        lidarport 	      The port number of lidar data
+        gpsport           The port number of gps data
+        frameid           The id of the point cloud data published to ROS
+        correctionfile    The correction file path
+        firtimeflie       The firtime flie path
+        pcapfile          The pcap flie path
+        pclcallback       The callback of PCL data structure
+        rawcallback       The callback of raw data structure
+        gpscallback       The callback of GPS structure
+        certFile          The path of the user's certificate
+        privateKeyFile    The path of the user's private key
+        caFile            The path of the root certificate
+        start_angle       The start angle of every point cloud should be <real angle> * 100.
+        timezone          The timezone of local
+        publishmode       The mode of publish
+        datatype          The model of input data
 
 ```
 Set the pcap flie path only when you what to read a pcap
