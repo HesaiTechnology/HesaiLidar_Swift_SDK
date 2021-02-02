@@ -1,4 +1,4 @@
-# Pandar128_SDK
+# HesaiLidar_Swift_SDK
 
 星期五, 6. 十一月 2020 16:45下午 
 ##version
@@ -40,4 +40,10 @@ Pandar128SDK_1.2.5
 1. Fix the problem that point cloud data is put in wrong place in dual model
 
 
+星期五, 29. 一月 2021 18:00 晚上
+##version
+Pandar128SDK_1.2.6
+
+##modify
+1. Change readme and project name
 
