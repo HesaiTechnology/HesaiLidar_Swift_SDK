@@ -21,14 +21,14 @@
 #define READ_PACKET_SIZE (1800)
 typedef struct PandarGPS_s PandarGPS;
 typedef std::array<PandarPacket, READ_PACKET_SIZE> PandarPacketsArray;
-class Pandar128SDK;
+class PandarSwiftSDK;
 
-class Pandar128Driver {
+class PandarSwiftDriver {
  public:
-	Pandar128Driver(std::string deviceipaddr, uint16_t lidarport, uint16_t gpsport, std::string frameid, std::string pcapfile,
+	PandarSwiftDriver(std::string deviceipaddr, uint16_t lidarport, uint16_t gpsport, std::string frameid, std::string pcapfile,
                 	boost::function<void(PandarPacketsArray*)> rawcallback, \
-					Pandar128SDK *pandar128sdk, std::string publishmode, std::string datatype);
-	~Pandar128Driver() {}
+					PandarSwiftSDK *pandarSwiftSDK, std::string publishmode, std::string datatype);
+	~PandarSwiftDriver() {}
 
 /** poll the device
  *
@@ -49,7 +49,7 @@ class Pandar128Driver {
 	int m_iPktPopIndex;
 	std::string m_sPublishmodel;
 	std::string m_sDataType;
-	Pandar128SDK *m_pPandar128SDK;
+	PandarSwiftSDK *m_pPandarSwiftSDK;
 };
 
 #endif  // _PANDAR_DRIVER_H_

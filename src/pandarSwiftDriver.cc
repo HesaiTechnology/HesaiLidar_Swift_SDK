@@ -16,16 +16,16 @@
 
 #include <cmath>
 #include <string>
-#include "pandar128SDK.h"
-#include "pandar128Driver.h"
+#include "pandarSwiftSDK.h"
+#include "pandarSwiftDriver.h"
 #include "platUtil.h"
 
-Pandar128Driver::Pandar128Driver(std::string deviceipaddr, uint16_t lidarport, uint16_t gpsport, std::string frameid, std::string pcapfile,
+PandarSwiftDriver::PandarSwiftDriver(std::string deviceipaddr, uint16_t lidarport, uint16_t gpsport, std::string frameid, std::string pcapfile,
                         	boost::function<void(PandarPacketsArray*)> rawcallback, \
-						    Pandar128SDK *pandar128sdk, std::string publishmode, std::string datatype) {
+						    PandarSwiftSDK *pandarSwiftSDK, std::string publishmode, std::string datatype) {
 	m_sFrameId = frameid;
 	m_funcRawCallback = rawcallback;
-	m_pPandar128SDK = pandar128sdk;
+	m_pPandarSwiftSDK = pandarSwiftSDK;
 	m_sPublishmodel = publishmode;
 	m_sDataType = datatype;
 	m_bNeedPublish = false;
@@ -67,7 +67,7 @@ int parseGPS(PandarGPS *packet, const uint8_t *recvbuf, const int size) {
 	return 0;
 }
 
-bool Pandar128Driver::poll(void) {
+bool PandarSwiftDriver::poll(void) {
 	uint64_t startTime = 0;
 	uint64_t endTime = 0;
 	timespec time;
@@ -78,12 +78,12 @@ bool Pandar128Driver::poll(void) {
 			// gps packet;
 			PandarGPS packet;
 			if(parseGPS(&packet, &m_arrPandarPackets[m_iPktPushIndex][i].data[0], GPS_PACKET_SIZE) == 0) {
-				m_pPandar128SDK->processGps(&packet);// gps callback
+				m_pPandarSwiftSDK->processGps(&packet);// gps callback
 			}
 		}
 		if(rc > 0) return false;  // end of file reached?
 		if(m_sPublishmodel == "both_point_raw" || m_sPublishmodel == "point") {
-			m_pPandar128SDK->pushLiDARData(m_arrPandarPackets[m_iPktPushIndex][i]);
+			m_pPandarSwiftSDK->pushLiDARData(m_arrPandarPackets[m_iPktPushIndex][i]);
 		}
 	}
 	int temp;
@@ -97,7 +97,7 @@ bool Pandar128Driver::poll(void) {
 	return true;
 }
 
-void Pandar128Driver::publishRawData() {
+void PandarSwiftDriver::publishRawData() {
 	if(m_bNeedPublish && (NULL != m_funcRawCallback)) {
 		m_funcRawCallback(&m_arrPandarPackets[m_iPktPopIndex]);
 		m_bNeedPublish = false;
@@ -107,6 +107,6 @@ void Pandar128Driver::publishRawData() {
 	}
 }
 
-void Pandar128Driver::setUdpVersion(uint8_t major, uint8_t minor) {
+void PandarSwiftDriver::setUdpVersion(uint8_t major, uint8_t minor) {
 	m_spInput->setUdpVersion(major, minor);
 }

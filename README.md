@@ -2,7 +2,7 @@
 
 ## About the project
 HesaiLidar_Swift_SDK project is the software development kit for:
-**Pandar128**
+**Pandar128/Pandar80/Pandar64S/Pandar40S**
 LiDAR sensor manufactured by Hesai Technology.
 ## Environment and Dependencies
 **System environment requirement: Linux + G++ 7.0 or above**
@@ -18,7 +18,7 @@ $ git clone https://github.com/HesaiTechnology/HesaiLidar_Swift_SDK.git
 
 ## Build
 ```
-1.$ cd Pandar128_SDK
+1.$ cd HesaiLidar_Swift_SDK
 2.$ mkdir build
 3.$ cd build
 4.$ cmake ..
@@ -28,24 +28,24 @@ $ git clone https://github.com/HesaiTechnology/HesaiLidar_Swift_SDK.git
 ## Add to your project
 ### Cmake
 ```
-add_subdirectory(<path_to>Pandar128_SDK)
+add_subdirectory(<path_to>HesaiLidar_General_SDK)
 
 include_directories(
-	<path_to>Pandar128_SDK/include
-	<path_to>Pandar128_SDK/src
+	<path_to>HesaiLidar_General_SDK/include
+	<path_to>HesaiLidar_General_SDK/src
 )
 
 target_link_libraries(<Your project>
-  pandar128sdk
+  PandarSwiftSDK
 )
 ```
 
 ## Run
 
-Set the parameters of class Pandar128SDK in test.cc
+Set the parameters of class PandarSwiftSDK in test.cc
 ```
 // for Pandar128
-Pandar128SDK(std::string("192.168.1.201"), 2368, 10110, std::string("Pandar128"), \
+PandarSwiftSDK(std::string("192.168.1.201"), 2368, 10110, std::string("Pandar128"), \
                                 std::string("../params/correction.csv"), \
                                 std::string(""), \
                                 std::string(""), \
@@ -80,19 +80,5 @@ Parameter description
 Set the pcap flie path only when you what to read a pcap
 ```
 $ make 
-$ ./pandar128sdkTest
-```
-## Add to your project
-### Cmake
-```
-add_subdirectory(<path_to>pandar128sdk)
-
-include_directories(
-	<path_to>Pandar128_SDK/include
-	<path_to>Pandar128_SDK/src
-)
-
-target_link_libraries(<Your project>
-  pandar128sdk
-)
+$ ./PandarSwiftTest
 ```
