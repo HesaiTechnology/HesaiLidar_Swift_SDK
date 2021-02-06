@@ -45,3 +45,10 @@ Pandar128SDK_1.2.6
 
 ##modify
 1. Change readme and project name
+
+星期五, 5. 二月 2021 18:00 晚上
+##version
+PandarSwiftSDK_1.2.7
+
+##modify
+1. Support to parser packet with protocol v1.4
