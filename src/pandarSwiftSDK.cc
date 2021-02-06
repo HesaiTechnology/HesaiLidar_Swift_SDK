@@ -6,9 +6,9 @@
  */
 
 /** @file
- *   This class Pandar128SDKs raw Pandar128 3D LIDAR packets to PointCloud2.
+ *   This class PandarSwiftSDKs raw Pandar128 3D LIDAR packets to PointCloud2.
  */
-#include "pandar128SDK.h"
+#include "pandarSwiftSDK.h"
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
@@ -65,14 +65,14 @@ static const float azimuthOffset[] = {
 };
 
 /** @brief Constructor. */
-Pandar128SDK::Pandar128SDK(std::string deviceipaddr, uint16_t lidarport, uint16_t gpsport, std::string frameid, std::string correctionfile, std::string firtimeflie, std::string pcapfile, \
+PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uint16_t gpsport, std::string frameid, std::string correctionfile, std::string firtimeflie, std::string pcapfile, \
 							boost::function<void(boost::shared_ptr<PPointCloud>, double)> pclcallback, \
 							boost::function<void(PandarPacketsArray*)> rawcallback, \
 							boost::function<void(double)> gpscallback, \
 							std::string certFile, std::string privateKeyFile, std::string caFile, \
 							int startangle, int timezone, std::string publishmode, std::string datatype) {
-	m_sSdkVersion = "Pandar128SDK_1.2.6";
-	printf("\n--------Pandar128 SDK version: %s--------\n",m_sSdkVersion.c_str());
+	m_sSdkVersion = "PandarSwiftSDK_1.2.6";
+	printf("\n--------PandarSwift SDK version: %s--------\n",m_sSdkVersion.c_str());
 	m_sDeviceIpAddr = deviceipaddr;
 	m_sFrameId = frameid;
 	m_sLidarFiretimeFile = firtimeflie;
@@ -94,7 +94,7 @@ Pandar128SDK::Pandar128SDK(std::string deviceipaddr, uint16_t lidarport, uint16_
 	m_bPublishPointsFlag = false;
 	m_funcPclCallback = pclcallback;
 	m_funcGpsCallback = gpscallback;
-	m_spPandarDriver.reset(new Pandar128Driver(deviceipaddr, lidarport, gpsport, frameid, pcapfile, rawcallback, this, publishmode, datatype));
+	m_spPandarDriver.reset(new PandarSwiftDriver(deviceipaddr, lidarport, gpsport, frameid, pcapfile, rawcallback, this, publishmode, datatype));
 	TcpCommandSetSsl(certFile.c_str(), privateKeyFile.c_str(), caFile.c_str());
 	printf("frame id: %s\n", m_sFrameId.c_str());
 	printf("lidar firetime file: %s\n", m_sLidarFiretimeFile.c_str());
@@ -113,18 +113,18 @@ Pandar128SDK::Pandar128SDK(std::string deviceipaddr, uint16_t lidarport, uint16_
 		m_fSinAllAngle[j] = sinf(degreeToRadian(angle));
 	}
 	if(LIDAR_DATA_TYPE == datatype) {
-		boost::thread thrd(boost::bind(&Pandar128SDK::driverReadThread, this));
+		boost::thread thrd(boost::bind(&PandarSwiftSDK::driverReadThread, this));
 	}
 	if(m_sPublishmodel == "both_point_raw" || m_sPublishmodel == "point" || LIDAR_DATA_TYPE != datatype) {
-		boost::thread processThr(boost::bind(&Pandar128SDK::processLiDARData, this));
-		boost::thread publishPointsThr(boost::bind(&Pandar128SDK::publishPointsThread, this));
+		boost::thread processThr(boost::bind(&PandarSwiftSDK::processLiDARData, this));
+		boost::thread publishPointsThr(boost::bind(&PandarSwiftSDK::publishPointsThread, this));
 	}
 	if((m_sPublishmodel == "both_point_raw" || m_sPublishmodel == "raw") && LIDAR_DATA_TYPE == datatype) {
-		boost::thread processThr(boost::bind(&Pandar128SDK::publishRawDataThread, this));
+		boost::thread processThr(boost::bind(&PandarSwiftSDK::publishRawDataThread, this));
 	}
 }
 
-void Pandar128SDK::loadCorrectionFile() {
+void PandarSwiftSDK::loadCorrectionFile() {
 	bool loadCorrectionFileSuccess = false;
 	int ret;
 	if(m_sPcapFile.empty()) { //connect to lidar,load correction file frome lidar
@@ -157,32 +157,32 @@ void Pandar128SDK::loadCorrectionFile() {
 		std::ifstream fin(m_sLidarCorrectionFile);
 		if (fin.is_open()) {
 			printf("Open correction file success\n");
+			int length = 0;
+			std::string strlidarCalibration;
+			fin.seekg(0, std::ios::end);
+			length = fin.tellg();
+			fin.seekg(0, std::ios::beg);
+			char *buffer = new char[length];
+			fin.read(buffer, length);
+			fin.close();
+			strlidarCalibration = buffer;
+			ret = loadCorrectionString(strlidarCalibration);
+			if(ret != 0) {
+				printf("Parse local Correction file Error\n");
+			} 
+			else {
+				printf("Parse local Correction file Success!!!\n");
+			}
 		}
 		else
 		{
 			printf("Open correction file failed\n");
 			return;
 		}
-		int length = 0;
-		std::string strlidarCalibration;
-		fin.seekg(0, std::ios::end);
-		length = fin.tellg();
-		fin.seekg(0, std::ios::beg);
-		char *buffer = new char[length];
-		fin.read(buffer, length);
-		fin.close();
-		strlidarCalibration = buffer;
-		ret = loadCorrectionString(strlidarCalibration);
-		if(ret != 0) {
-			printf("Parse local Correction file Error\n");
-		} 
-		else {
-			printf("Parse local Correction file Success!!!\n");
-		}
 	}
 }
 
-int Pandar128SDK::loadCorrectionString(std::string correction_content) {
+int PandarSwiftSDK::loadCorrectionString(std::string correction_content) {
     std::istringstream ifs(correction_content);
 	std::string line;
 	if(std::getline(ifs, line)) {  // first line "Laser id,Elevation,Azimuth"
@@ -222,27 +222,27 @@ int Pandar128SDK::loadCorrectionString(std::string correction_content) {
 	return 0;
 }
 
-void Pandar128SDK::driverReadThread() {
+void PandarSwiftSDK::driverReadThread() {
 	SetThreadPriority(SCHED_RR, 99);
 	while (1) {
 		m_spPandarDriver->poll();
 	}
 }
 
-void Pandar128SDK::publishRawDataThread() {
+void PandarSwiftSDK::publishRawDataThread() {
 	SetThreadPriority(SCHED_FIFO, 90);
 	while (1) {
 		m_spPandarDriver->publishRawData();
 	}
 }
 
-void Pandar128SDK::pushLiDARData(PandarPacket packet) {
-	//  printf("Pandar128SDK::pushLiDARData");
+void PandarSwiftSDK::pushLiDARData(PandarPacket packet) {
+	//  printf("PandarSwiftSDK::pushLiDARData");
 	m_PacketsBuffer.push_back(packet);
 	// printf("%d, %d\n",pkt.blocks[0].fAzimuth,pkt.blocks[1].fAzimuth);
 }
 
-int Pandar128SDK::parseData(Pandar128PacketVersion13 &packet, const uint8_t *recvbuf, const int len) {
+int PandarSwiftSDK::parseData(Pandar128PacketVersion13 &packet, const uint8_t *recvbuf, const int len) {
 	int index = 0;
 	if(recvbuf[0] != 0xEE && recvbuf[1] != 0xFF && recvbuf[2] != 1 ) {    
 		printf("Lidar type is error %d\n", len);
@@ -286,7 +286,7 @@ int Pandar128SDK::parseData(Pandar128PacketVersion13 &packet, const uint8_t *rec
 	return -1;
 }
 
-int Pandar128SDK::processLiDARData() {
+int PandarSwiftSDK::processLiDARData() {
 	SetThreadPriority(SCHED_FIFO, 91);
 	double lastTimestamp = 0.0;
 	struct timespec ts;
@@ -351,7 +351,7 @@ int Pandar128SDK::processLiDARData() {
 	}
 }
 
-void Pandar128SDK::moveTaskEndToStartAngle() {
+void PandarSwiftSDK::moveTaskEndToStartAngle() {
 	uint32_t startTick = GetTickCount();
 	for(PktArray::iterator iter = m_PacketsBuffer.m_iterTaskBegin; iter < m_PacketsBuffer.m_iterTaskEnd; iter++) {
 		if ((*(uint16_t*)(&(iter->data[0]) + m_iFirstAzimuthIndex) > *(uint16_t*)(&((iter + 1)->data[0]) + m_iFirstAzimuthIndex)) &&
@@ -367,7 +367,7 @@ void Pandar128SDK::moveTaskEndToStartAngle() {
 	// printf("moveTaskEndToStartAngle time: %d\n", endTick - startTick);
 }
 
-void Pandar128SDK::publishPointsThread() {
+void PandarSwiftSDK::publishPointsThread() {
 	SetThreadPriority(SCHED_FIFO, 90);
 	while (1) {
 		usleep(1000);
@@ -384,7 +384,7 @@ void Pandar128SDK::publishPointsThread() {
 	}
 }
 
-void Pandar128SDK::doTaskFlow(int cursor) {
+void PandarSwiftSDK::doTaskFlow(int cursor) {
 	tf::Taskflow taskFlow;
 	taskFlow.parallel_for(m_PacketsBuffer.getTaskBegin(),m_PacketsBuffer.getTaskEnd(),
 							[this, &cursor](auto &taskpkt) {calcPointXYZIT(taskpkt, m_OutMsgArray[cursor]);});
@@ -392,7 +392,7 @@ void Pandar128SDK::doTaskFlow(int cursor) {
 	m_PacketsBuffer.creatNewTask();
 }
 
-void Pandar128SDK::init() {
+void PandarSwiftSDK::init() {
 	while (1) {
 		if(!m_PacketsBuffer.hasEnoughPackets()) {
 			usleep(1000);
@@ -453,7 +453,7 @@ void Pandar128SDK::init() {
 	}
 }
 
-int Pandar128SDK::checkLiadaMode() {
+int PandarSwiftSDK::checkLiadaMode() {
 	uint8_t lidarworkmode = 0;
 	uint8_t lidarreturnmode = 0;
 	uint16_t lidarmotorspeed = 0;
@@ -531,7 +531,7 @@ int Pandar128SDK::checkLiadaMode() {
 	}
 }
 
-void Pandar128SDK::changeAngleSize() {
+void PandarSwiftSDK::changeAngleSize() {
 	if(m_iLaserNum == 80) {
 		m_iAngleSize = LIDAR_ANGLE_SIZE_18;  // 18->0.18degree
 		return;
@@ -550,7 +550,7 @@ void Pandar128SDK::changeAngleSize() {
 	}  
 }
 
-void Pandar128SDK::changeReturnBlockSize() {
+void PandarSwiftSDK::changeReturnBlockSize() {
 	if(0x39 == m_iReturnMode || 0x3b == m_iReturnMode || 0x3c == m_iReturnMode) {
 		m_iReturnBlockSize = LIDAR_RETURN_BLOCK_SIZE_2;
 	} else {
@@ -558,7 +558,7 @@ void Pandar128SDK::changeReturnBlockSize() {
 	}
 }
 
-void Pandar128SDK::calcPointXYZIT(PandarPacket &pkt, boost::shared_ptr<PPointCloud> &cld) {
+void PandarSwiftSDK::calcPointXYZIT(PandarPacket &pkt, boost::shared_ptr<PPointCloud> &cld) {
 	if (pkt.data[3] == 3){
 		Pandar128PacketVersion13 packet;
 		memcpy(&packet, &pkt.data[0], sizeof(Pandar128PacketVersion13));
@@ -724,11 +724,11 @@ void Pandar128SDK::calcPointXYZIT(PandarPacket &pkt, boost::shared_ptr<PPointClo
 	}
 }
 
-void Pandar128SDK::loadOffsetFile(std::string file) {
+void PandarSwiftSDK::loadOffsetFile(std::string file) {
 	m_objLaserOffset.setFilePath(file);
 }
 
-void Pandar128SDK::processGps(PandarGPS *gpsMsg) {
+void PandarSwiftSDK::processGps(PandarGPS *gpsMsg) {
 	struct tm t;
 	t.tm_sec = gpsMsg->second;
 	t.tm_min = gpsMsg->minute;

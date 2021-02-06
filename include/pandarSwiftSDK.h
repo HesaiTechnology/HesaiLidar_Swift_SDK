@@ -25,7 +25,7 @@
 #include <pcl/point_types.h>
 #include <boost/atomic.hpp>
 #include <boost/lockfree/queue.hpp>
-#include "pandar128Driver.h"
+#include "pandarSwiftDriver.h"
 #include "laser_ts.h"
 #include "tcp_command_client.h"
 #include "point_types.h"
@@ -54,6 +54,9 @@
 #define GPS_ITEM_NUM (7)
 
 #define PANDAR128_LASER_NUM (128)
+#define PANDAR64S_LASER_NUM (64)
+#define PANDAR40S_LASER_NUM (40)
+#define PANDAR80_LASER_NUM (80)
 #define PANDAR128_BLOCK_NUM (2)
 #define MAX_BLOCK_NUM (8)
 #define PANDAR128_DISTANCE_UNIT (0.004)
@@ -275,7 +278,7 @@ typedef struct PacketsBuffer_s {
 typedef PointXYZIT PPoint;
 typedef pcl::PointCloud<PPoint> PPointCloud;
 
-class Pandar128SDK {
+class PandarSwiftSDK {
  public:
   /**
    * @brief Constructor
@@ -298,13 +301,13 @@ class Pandar128SDK {
    *        publishmode       The mode of publish
    *        datatype          The model of input data
    */
-	Pandar128SDK(std::string deviceipaddr, uint16_t lidarport, uint16_t gpsport, std::string frameid, std::string correctionfile, std::string firtimeflie, std::string pcapfile, \
+	PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uint16_t gpsport, std::string frameid, std::string correctionfile, std::string firtimeflie, std::string pcapfile, \
 								boost::function<void(boost::shared_ptr<PPointCloud>, double)> pclcallback, \
 								boost::function<void(PandarPacketsArray*)> rawcallback, \
 								boost::function<void(double)> gpscallback, \
 								std::string certFile, std::string privateKeyFile, std::string caFile, \
 								int startangle, int timezone, std::string publishmode, std::string datatype=LIDAR_DATA_TYPE);
-	~Pandar128SDK() {}
+	~PandarSwiftSDK() {}
 
 	void driverReadThread();
 	void publishRawDataThread();
@@ -328,7 +331,7 @@ class Pandar128SDK {
 	void moveTaskEndToStartAngle();
 
 
-	boost::shared_ptr<Pandar128Driver> m_spPandarDriver;
+	boost::shared_ptr<PandarSwiftDriver> m_spPandarDriver;
   	LasersTSOffset m_objLaserOffset;
 	boost::function<void(boost::shared_ptr<PPointCloud> cld, double timestamp)> m_funcPclCallback;
 	boost::function<void(double timestamp)> m_funcGpsCallback;

@@ -18,17 +18,21 @@
 #include <string>
 #include <input.h>
 
-#define READ_PACKET_SIZE (1800)
+#define PANDAR128_READ_PACKET_SIZE (1800)
+#define PANDAR80_READ_PACKET_SIZE (1800)
+#define PANDAR64S_READ_PACKET_SIZE (450)
+#define PANDAR40S_READ_PACKET_SIZE (225)
+#define PANDAR_LASER_NUMBER_INDEX (6)
 typedef struct PandarGPS_s PandarGPS;
-typedef std::array<PandarPacket, READ_PACKET_SIZE> PandarPacketsArray;
-class Pandar128SDK;
+typedef std::array<PandarPacket, PANDAR128_READ_PACKET_SIZE> PandarPacketsArray;
+class PandarSwiftSDK;
 
-class Pandar128Driver {
+class PandarSwiftDriver {
  public:
-	Pandar128Driver(std::string deviceipaddr, uint16_t lidarport, uint16_t gpsport, std::string frameid, std::string pcapfile,
+	PandarSwiftDriver(std::string deviceipaddr, uint16_t lidarport, uint16_t gpsport, std::string frameid, std::string pcapfile,
                 	boost::function<void(PandarPacketsArray*)> rawcallback, \
-					Pandar128SDK *pandar128sdk, std::string publishmode, std::string datatype);
-	~Pandar128Driver() {}
+					PandarSwiftSDK *pandarSwiftSDK, std::string publishmode, std::string datatype);
+	~PandarSwiftDriver() {}
 
 /** poll the device
  *
@@ -37,6 +41,7 @@ class Pandar128Driver {
 	bool poll(void);
 	void publishRawData();
 	void setUdpVersion(uint8_t major, uint8_t minor);
+	int getPandarScanArraySize(boost::shared_ptr<Input>);
 
  private:
 
@@ -49,7 +54,9 @@ class Pandar128Driver {
 	int m_iPktPopIndex;
 	std::string m_sPublishmodel;
 	std::string m_sDataType;
-	Pandar128SDK *m_pPandar128SDK;
+	PandarSwiftSDK *m_pPandarSwiftSDK;
+	int m_iPandarScanArraySize;
+    bool m_bGetScanArraySizeFlag;
 };
 
 #endif  // _PANDAR_DRIVER_H_
