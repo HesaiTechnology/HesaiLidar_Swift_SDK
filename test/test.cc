@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *****************************************************************************/
-#include "pandar128SDK.h"
+#include "pandarSwiftSDK.h"
 
 #define PCD_FILE_WRITE_FLAG (false) //false: don't save point cloud data;
                                     //true : save a frame of point cloud data
@@ -28,7 +28,7 @@ void lidarCallback(boost::shared_ptr<PPointCloud> cld, double timestamp) {
     //Debug code,save the tenth frame data to the local pcd file to verify the correctness of the data
     if(PCD_FILE_WRITE_FLAG) {
         frameItem++;
-        if(10 == frameItem) { //
+        if(10 == frameItem) {
             printf("write pcd file\n");
             pcl::PCDWriter writer;
             writer.write("P128Pcd.pcd", *cld);
@@ -41,8 +41,8 @@ void rawcallback(PandarPacketsArray *array) {
 }
 
 int main(int argc, char** argv) {
-    boost::shared_ptr<Pandar128SDK> spPandar128SDK;
-    spPandar128SDK.reset(new Pandar128SDK(std::string("192.168.1.201"), 2368, 10110, std::string("Pandar128"), \
+    boost::shared_ptr<PandarSwiftSDK> spPandarSwiftSDK;
+    spPandarSwiftSDK.reset(new PandarSwiftSDK(std::string("192.168.1.201"), 2368, 10110, std::string("Pandar128"), \
                                 std::string("../params/correction.csv"), \
                                 std::string(""), \
                                 std::string(""), lidarCallback, rawcallback, gpsCallback, \

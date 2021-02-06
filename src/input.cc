@@ -57,6 +57,62 @@ Input::Input(std::string deviceipaddr, uint16_t lidarport){
 		printf("Accepting packets from IP address: %s\n", m_sDeviceIpAddr.c_str());
 }
 
+bool Input::checkPacketSize(PandarPacket *pkt) {
+  if(pkt->size < 100)
+  return false;
+  if (pkt->data[0] != 0xEE && pkt->data[1] != 0xFF) {    
+    printf("Packet with invaild delimiter\n");
+    return false;
+  }
+  if(m_sUdpVresion == UDP_VERSION_1_3){
+	  if(pkt->size == 812){
+		  return true;
+	  }
+	  else{
+		  printf("Packet size mismatch.caculated size:812, packet size:%d", pkt->size);
+		  return false;
+	  }
+  }
+  uint8_t laserNum = pkt->data[6];
+  uint8_t blockNum = pkt->data[7];
+  uint8_t flags = pkt->data[11];
+
+  bool hasSeqNum = (flags & 1); 
+  bool hasImu = (flags & 2);
+  bool hasFunctionSafety = (flags & 4);
+  bool hasSignature = (flags & 8);
+  bool hasConfidence = (flags & 0x10);
+
+  m_iUtcIindex = PANDAR128_HEAD_SIZE +
+            (hasConfidence ? PANDAR128_UNIT_WITH_CONFIDENCE_SIZE * laserNum * blockNum : PANDAR128_UNIT_WITHOUT_CONFIDENCE_SIZE * laserNum * blockNum) + 
+            PANDAR128_AZIMUTH_SIZE * blockNum + PANDAR128_CRC_SIZE +
+            (hasFunctionSafety ? PANDAR128_FUNCTION_SAFETY_SIZE : 0) + 
+            PANDAR128_TAIL_RESERVED1_SIZE + 
+            PANDAR128_TAIL_RESERVED2_SIZE +
+            PANDAR128_TAIL_RESERVED3_SIZE +
+            PANDAR128_AZIMUTH_FLAG_SIZE +
+            PANDAR128_SHUTDOWN_FLAG_SIZE +
+            PANDAR128_RETURN_MODE_SIZE +
+            PANDAR128_MOTOR_SPEED_SIZE;
+  m_iTimestampIndex = m_iUtcIindex + PANDAR128_UTC_SIZE;
+  m_iSequenceNumberIndex = m_iTimestampIndex +
+						   PANDAR128_TS_SIZE +
+						   PANDAR128_FACTORY_INFO;
+
+  uint32_t size = m_iSequenceNumberIndex + 
+                  (hasImu ? PANDAR128_IMU_SIZE : 0) + 
+                  (hasSeqNum ? PANDAR128_SEQ_NUM_SIZE  : 0) +
+                  PANDAR128_CRC_SIZE +
+                  (hasSignature ? PANDAR128_SIGNATURE_SIZE : 0);
+  if(pkt->size == size){
+    return true;
+  }
+  else{
+    printf("Packet size mismatch.caculated size:%d, packet size:%d", size, pkt->size);
+    return false;
+  }
+}
+
 void Input::setUdpVersion(uint8_t major, uint8_t minor) {
 	if(UDP_VERSION_MAJOR_1 == major) {
 		if(UDP_VERSION_MINOR_3 == minor) {
@@ -213,12 +269,17 @@ int InputSocket::getPacket(PandarPacket *pkt) {
   	for (int i = 0; i != m_iSocktNumber; ++i) {
     	if (fds[i].revents & POLLIN) {
       		nbytes = recvfrom(fds[i].fd, &pkt->data[0], 10000, 0, (sockaddr *)&sender_address, &sender_address_len);
+			pkt->size = nbytes;
 			// printf("fds[%d] size: %d\n",i, nbytes);
       		break;
     	}
   	}
-	if(GPS_PACKET_SIZE == nbytes) {
+	if (pkt->size == 512) {
+		// ROS_ERROR("GPS");
 		return 2;
+	}
+	else if(!checkPacketSize(pkt)){
+		return 1;  // Packet size not match
 	}
 	calcPacketLoss(pkt);
 	return 0;
@@ -226,6 +287,8 @@ int InputSocket::getPacket(PandarPacket *pkt) {
 
 void InputSocket::calcPacketLoss(PandarPacket *pkt) {
 	if(m_bGetUdpVersion) {
+		if(m_sUdpVresion == UDP_VERSION_1_4 && !(pkt->data[11] & 1))
+			return;
 		static uint32_t dropped = 0, u32StartSeq = 0;
 		static uint32_t startTick = GetTickCount();
 		uint32_t *pSeq = (uint32_t *)&pkt->data[m_iSequenceNumberIndex];
@@ -284,7 +347,7 @@ InputPCAP::InputPCAP(std::string deviceipaddr, uint16_t lidarport, std::string p
 	}
 	filter << "udp dst port " << lidarport;
 	pcap_compile(m_pcapt, &m_objPcapPacketFilter, filter.str().c_str(), 1, PCAP_NETMASK_UNKNOWN);
-	m_iTimeGap = 1000;
+	m_iTimeGap = 200;
 	m_i64LastPktTimestamp = 0;
 	m_iPktCount = 0;
 	m_i64LastTime = 0;
@@ -306,20 +369,21 @@ int InputPCAP::getPacket(PandarPacket *pkt) {
 	if(pcap_next_ex(m_pcapt, &pktHeader, &packetBuf) >= 0) {
 		const uint8_t *packet = packetBuf + 42;
 		memcpy(&pkt->data[0], packetBuf + 42, packet_size);
+		pkt->size = pktHeader->caplen - 42;
 		m_iPktCount++;
+		if(!m_bGetUdpVersion)
+			return 0;
+		if (pktHeader->caplen == (512 + 42)) {
+			return 2;
+		}
+		else if(!checkPacketSize(pkt)){
+			return 1;  // Packet size not match
+		}
 		if(m_bGetUdpVersion && (m_iPktCount >= m_iTimeGap)) {
 			sleep(packet);
 		}
 		pkt->stamp = getNowTimeSec();  // time_offset not considered here, as no synchronization required
-		if(!m_bGetUdpVersion)
-			return 0;
-		if(pktHeader->caplen == (GPS_PACKET_SIZE + 42)) {
-			// ROS_ERROR("GPS");
-			return 2;
-		}
-		if(pktHeader->caplen == (m_iPacketSize + 42)) {
-			return 0;  // success
-		}
+		return 0;  // success
 	}
 	return 1;
 }
