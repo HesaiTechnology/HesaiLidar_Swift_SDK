@@ -1,8 +1,9 @@
 # HesaiLidar_Swift_SDK
-
 ## About the project
-HesaiLidar_Swift_SDK project is the software development kit for:
-**Pandar128**
+This repository includes the software development kit for Pandar LiDAR sensor manufactured by Hesai Technology. Branches are included for different systems and UDP protocol versions:
+* master: The software development kit for Ubuntu 18.04 supports Hesai lidar with UDP protocol v1.3 and v1.4
+* ubuntu16.04: The software development kit for Ubuntu 16.04 supports Hesai lidar with UDP protocol v1.3 and v1.4 
+
 LiDAR sensor manufactured by Hesai Technology.
 ## Environment and Dependencies
 **System environment requirement: Linux + G++ 7.0 or above**
@@ -36,16 +37,16 @@ include_directories(
 )
 
 target_link_libraries(<Your project>
-  pandar128sdk
+  PandarSwiftSDK
 )
 ```
 
 ## Run
 
-Set the parameters of class Pandar128SDK in test.cc
+Set the parameters of class PandarSwiftSDK in test.cc
 ```
 // for Pandar128
-Pandar128SDK(std::string("192.168.1.201"), 2368, 10110, std::string("Pandar128"), \
+PandarSwiftSDK(std::string("192.168.1.201"), 2368, 10110, std::string("Pandar128"), \
                                 std::string("../params/correction.csv"), \
                                 std::string(""), \
                                 std::string(""), \
@@ -80,5 +81,5 @@ Parameter description
 Set the pcap flie path only when you what to read a pcap
 ```
 $ make 
-$ ./pandar128sdkTest
+$ ./PandarSwiftTest
 ```
