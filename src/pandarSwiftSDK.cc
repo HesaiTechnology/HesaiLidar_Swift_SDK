@@ -71,7 +71,7 @@ PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uin
 							boost::function<void(double)> gpscallback, \
 							std::string certFile, std::string privateKeyFile, std::string caFile, \
 							int startangle, int timezone, std::string publishmode, std::string datatype) {
-	m_sSdkVersion = "PandarSwiftSDK_1.2.6";
+	m_sSdkVersion = "PandarSwiftSDK_1.2.7";
 	printf("\n--------PandarSwift SDK version: %s--------\n",m_sSdkVersion.c_str());
 	m_sDeviceIpAddr = deviceipaddr;
 	m_sFrameId = frameid;
@@ -157,27 +157,27 @@ void PandarSwiftSDK::loadCorrectionFile() {
 		std::ifstream fin(m_sLidarCorrectionFile);
 		if (fin.is_open()) {
 			printf("Open correction file success\n");
+			int length = 0;
+			std::string strlidarCalibration;
+			fin.seekg(0, std::ios::end);
+			length = fin.tellg();
+			fin.seekg(0, std::ios::beg);
+			char *buffer = new char[length];
+			fin.read(buffer, length);
+			fin.close();
+			strlidarCalibration = buffer;
+			ret = loadCorrectionString(strlidarCalibration);
+			if(ret != 0) {
+				printf("Parse local Correction file Error\n");
+			} 
+			else {
+				printf("Parse local Correction file Success!!!\n");
+			}
 		}
 		else
 		{
 			printf("Open correction file failed\n");
 			return;
-		}
-		int length = 0;
-		std::string strlidarCalibration;
-		fin.seekg(0, std::ios::end);
-		length = fin.tellg();
-		fin.seekg(0, std::ios::beg);
-		char *buffer = new char[length];
-		fin.read(buffer, length);
-		fin.close();
-		strlidarCalibration = buffer;
-		ret = loadCorrectionString(strlidarCalibration);
-		if(ret != 0) {
-			printf("Parse local Correction file Error\n");
-		} 
-		else {
-			printf("Parse local Correction file Success!!!\n");
 		}
 	}
 }

@@ -347,7 +347,7 @@ InputPCAP::InputPCAP(std::string deviceipaddr, uint16_t lidarport, std::string p
 	}
 	filter << "udp dst port " << lidarport;
 	pcap_compile(m_pcapt, &m_objPcapPacketFilter, filter.str().c_str(), 1, PCAP_NETMASK_UNKNOWN);
-	m_iTimeGap = 1000;
+	m_iTimeGap = 200;
 	m_i64LastPktTimestamp = 0;
 	m_iPktCount = 0;
 	m_i64LastTime = 0;

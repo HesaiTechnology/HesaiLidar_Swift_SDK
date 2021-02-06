@@ -1,8 +1,9 @@
 # HesaiLidar_Swift_SDK
-
 ## About the project
-HesaiLidar_Swift_SDK project is the software development kit for:
-**Pandar128/Pandar80/Pandar64S/Pandar40S**
+This repository includes the software development kit for Pandar LiDAR sensor manufactured by Hesai Technology. Branches are included for different systems and UDP protocol versions:
+* master: The software development kit for Ubuntu 18.04 supports Hesai lidar with UDP protocol v1.3 and v1.4
+* ubuntu16.04: The software development kit for Ubuntu 16.04 supports Hesai lidar with UDP protocol v1.3 and v1.4 
+
 LiDAR sensor manufactured by Hesai Technology.
 ## Environment and Dependencies
 **System environment requirement: Linux + G++ 7.0 or above**
@@ -18,7 +19,7 @@ $ git clone https://github.com/HesaiTechnology/HesaiLidar_Swift_SDK.git
 
 ## Build
 ```
-1.$ cd HesaiLidar_Swift_SDK
+1.$ cd Pandar128_SDK
 2.$ mkdir build
 3.$ cd build
 4.$ cmake ..
@@ -28,11 +29,11 @@ $ git clone https://github.com/HesaiTechnology/HesaiLidar_Swift_SDK.git
 ## Add to your project
 ### Cmake
 ```
-add_subdirectory(<path_to>HesaiLidar_General_SDK)
+add_subdirectory(<path_to>Pandar128_SDK)
 
 include_directories(
-	<path_to>HesaiLidar_General_SDK/include
-	<path_to>HesaiLidar_General_SDK/src
+	<path_to>Pandar128_SDK/include
+	<path_to>Pandar128_SDK/src
 )
 
 target_link_libraries(<Your project>

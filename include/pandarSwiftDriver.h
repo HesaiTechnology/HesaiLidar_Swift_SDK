@@ -18,9 +18,13 @@
 #include <string>
 #include <input.h>
 
-#define READ_PACKET_SIZE (1800)
+#define PANDAR128_READ_PACKET_SIZE (1800)
+#define PANDAR80_READ_PACKET_SIZE (1800)
+#define PANDAR64S_READ_PACKET_SIZE (450)
+#define PANDAR40S_READ_PACKET_SIZE (225)
+#define PANDAR_LASER_NUMBER_INDEX (6)
 typedef struct PandarGPS_s PandarGPS;
-typedef std::array<PandarPacket, READ_PACKET_SIZE> PandarPacketsArray;
+typedef std::array<PandarPacket, PANDAR128_READ_PACKET_SIZE> PandarPacketsArray;
 class PandarSwiftSDK;
 
 class PandarSwiftDriver {
@@ -37,6 +41,7 @@ class PandarSwiftDriver {
 	bool poll(void);
 	void publishRawData();
 	void setUdpVersion(uint8_t major, uint8_t minor);
+	int getPandarScanArraySize(boost::shared_ptr<Input>);
 
  private:
 
@@ -50,6 +55,8 @@ class PandarSwiftDriver {
 	std::string m_sPublishmodel;
 	std::string m_sDataType;
 	PandarSwiftSDK *m_pPandarSwiftSDK;
+	int m_iPandarScanArraySize;
+    bool m_bGetScanArraySizeFlag;
 };
 
 #endif  // _PANDAR_DRIVER_H_

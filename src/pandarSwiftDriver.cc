@@ -31,7 +31,8 @@ PandarSwiftDriver::PandarSwiftDriver(std::string deviceipaddr, uint16_t lidarpor
 	m_bNeedPublish = false;
 	m_iPktPushIndex = 0;
 	m_iPktPopIndex = 1;
-	
+	m_bGetScanArraySizeFlag = false;
+    m_iPandarScanArraySize = PANDAR128_READ_PACKET_SIZE;
 	// open Pandar input device or file
 	if(pcapfile != "") {  // have PCAP file
 		// read data from packet capture file
@@ -72,7 +73,11 @@ bool PandarSwiftDriver::poll(void) {
 	uint64_t endTime = 0;
 	timespec time;
 	memset(&time, 0, sizeof(time));
-	for (int i = 0; i < READ_PACKET_SIZE; ++i) {
+	if(!m_bGetScanArraySizeFlag){
+		m_iPandarScanArraySize = getPandarScanArraySize(m_spInput);
+		m_bGetScanArraySizeFlag = false;
+	}
+	for (int i = 0; i < m_iPandarScanArraySize; ++i) {
 		int rc = m_spInput->getPacket(&m_arrPandarPackets[m_iPktPushIndex][i]);
 		if(rc == 2) {
 			// gps packet;
@@ -109,4 +114,22 @@ void PandarSwiftDriver::publishRawData() {
 
 void PandarSwiftDriver::setUdpVersion(uint8_t major, uint8_t minor) {
 	m_spInput->setUdpVersion(major, minor);
+}
+int PandarSwiftDriver::getPandarScanArraySize(boost::shared_ptr<Input> input_){
+  for (int i = 0; i < 256; ++i) {
+    PandarPacket packet;
+    int rc = input_->getPacket(&packet);
+    switch (packet.data[PANDAR_LASER_NUMBER_INDEX]){
+    case PANDAR128_LASER_NUM:
+      return PANDAR128_READ_PACKET_SIZE;
+    case PANDAR80_LASER_NUM:
+      return PANDAR80_READ_PACKET_SIZE;
+    case PANDAR64S_LASER_NUM:
+      return PANDAR64S_READ_PACKET_SIZE;
+    case PANDAR40S_LASER_NUM:
+      return PANDAR40S_READ_PACKET_SIZE;
+    default:
+      break;
+    }
+  }
 }
