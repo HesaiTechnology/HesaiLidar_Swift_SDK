@@ -73,10 +73,6 @@ bool PandarSwiftDriver::poll(void) {
 	uint64_t endTime = 0;
 	timespec time;
 	memset(&time, 0, sizeof(time));
-	if(!m_bGetScanArraySizeFlag){
-		m_iPandarScanArraySize = getPandarScanArraySize(m_spInput);
-		m_bGetScanArraySizeFlag = false;
-	}
 	for (int i = 0; i < m_iPandarScanArraySize; ++i) {
 		int rc = m_spInput->getPacket(&m_arrPandarPackets[m_iPktPushIndex][i]);
 		if(rc == 2) {
