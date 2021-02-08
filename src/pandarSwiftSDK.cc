@@ -71,7 +71,7 @@ PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uin
 							boost::function<void(double)> gpscallback, \
 							std::string certFile, std::string privateKeyFile, std::string caFile, \
 							int startangle, int timezone, std::string publishmode, std::string datatype) {
-	m_sSdkVersion = "PandarSwiftSDK_1.2.7";
+	m_sSdkVersion = "PandarSwiftSDK_1.2.8";
 	printf("\n--------PandarSwift SDK version: %s--------\n",m_sSdkVersion.c_str());
 	m_sDeviceIpAddr = deviceipaddr;
 	m_sFrameId = frameid;
@@ -508,6 +508,7 @@ int PandarSwiftSDK::checkLiadaMode() {
 		if(m_iWorkMode != lidarworkmode) { //work mode change
 			printf("change work mode:  %x to %x\n",m_iWorkMode, lidarworkmode);
 			m_iWorkMode = lidarworkmode;
+			m_iMotorSpeed = lidarmotorspeed;
 			changeAngleSize();
 			return 0;
 		}
@@ -537,7 +538,7 @@ void PandarSwiftSDK::changeAngleSize() {
 		return;
 	} 
 	if(0 == m_iWorkMode && MOTOR_SPEED_600 == m_iMotorSpeed) {
-		m_iAngleSize = LIDAR_ANGLE_SIZE_10;  // 10->0.1degree
+		m_iAngleSize = LIDAR_ANGLE_SIZE_10 * m_iMotorSpeed / MOTOR_SPEED_600;  // 20->0.1degree
 	}
 	if(0 == m_iWorkMode && MOTOR_SPEED_1200 == m_iMotorSpeed) {
 		m_iAngleSize = LIDAR_ANGLE_SIZE_20;  // 20->0.2degreepktCount[2]
