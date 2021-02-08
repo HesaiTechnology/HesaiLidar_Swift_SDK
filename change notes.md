@@ -52,3 +52,10 @@ PandarSwiftSDK_1.2.7
 
 ##modify
 1. Support to parser packet with protocol v1.4
+
+星期一, 8. 二月 2021 10:00 晚上
+##version
+PandarSwiftSDK_1.2.8
+
+##modify
+1. Fix bug in 1200 rpm
