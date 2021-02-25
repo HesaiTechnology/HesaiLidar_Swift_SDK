@@ -319,7 +319,7 @@ int PandarSwiftSDK::processLiDARData() {
 				(CIRCLE_ANGLE - *(uint16_t*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]) + m_iLastAzimuthIndex) - m_iLidarRotationStartAngle) <= m_iAngleSize)) {
 			uint32_t startTick1 = GetTickCount();
 			moveTaskEndToStartAngle();
-			doTaskFlow(cursor);
+			doTaskFlow();
 			uint32_t startTick2 = GetTickCount();
 			// printf("move and taskflow time:%d\n", startTick2 - startTick1);
 			if(m_bPublishPointsFlag == false) {
@@ -344,7 +344,7 @@ int PandarSwiftSDK::processLiDARData() {
 		}
 		uint32_t taskflow1 = GetTickCount();
 			// printf("if compare time: %d\n", ifTick - startTick);
-		doTaskFlow(cursor);
+		doTaskFlow();
 		uint32_t taskflow2 = GetTickCount();
 			// printf("taskflow time: %d\n", taskflow2 - taskflow1);
 
@@ -384,10 +384,10 @@ void PandarSwiftSDK::publishPointsThread() {
 	}
 }
 
-void PandarSwiftSDK::doTaskFlow(int cursor) {
+void PandarSwiftSDK::doTaskFlow() {
 	tf::Taskflow taskFlow;
 	taskFlow.parallel_for(m_PacketsBuffer.getTaskBegin(),m_PacketsBuffer.getTaskEnd(),
-							[this, &cursor](auto &taskpkt) {calcPointXYZIT(taskpkt, m_OutMsgArray[cursor]);});
+							[this](auto &taskpkt) {calcPointXYZIT(taskpkt);});
 	executor.run(taskFlow).wait();
 	m_PacketsBuffer.creatNewTask();
 }
@@ -559,7 +559,8 @@ void PandarSwiftSDK::changeReturnBlockSize() {
 	}
 }
 
-void PandarSwiftSDK::calcPointXYZIT(PandarPacket &pkt, boost::shared_ptr<PPointCloud> &cld) {
+void PandarSwiftSDK::calcPointXYZIT(PandarPacket &pkt) {
+	int totalPointsNum = 0;
 	if (pkt.data[3] == 3){
 		Pandar128PacketVersion13 packet;
 		memcpy(&packet, &pkt.data[0], sizeof(Pandar128PacketVersion13));
@@ -632,7 +633,13 @@ void PandarSwiftSDK::calcPointXYZIT(PandarPacket &pkt, boost::shared_ptr<PPointC
 				else {
 					index = (block.fAzimuth - m_iLidarRotationStartAngle) / m_iAngleSize * m_iLaserNum + i;
 				}
-				cld->points[index] = point;
+				totalPointsNum++;
+				if(totalPointsNum <= m_OutMsgArray[m_iPublishPointsIndex]->points.size()){
+					m_OutMsgArray[m_iPublishPointsIndex]->points[index] = point;
+				}
+				else{
+					m_OutMsgArray[(m_iPublishPointsIndex + 1) % 2]->points[index] = point;
+				}
 			}
 		}
 	}
@@ -719,7 +726,13 @@ void PandarSwiftSDK::calcPointXYZIT(PandarPacket &pkt, boost::shared_ptr<PPointC
 				else {
 					index = (u16Azimuth - m_iLidarRotationStartAngle) / m_iAngleSize * m_iLaserNum + i;
 				}
-				cld->points[index] = point;
+				totalPointsNum++;
+				if(totalPointsNum <= m_OutMsgArray[m_iPublishPointsIndex]->points.size()){
+					m_OutMsgArray[m_iPublishPointsIndex]->points[index] = point;
+				}
+				else{
+					m_OutMsgArray[(m_iPublishPointsIndex + 1) % 2]->points[index] = point;
+				}
 			}
 		}
 	}

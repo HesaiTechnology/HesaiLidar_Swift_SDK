@@ -319,8 +319,8 @@ class PandarSwiftSDK {
  private:
 
 	int parseData(Pandar128PacketVersion13 &pkt, const uint8_t *buf, const int len);
-	void calcPointXYZIT(PandarPacket &pkt, boost::shared_ptr<PPointCloud> &cld);
-	void doTaskFlow(int cursor);
+	void calcPointXYZIT(PandarPacket &pkt);
+	void doTaskFlow();
 	void loadOffsetFile(std::string file);
 	void loadCorrectionFile();
 	int loadCorrectionString(std::string correctionstring);
