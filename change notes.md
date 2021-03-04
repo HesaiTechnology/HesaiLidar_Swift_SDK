@@ -59,3 +59,10 @@ PandarSwiftSDK_1.2.8
 
 ##modify
 1. Fix bug in 1200 rpm
+
+星期四, 04. 三月 2021 17:30下午 
+##version
+PandarSwiftSDK_1.2.9
+
+##modify
+1. Fix bug in parser half packets
