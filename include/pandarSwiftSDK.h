@@ -333,6 +333,7 @@ class PandarSwiftSDK {
 	void changeAngleSize();
 	void changeReturnBlockSize();
 	void moveTaskEndToStartAngle();
+  void checkClockwise();
 
   pthread_mutex_t m_RedundantPointLock;
 	boost::shared_ptr<PandarSwiftDriver> m_spPandarDriver;
@@ -369,6 +370,7 @@ class PandarSwiftSDK {
 	uint8_t m_u8UdpVersionMinor;
   int m_iFirstAzimuthIndex;
   int m_iLastAzimuthIndex;
+  bool m_bClockwise;
 };
 
 #endif  // _PANDAR_POINTCLOUD_Pandar128SDK_H_
