@@ -8,9 +8,9 @@ LiDAR sensor manufactured by Hesai Technology.
 ## Environment and Dependencies
 **G++ version requirement:G++ 7.0 or above**
 **System environment requirement: Linux + G++ 7.0 or above**
-**Library Dependencies: libpcl-dev + libpcap-dev + libyaml-cpp-dev**
+**Library Dependencies: libpcl-dev + libpcap-dev + libyaml-cpp-dev + libboost-dev**
 ```
-$ sudo apt install libpcl-dev libpcap-dev libyaml-cpp-dev
+$ sudo apt install libpcl-dev libpcap-dev libyaml-cpp-dev libboost-dev
 ```
 
 ## Clone
@@ -20,7 +20,7 @@ $ git clone https://github.com/HesaiTechnology/HesaiLidar_Swift_SDK.git
 
 ## Build
 ```
-1.$ cd Pandar128_SDK
+1.$ cd HesaiLidar_Swift_SDK
 2.$ mkdir build
 3.$ cd build
 4.$ cmake ..
@@ -30,11 +30,11 @@ $ git clone https://github.com/HesaiTechnology/HesaiLidar_Swift_SDK.git
 ## Add to your project
 ### Cmake
 ```
-add_subdirectory(<path_to>Pandar128_SDK)
+add_subdirectory(<path_to>HesaiLidar_Swift_SDK)
 
 include_directories(
-	<path_to>Pandar128_SDK/include
-	<path_to>Pandar128_SDK/src
+	<path_to>HesaiLidar_Swift_SDK/include
+	<path_to>HesaiLidar_Swift_SDK/src
 )
 
 target_link_libraries(<Your project>
