@@ -277,6 +277,10 @@ typedef struct PacketsBuffer_s {
 
 typedef PointXYZIT PPoint;
 typedef pcl::PointCloud<PPoint> PPointCloud;
+typedef struct RedundantPoint_s {
+  int index;
+  PPoint point;
+} RedundantPoint;
 
 class PandarSwiftSDK {
  public:
@@ -319,8 +323,8 @@ class PandarSwiftSDK {
  private:
 
 	int parseData(Pandar128PacketVersion13 &pkt, const uint8_t *buf, const int len);
-	void calcPointXYZIT(PandarPacket &pkt);
-	void doTaskFlow();
+  void calcPointXYZIT(PandarPacket &pkt, int cursor);
+  void doTaskFlow(int cursor);
 	void loadOffsetFile(std::string file);
 	void loadCorrectionFile();
 	int loadCorrectionString(std::string correctionstring);
@@ -330,12 +334,13 @@ class PandarSwiftSDK {
 	void changeReturnBlockSize();
 	void moveTaskEndToStartAngle();
 
-
+  pthread_mutex_t m_RedundantPointLock;
 	boost::shared_ptr<PandarSwiftDriver> m_spPandarDriver;
   	LasersTSOffset m_objLaserOffset;
 	boost::function<void(boost::shared_ptr<PPointCloud> cld, double timestamp)> m_funcPclCallback;
 	boost::function<void(double timestamp)> m_funcGpsCallback;
 	std::array<boost::shared_ptr<PPointCloud>, 2> m_OutMsgArray;
+  std::vector<RedundantPoint> m_RedundantPointBuffer;
 	PacketsBuffer m_PacketsBuffer;
 	double m_dTimestamp;
 	int m_iLidarRotationStartAngle;
