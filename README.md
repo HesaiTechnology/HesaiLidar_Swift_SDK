@@ -5,10 +5,22 @@ This repository includes the software development kit for Pandar LiDAR sensor ma
 * ubuntu16.04: The software development kit for Ubuntu 16.04 supports Hesai lidar with UDP protocol v1.3 and v1.4 
 * UDP4.1: The software development kit for Ubuntu 18.04 and Ubuntu 16.04 supports Hesai lidar with UDP protocol v4.1 
 
-LiDAR sensor manufactured by Hesai Technology.
+To get the UDP protocol version number of your device,  check the UDP package header field.
+
 ## Environment and Dependencies
-**G++ version requirement:G++ 7.0 or above**
-**System environment requirement: Linux + G++ 7.0 or above**
+
+**System environment requirement:Linux**
+```
+Recommanded
+-Ubuntu 16.04
+-Ubuntu 18.04
+```
+
+**Compiler vresion requirement**
+```
+Cmake version requirement:Cmake 3.8.0 or above
+G++ version requirement:G++ 7.5 or above
+```
 **Library Dependencies: libpcl-dev + libpcap-dev + libyaml-cpp-dev + libboost-dev**
 ```
 $ sudo apt install libpcl-dev libpcap-dev libyaml-cpp-dev libboost-dev
@@ -43,7 +55,7 @@ target_link_libraries(<Your project>
 )
 ```
 
-## Run
+## C++
 
 Set the parameters of class PandarSwiftSDK in test.cc
 ```
