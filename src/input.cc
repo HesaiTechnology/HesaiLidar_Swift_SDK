@@ -64,54 +64,39 @@ bool Input::checkPacketSize(PandarPacket *pkt) {
     printf("Packet with invaild delimiter\n");
     return false;
   }
-  if(m_sUdpVresion == UDP_VERSION_1_3){
-	  if(pkt->size == 812){
-		  return true;
-	  }
-	  else{
-		  printf("Packet size mismatch.caculated size:812, packet size:%d", pkt->size);
-		  return false;
-	  }
+  if (pkt->data[2] != 4 && pkt->data[3] != 1) {    
+    printf("Packet with invaild lidar type\n");
+    return false;
   }
   uint8_t laserNum = pkt->data[6];
   uint8_t blockNum = pkt->data[7];
   uint8_t flags = pkt->data[11];
 
   bool hasSeqNum = (flags & 1); 
-  bool hasImu = (flags & 2);
-  bool hasFunctionSafety = (flags & 4);
-  bool hasSignature = (flags & 8);
-  bool hasConfidence = (flags & 0x10);
 
-  m_iUtcIindex = PANDAR128_HEAD_SIZE +
-            (hasConfidence ? PANDAR128_UNIT_WITH_CONFIDENCE_SIZE * laserNum * blockNum : PANDAR128_UNIT_WITHOUT_CONFIDENCE_SIZE * laserNum * blockNum) + 
-            PANDAR128_AZIMUTH_SIZE * blockNum + PANDAR128_CRC_SIZE +
-            (hasFunctionSafety ? PANDAR128_FUNCTION_SAFETY_SIZE : 0) + 
-            PANDAR128_TAIL_RESERVED1_SIZE + 
-            PANDAR128_TAIL_RESERVED2_SIZE +
-            PANDAR128_TAIL_RESERVED3_SIZE +
-            PANDAR128_AZIMUTH_FLAG_SIZE +
-            PANDAR128_SHUTDOWN_FLAG_SIZE +
-            PANDAR128_RETURN_MODE_SIZE +
-            PANDAR128_MOTOR_SPEED_SIZE;
-  m_iTimestampIndex = m_iUtcIindex + PANDAR128_UTC_SIZE;
-  m_iSequenceNumberIndex = m_iTimestampIndex +
-						   PANDAR128_TS_SIZE +
-						   PANDAR128_FACTORY_INFO;
+  m_iTimestampIndex = PANDAR_AT128_HEAD_SIZE +
+            PANDAR_AT128_UNIT_WITH_CONFIDENCE_SIZE * laserNum * blockNum + 
+            PANDAR_AT128_AZIMUTH_SIZE * blockNum +
+            PANDAR_AT128_TAIL_RESERVED1_SIZE + 
+            PANDAR_AT128_TAIL_RESERVED2_SIZE +
+            PANDAR_AT128_SHUTDOWN_FLAG_SIZE +
+            PANDAR_AT128_TAIL_RESERVED3_SIZE +
+            PANDAR_AT128_MOTOR_SPEED_SIZE;
+  m_iUtcIindex = m_iTimestampIndex + PANDAR_AT128_TS_SIZE +
+              PANDAR_AT128_RETURN_MODE_SIZE +
+              PANDAR_AT128_FACTORY_INFO;
+  m_iSequenceNumberIndex = m_iUtcIindex + PANDAR_AT128_UTC_SIZE;
 
-  uint32_t size = m_iSequenceNumberIndex + 
-                  (hasImu ? PANDAR128_IMU_SIZE : 0) + 
-                  (hasSeqNum ? PANDAR128_SEQ_NUM_SIZE  : 0) +
-                  PANDAR128_CRC_SIZE +
-                  (hasSignature ? PANDAR128_SIGNATURE_SIZE : 0);
+  uint32_t size = m_iSequenceNumberIndex + (hasSeqNum ? PANDAR_AT128_SEQ_NUM_SIZE  : 0) ;
   if(pkt->size == size){
     return true;
   }
   else{
-    printf("Packet size mismatch.caculated size:%d, packet size:%d", size, pkt->size);
+    printf("Packet size mismatch.caculated size:%d, packet size:%d\n", size, pkt->size);
     return false;
   }
 }
+
 
 void Input::setUdpVersion(uint8_t major, uint8_t minor) {
 	if(UDP_VERSION_MAJOR_1 == major) {
@@ -248,7 +233,7 @@ int InputSocket::getPacket(PandarPacket *pkt) {
 		fds[0].fd = m_iSockfd;
 		fds[0].events = POLLIN;
 	}
-	static const int POLL_TIMEOUT = 20;  // one second (in msec)
+	static const int POLL_TIMEOUT = 1000;  // one second (in msec)
 
 	sockaddr_in sender_address;
 	socklen_t sender_address_len = sizeof(sender_address);
@@ -371,15 +356,14 @@ int InputPCAP::getPacket(PandarPacket *pkt) {
 		memcpy(&pkt->data[0], packetBuf + 42, packet_size);
 		pkt->size = pktHeader->caplen - 42;
 		m_iPktCount++;
-		if(!m_bGetUdpVersion)
-			return 0;
 		if (pktHeader->caplen == (512 + 42)) {
 			return 2;
 		}
 		else if(!checkPacketSize(pkt)){
 			return 1;  // Packet size not match
 		}
-		if(m_bGetUdpVersion && (m_iPktCount >= m_iTimeGap)) {
+		if( (m_iPktCount >= m_iTimeGap)) {
+			// printf("count : %d\n",m_iPktCount);
 			sleep(packet);
 		}
 		pkt->stamp = getNowTimeSec();  // time_offset not considered here, as no synchronization required

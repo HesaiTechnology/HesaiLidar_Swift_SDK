@@ -15,6 +15,7 @@
  *****************************************************************************/
 #include "pandarSwiftSDK.h"
 
+#define PRINT_FLAG (false)
 #define PCD_FILE_WRITE_FLAG (false) //false: don't save point cloud data;
                                     //true : save a frame of point cloud data
 int frameItem = 0;
@@ -24,14 +25,15 @@ void gpsCallback(double timestamp) {
 }
 
 void lidarCallback(boost::shared_ptr<PPointCloud> cld, double timestamp) {
-    printf("timestamp: %lf,point_size: %ld\n", timestamp, cld->points.size());
+    if(PRINT_FLAG)
+        printf("timestamp: %lf,point_size: %ld\n", timestamp, cld->points.size());
     //Debug code,save the tenth frame data to the local pcd file to verify the correctness of the data
     if(PCD_FILE_WRITE_FLAG) {
         frameItem++;
         if(10 == frameItem) {
             printf("write pcd file\n");
             pcl::PCDWriter writer;
-            writer.write("P128Pcd.pcd", *cld);
+            writer.write("PandarAT128Pcd.pcd", *cld);
         }
     }
 }
@@ -42,14 +44,15 @@ void rawcallback(PandarPacketsArray *array) {
 
 int main(int argc, char** argv) {
     boost::shared_ptr<PandarSwiftSDK> spPandarSwiftSDK;
-    spPandarSwiftSDK.reset(new PandarSwiftSDK(std::string("192.168.1.201"), 2368, 10110, std::string("Pandar128"), \
-                                std::string("../params/correction.csv"), \
+    spPandarSwiftSDK.reset(new PandarSwiftSDK(std::string("192.168.1.201"), 2368, 10110, std::string("PandarAT128"), \
+                                std::string("../params/default_PandarAT.dat"), \
                                 std::string(""), \
                                 std::string(""), lidarCallback, rawcallback, gpsCallback, \
                                 std::string(""), \
                                 std::string(""), \
                                 std::string(""), \
-                                0, 0, std::string("both_point_raw")));
+                                0, 0, 1, \
+                                std::string("both_point_raw")));
     while (true) {
         sleep(100);
     }
