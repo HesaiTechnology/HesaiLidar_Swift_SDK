@@ -67,3 +67,10 @@ PandarSwiftSDK_1.2.9
 
 ##modify
 1. Fix bug in parser half packets
+
+星期五, 19. 三月 2021 19:30下午 
+##version
+PandarSwiftSDK_1.2.10
+
+##modify
+1. Support Pandar AT128 first time

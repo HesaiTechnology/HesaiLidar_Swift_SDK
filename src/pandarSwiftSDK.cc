@@ -70,8 +70,9 @@ PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uin
 							boost::function<void(PandarPacketsArray*)> rawcallback, \
 							boost::function<void(double)> gpscallback, \
 							std::string certFile, std::string privateKeyFile, std::string caFile, \
-							int startangle, int timezone, std::string publishmode, std::string datatype) {
-	m_sSdkVersion = "PandarSwiftSDK_1.2.9";
+							int startangle, int timezone, int viewMode, \ 
+							std::string publishmode, std::string datatype) {
+	m_sSdkVersion = "PandarSwiftSDK_1.2.10";
 	printf("\n--------PandarSwift SDK version: %s--------\n",m_sSdkVersion.c_str());
 	m_sDeviceIpAddr = deviceipaddr;
 	m_sFrameId = frameid;
@@ -95,6 +96,7 @@ PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uin
 	m_bClockwise == true;
 	m_funcPclCallback = pclcallback;
 	m_funcGpsCallback = gpscallback;
+	m_iViewMode= viewMode;
 	m_spPandarDriver.reset(new PandarSwiftDriver(deviceipaddr, lidarport, gpsport, frameid, pcapfile, rawcallback, this, publishmode, datatype));
 	TcpCommandSetSsl(certFile.c_str(), privateKeyFile.c_str(), caFile.c_str());
 	printf("frame id: %s\n", m_sFrameId.c_str());
@@ -138,8 +140,7 @@ void PandarSwiftSDK::loadCorrectionFile() {
 			ret = TcpCommandGetLidarCalibration(m_pTcpCommandClient, &buffer, &len);
 			if(ret == 0 && buffer) {
 				printf("Load correction file from lidar now!\n");
-				correntionString = std::string(buffer);
-				ret = loadCorrectionString(correntionString);
+				ret = loadCorrectionString(buffer);
 				if(ret != 0) {
 					printf("Parse Lidar Correction Error\n");
 				} 
@@ -168,7 +169,7 @@ void PandarSwiftSDK::loadCorrectionFile() {
 			fin.read(buffer, length);
 			fin.close();
 			strlidarCalibration = buffer;
-			ret = loadCorrectionString(strlidarCalibration);
+			ret = loadCorrectionString(buffer);
 			if(ret != 0) {
 				printf("Parse local Correction file Error\n");
 			} 
@@ -184,44 +185,47 @@ void PandarSwiftSDK::loadCorrectionFile() {
 	}
 }
 
-int PandarSwiftSDK::loadCorrectionString(std::string correction_content) {
-    std::istringstream ifs(correction_content);
-	std::string line;
-	if(std::getline(ifs, line)) {  // first line "Laser id,Elevation,Azimuth"
-		printf("Parse Lidar Correction...\n");
-	}
-	float pitchList[PANDAR128_LASER_NUM];
-	float azimuthList[PANDAR128_LASER_NUM];
-	int lineCounter = 0;
-	while (std::getline(ifs, line)) {
-		if(line.length() < strlen("1,1,1")) {
-			return -1;
-		} 
-		else {
-			lineCounter++;
-		}
-		float elev, azimuth;
-		int lineId = 0;
-		std::stringstream ss(line);
-		std::string subline;
-		std::getline(ss, subline, ',');
-		std::stringstream(subline) >> lineId;
-		std::getline(ss, subline, ',');
-		std::stringstream(subline) >> elev;
-		std::getline(ss, subline, ',');
-		std::stringstream(subline) >> azimuth;
-		if(lineId != lineCounter) {
-			printf("laser id error %d %d\n", lineId, lineCounter);
-			return -1;
-		}
-		pitchList[lineId - 1] = elev;
-		azimuthList[lineId - 1] = azimuth;
-	}
-	for (int i = 0; i < lineCounter; ++i) {
-		m_fElevAngle[i] = pitchList[i];
-		m_fHorizatalAzimuth[i] = azimuthList[i];
-	}
-	return 0;
+int PandarSwiftSDK::loadCorrectionString(char * data) {
+  try
+    {
+        char * p = data;
+        PandarATCorrectionsHeader header = *(PandarATCorrectionsHeader *)p;
+        if ( 0xee == header.delimiter[0] && 0xff == header.delimiter[1])
+        {
+            m_PandarAT_corrections.header = header;
+            auto frame_num = m_PandarAT_corrections.header.frame_number;
+            auto channel_num = m_PandarAT_corrections.header.channel_number;
+            p += sizeof(PandarATCorrectionsHeader);
+            memcpy((void *)&m_PandarAT_corrections.start_frame, p, sizeof(uint16_t) * frame_num);
+            p += sizeof(uint16_t) * frame_num;
+            memcpy((void *)&m_PandarAT_corrections.end_frame, p, sizeof(uint16_t) * frame_num);
+            p += sizeof(uint16_t) * frame_num;
+            printf( "frame_num: %d\n", frame_num);
+            printf( "start_frame, end_frame: \n");
+            for (int i = 0; i < frame_num; ++i) 
+                printf("%lf,   %lf\n", m_PandarAT_corrections.start_frame[i] / 100.f , m_PandarAT_corrections.end_frame[i] / 100.f);
+            memcpy((void *)&m_PandarAT_corrections.azimuth, p, sizeof(int16_t) * channel_num);
+            p += sizeof(int16_t) * channel_num;
+            memcpy((void *)&m_PandarAT_corrections.elevation, p, sizeof(int16_t) * channel_num);
+            memcpy((void *)&m_PandarAT_corrections.azimuth_offset, p, sizeof(int8_t) * 36000);
+            p += sizeof(int8_t) * 36000;
+            memcpy((void *)&m_PandarAT_corrections.elevation_offset, p, sizeof(int8_t) * 36000);
+            p += sizeof(int8_t) * 36000;
+            memcpy((void *)&m_PandarAT_corrections.SHA256, p, sizeof(uint8_t) * 32);
+            p += sizeof(uint8_t) * 32;
+            return 0;
+        }
+        
+        return 1;
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << '\n';
+        return 1;
+    }
+    
+    return 1;
+
 }
 
 void PandarSwiftSDK::driverReadThread() {
@@ -307,26 +311,14 @@ int PandarSwiftSDK::processLiDARData() {
 		if(0 == checkLiadaMode()) {
 			// printf("checkLiadaMode now!!");
 			m_OutMsgArray[cursor]->clear();
-			m_OutMsgArray[cursor]->resize(CIRCLE_ANGLE / m_iAngleSize * m_iLaserNum * m_iReturnBlockSize);
+			m_OutMsgArray[cursor]->resize(calculatePointBufferSize());
 			m_PacketsBuffer.creatNewTask();
 			continue;
 		}
-        checkClockwise();
+        // checkClockwise();
 		// printf("begin: %d, end: %d\n",m_PacketsBuffer.getTaskBegin()->blocks[0].fAzimuth, (m_PacketsBuffer.getTaskEnd() - 1)->blocks[1].fAzimuth);
 		uint32_t ifstart = GetTickCount();
-		if(((m_bClockwise == true) &&
-			((*(uint16_t*)(&(m_PacketsBuffer.getTaskBegin()->data[0]) + m_iFirstAzimuthIndex) > *(uint16_t*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]) + m_iLastAzimuthIndex)) && 
-			(m_iLidarRotationStartAngle <= *(uint16_t*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]) + m_iLastAzimuthIndex)) || 
-			((*(uint16_t*)(&(m_PacketsBuffer.getTaskBegin()->data[0]) + m_iFirstAzimuthIndex) < m_iLidarRotationStartAngle) && 
-			(m_iLidarRotationStartAngle <= *(uint16_t*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]) + m_iLastAzimuthIndex)) ||
-			(int(CIRCLE_ANGLE) - *(uint16_t*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]) + m_iLastAzimuthIndex) - m_iLidarRotationStartAngle) <= m_iAngleSize))) ||
-			((m_bClockwise == false) &&
-			((*(uint16_t*)(&(m_PacketsBuffer.getTaskBegin()->data[0]) + m_iFirstAzimuthIndex) < *(uint16_t*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]) + m_iLastAzimuthIndex)) && 
-			(((CIRCLE_ANGLE - m_iLidarRotationStartAngle > CIRCLE_ANGLE / 2)) && (m_iLidarRotationStartAngle <= *(uint16_t*)(&(m_PacketsBuffer.getTaskBegin()->data[0]) + m_iFirstAzimuthIndex)) ||
-			((CIRCLE_ANGLE - m_iLidarRotationStartAngle < CIRCLE_ANGLE / 2)) && (m_iLidarRotationStartAngle >= *(uint16_t*)(&(m_PacketsBuffer.getTaskBegin()->data[0]) + m_iFirstAzimuthIndex))) || 
-			((*(uint16_t*)(&(m_PacketsBuffer.getTaskBegin()->data[0]) + m_iFirstAzimuthIndex) >= m_iLidarRotationStartAngle) && 
-			(m_iLidarRotationStartAngle > *(uint16_t*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]) + m_iLastAzimuthIndex)) ||
-			(int(CIRCLE_ANGLE) - *(uint16_t*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]) + m_iLastAzimuthIndex) - m_iLidarRotationStartAngle) <= m_iAngleSize)))) {   // Judging whether pass the  start angle
+		if(isNeedPublish()) {   // Judging whether pass the  start angle
 			uint32_t startTick1 = GetTickCount();
 			moveTaskEndToStartAngle();
 			doTaskFlow(cursor);
@@ -336,11 +328,18 @@ int PandarSwiftSDK::processLiDARData() {
 				m_bPublishPointsFlag = true;
 				m_iPublishPointsIndex = cursor;
 				cursor = (cursor + 1) % 2;
+				int totalNum=0;
+				// for(int i =0 ; i<m_OutMsgArray[cursor]->points.size() ;i++){
+				// 	if(m_OutMsgArray[cursor]->points[i].ring != 0){
+				// 		totalNum++;
+				// 	}
+				// }
+				// printf("total points num = :%d\n",totalNum);		
 			} 
 			else
 				printf("publishPoints not done yet, new publish is comming\n");
 			m_OutMsgArray[cursor]->clear();
-			m_OutMsgArray[cursor]->resize(CIRCLE_ANGLE / m_iAngleSize * m_iLaserNum * m_iReturnBlockSize );
+			m_OutMsgArray[cursor]->resize(calculatePointBufferSize());
 			if(m_RedundantPointBuffer.size() > 0 && m_RedundantPointBuffer.size() < 1000){
 				for(int i = 0; i < m_RedundantPointBuffer.size(); i++){
 				m_OutMsgArray[cursor]->points[m_RedundantPointBuffer[i].index] = m_RedundantPointBuffer[i].point;
@@ -369,25 +368,25 @@ int PandarSwiftSDK::processLiDARData() {
 
 void PandarSwiftSDK::moveTaskEndToStartAngle() {
 	uint32_t startTick = GetTickCount();
-	if(m_bClockwise == true){
+	if(m_iViewMode == 1){
 		for(PktArray::iterator iter = m_PacketsBuffer.m_iterTaskBegin; iter < m_PacketsBuffer.m_iterTaskEnd; iter++) {
-			if ((*(uint16_t*)(&(iter->data[0]) + m_iFirstAzimuthIndex) > *(uint16_t*)(&((iter + 1)->data[0]) + m_iFirstAzimuthIndex)) &&
-				(m_iLidarRotationStartAngle <= *(uint16_t*)(&((iter + 1)->data[0]) + m_iFirstAzimuthIndex)) ||
-				((*(uint16_t*)(&(iter->data[0]) + m_iFirstAzimuthIndex) < m_iLidarRotationStartAngle) &&
-				(m_iLidarRotationStartAngle <= *(uint16_t*)(&((iter + 1)->data[0]) + m_iFirstAzimuthIndex)))) {
-				// printf("move iter to : %d\n", (iter + 1)->blocks[0].fAzimuth);
-				m_PacketsBuffer.moveTaskEnd(iter + 1);
-				break;
+			for(int i = 0; i < m_PandarAT_corrections.header.frame_number; i++){
+				if((*(uint16_t*)(&(iter->data[0]) + m_iFirstAzimuthIndex) < (m_PandarAT_corrections.start_frame[i])) &&
+				((m_PandarAT_corrections.start_frame[i]) <= *(uint16_t*)(&((iter + 1)->data[0]) + m_iLastAzimuthIndex)) ||
+				(*(uint16_t*)(&((iter)->data[0]) + m_iFirstAzimuthIndex) > *(uint16_t*)(&((iter + 1)->data[0]) + m_iLastAzimuthIndex)) &&
+				((m_PandarAT_corrections.start_frame[i]) <= *(uint16_t*)(&((iter + 1)->data[0]) + m_iLastAzimuthIndex))){
+					m_PacketsBuffer.moveTaskEnd(iter + 1);
+					break;
+				}
 			}
 		}
 	}
 	else{
 		for(PktArray::iterator iter = m_PacketsBuffer.m_iterTaskBegin; iter < m_PacketsBuffer.m_iterTaskEnd; iter++) {
-			if ((*(uint16_t*)(&(iter->data[0]) + m_iFirstAzimuthIndex) < *(uint16_t*)(&((iter + 1)->data[0]) + m_iFirstAzimuthIndex)) &&
-				((((CIRCLE_ANGLE - m_iLidarRotationStartAngle > CIRCLE_ANGLE / 2)) &&(m_iLidarRotationStartAngle <= *(uint16_t*)(&((iter + 1)->data[0]) + m_iFirstAzimuthIndex))) ||
-				(((CIRCLE_ANGLE - m_iLidarRotationStartAngle < CIRCLE_ANGLE / 2)) &&(m_iLidarRotationStartAngle >= *(uint16_t*)(&((iter + 1)->data[0]) + m_iFirstAzimuthIndex)))) ||
-				((*(uint16_t*)(&(iter->data[0]) + m_iFirstAzimuthIndex) > m_iLidarRotationStartAngle) &&
-				(m_iLidarRotationStartAngle >= *(uint16_t*)(&((iter + 1)->data[0]) + m_iFirstAzimuthIndex)))) {
+			if ((*(uint16_t*)(&(iter->data[0]) + m_iFirstAzimuthIndex) < m_PandarAT_corrections.start_frame[0]) &&
+				(m_PandarAT_corrections.start_frame[0] <= *(uint16_t*)(&((iter + 1)->data[0]) + m_iFirstAzimuthIndex)) || 
+				(*(uint16_t*)(&((iter)->data[0]) + m_iFirstAzimuthIndex) > *(uint16_t*)(&((iter + 1)->data[0]) + m_iLastAzimuthIndex)) &&
+				((m_PandarAT_corrections.start_frame[0]) <= *(uint16_t*)(&((iter + 1)->data[0]) + m_iLastAzimuthIndex))) {
 				// printf("move iter to : %d\n", (iter + 1)->blocks[0].fAzimuth);
 				m_PacketsBuffer.moveTaskEnd(iter + 1);
 				break;
@@ -430,55 +429,40 @@ void PandarSwiftSDK::init() {
 			continue;
 		}
 		uint16_t lidarmotorspeed = 0;
-		if((m_PacketsBuffer.getTaskEnd() - 1)->data[3] == 3){
-			Pandar128PacketVersion13 packet;
-			memcpy(&packet, &((m_PacketsBuffer.getTaskEnd() - 1)->data[0]), sizeof(Pandar128PacketVersion13));
-			m_iWorkMode = packet.tail.nShutdownFlag & 0x03;
-			m_iReturnMode = packet.tail.nReturnMode;
-			m_u8UdpVersionMajor = packet.head.u8VersionMajor;
-			m_u8UdpVersionMinor = packet.head.u8VersionMinor;
-			m_spPandarDriver->setUdpVersion(m_u8UdpVersionMajor, m_u8UdpVersionMinor);
-			lidarmotorspeed = packet.tail.nMotorSpeed;
-			m_iLaserNum = packet.head.u8LaserNum;
-			m_iFirstAzimuthIndex = PANDAR128_HEAD_SIZE;
-			m_iLastAzimuthIndex = PANDAR128_HEAD_SIZE + PANDAR128_BLOCK_SIZE;
-		}
-		else if((m_PacketsBuffer.getTaskEnd() - 1)->data[3] == 4){
-			auto header = (Pandar128HeadVersion14*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]));
-			auto tail = (Pandar128TailVersion14*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]) + PANDAR128_HEAD_SIZE +
-						(header->hasConfidence() ? PANDAR128_UNIT_WITH_CONFIDENCE_SIZE * header->u8LaserNum * header->u8BlockNum : PANDAR128_UNIT_WITHOUT_CONFIDENCE_SIZE * header->u8LaserNum * header->u8BlockNum) + 
-						PANDAR128_AZIMUTH_SIZE * header->u8BlockNum + 
-						PANDAR128_CRC_SIZE + 
-						(header->hasFunctionSafety()? PANDAR128_FUNCTION_SAFETY_SIZE : 0) - 1);
-			m_iWorkMode = tail->nShutdownFlag & 0x03;
-			m_iReturnMode = tail->nReturnMode;
-			m_u8UdpVersionMajor = header->u8VersionMajor;
-			m_u8UdpVersionMinor = header->u8VersionMinor;
-			m_spPandarDriver->setUdpVersion(m_u8UdpVersionMajor, m_u8UdpVersionMinor);
-			lidarmotorspeed = tail->nMotorSpeed;
-			m_iLaserNum = header->u8LaserNum;
-			m_iFirstAzimuthIndex = PANDAR128_HEAD_SIZE;
-			m_iLastAzimuthIndex = PANDAR128_HEAD_SIZE + 
-									(header->hasConfidence() ? PANDAR128_UNIT_WITH_CONFIDENCE_SIZE * header->u8LaserNum * (header->u8BlockNum - 1) : PANDAR128_UNIT_WITHOUT_CONFIDENCE_SIZE * header->u8LaserNum * (header->u8BlockNum - 1)) + 
-									PANDAR128_AZIMUTH_SIZE * (header->u8BlockNum - 1);
-		}
-		if(abs(lidarmotorspeed - MOTOR_SPEED_600) < 100) { //ignore the speed gap of 6000 rpm
+		auto header = (PandarAT128Head*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]));
+		auto tail = (PandarAT128Tail*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]) + PANDAR_AT128_HEAD_SIZE +
+					PANDAR_AT128_UNIT_WITH_CONFIDENCE_SIZE * header->u8LaserNum * header->u8BlockNum + 
+					PANDAR_AT128_AZIMUTH_SIZE * header->u8BlockNum );
+		m_iWorkMode = tail->nShutdownFlag & 0x03;
+		m_iReturnMode = tail->nReturnMode;
+		lidarmotorspeed = tail->nMotorSpeed;
+		m_iLaserNum = header->u8LaserNum;
+		m_iFirstAzimuthIndex = PANDAR_AT128_HEAD_SIZE;
+		m_iLastAzimuthIndex = PANDAR_AT128_HEAD_SIZE + 
+								PANDAR_AT128_UNIT_WITH_CONFIDENCE_SIZE * header->u8LaserNum * (header->u8BlockNum - 1) + 
+								PANDAR_AT128_AZIMUTH_SIZE * (header->u8BlockNum - 1);
+		if(abs(lidarmotorspeed - MOTOR_SPEED_600) < 30) { //ignore the speed gap of 600 rpm
 			lidarmotorspeed = MOTOR_SPEED_600;
 		}
-		else if(abs(lidarmotorspeed - MOTOR_SPEED_1200) < 100) { //ignore the speed gap of 1200 rpm
-			lidarmotorspeed = MOTOR_SPEED_1200;
+		else if(abs(lidarmotorspeed - MOTOR_SPEED_400) < 30) { //ignore the speed gap of 400 rpm
+			lidarmotorspeed = MOTOR_SPEED_400;
+		}
+		else if(abs(lidarmotorspeed - MOTOR_SPEED_300) < 30) { //ignore the speed gap of 300 rpm
+			lidarmotorspeed = MOTOR_SPEED_300;
+		}
+		else if(abs(lidarmotorspeed - MOTOR_SPEED_200) < 30) { //ignore the speed gap of 200 rpm
+			lidarmotorspeed = MOTOR_SPEED_200;
 		}
 		else {
-			lidarmotorspeed = MOTOR_SPEED_600; //changing the speed,give enough size
+			lidarmotorspeed = MOTOR_SPEED_200; //changing the speed,give enough size
 		}
 		m_iMotorSpeed = lidarmotorspeed;
 		printf("init mode: workermode: %x,return mode: %x,speed: %d\n",m_iWorkMode, m_iReturnMode, m_iMotorSpeed);
-		printf("UDP version %d.%d \n",m_u8UdpVersionMajor, m_u8UdpVersionMinor);
 		changeAngleSize();
 		changeReturnBlockSize();
-		checkClockwise();
-		boost::shared_ptr<PPointCloud> outMag0(new PPointCloud(CIRCLE_ANGLE / m_iAngleSize * m_iLaserNum * m_iReturnBlockSize, 1));
-		boost::shared_ptr<PPointCloud> outMag1(new PPointCloud(CIRCLE_ANGLE / m_iAngleSize * m_iLaserNum * m_iReturnBlockSize, 1));
+		// checkClockwise();
+		boost::shared_ptr<PPointCloud> outMag0(new PPointCloud(calculatePointBufferSize(), 1));
+		boost::shared_ptr<PPointCloud> outMag1(new PPointCloud(calculatePointBufferSize(), 1));
 		m_OutMsgArray[0] = outMag0;
 		m_OutMsgArray[1] = outMag1;
 		break;
@@ -503,102 +487,78 @@ void PandarSwiftSDK::checkClockwise(){
 }
 
 int PandarSwiftSDK::checkLiadaMode() {
-	uint8_t lidarworkmode = 0;
-	uint8_t lidarreturnmode = 0;
-	uint16_t lidarmotorspeed = 0;
-	uint8_t laserNum = 0;
-	if((m_PacketsBuffer.getTaskEnd() - 1)->data[3] == 3){
-		Pandar128PacketVersion13 packet;
-		memcpy(&packet, &((m_PacketsBuffer.getTaskEnd() - 1)->data[0]), sizeof(Pandar128PacketVersion13));
-		lidarworkmode = packet.tail.nShutdownFlag & 0x03;
-		lidarreturnmode = packet.tail.nReturnMode;
-		lidarmotorspeed = packet.tail.nMotorSpeed;
-		laserNum = packet.head.u8LaserNum;
-	}
-	else if((m_PacketsBuffer.getTaskEnd() - 1)->data[3] == 4){
-		auto header = (Pandar128HeadVersion14*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]));
-		auto tail = (Pandar128TailVersion14*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]) + PANDAR128_HEAD_SIZE +
-					(header->hasConfidence() ? PANDAR128_UNIT_WITH_CONFIDENCE_SIZE * header->u8LaserNum * header->u8BlockNum : PANDAR128_UNIT_WITHOUT_CONFIDENCE_SIZE * header->u8LaserNum * header->u8BlockNum) + 
-					PANDAR128_AZIMUTH_SIZE * header->u8BlockNum + 
-					PANDAR128_CRC_SIZE + 
-					(header->hasFunctionSafety()? PANDAR128_FUNCTION_SAFETY_SIZE : 0) - 1);
-		lidarworkmode = tail->nShutdownFlag & 0x03;
-		lidarreturnmode = tail->nReturnMode;
-		lidarmotorspeed = tail->nMotorSpeed;
-		laserNum = header->u8LaserNum;
-	}
-	if(abs(lidarmotorspeed - MOTOR_SPEED_600) < 100) { //ignore the speed gap of 6000 rpm
-		lidarmotorspeed = MOTOR_SPEED_600;
-	}
-	else if(abs(lidarmotorspeed - MOTOR_SPEED_1200) < 100) { //ignore the speed gap of 1200 rpm
-		lidarmotorspeed = MOTOR_SPEED_1200;
-	}
-	else {
-		lidarmotorspeed = MOTOR_SPEED_600; //changing the speed,give enough size
-	}
-    //mode change 
-	if (0 == m_iWorkMode && 0 == m_iReturnMode && 0 == m_iMotorSpeed && 0 == m_iLaserNum) { //init lidar mode 
-		m_iWorkMode = lidarworkmode;
-		m_iReturnMode = lidarreturnmode;
-		m_iMotorSpeed = lidarmotorspeed;
-		m_iLaserNum = laserNum;
-		printf("init mode: workermode: %x,return mode: %x,speed: %d,laser number: %d",m_iWorkMode, m_iReturnMode, m_iMotorSpeed, m_iLaserNum);
-		changeAngleSize();
-		changeReturnBlockSize();
-		checkClockwise();
-		boost::shared_ptr<PPointCloud> outMag0(new PPointCloud(
-			CIRCLE_ANGLE * 100 / m_iAngleSize * m_iLaserNum * m_iReturnBlockSize, 1));
-		boost::shared_ptr<PPointCloud> outMag1(new PPointCloud(
-			CIRCLE_ANGLE * 100 / m_iAngleSize * m_iLaserNum * m_iReturnBlockSize, 1));
-		m_OutMsgArray[0] = outMag0;
-		m_OutMsgArray[1] = outMag1;
-		return 1;
-	} 
-	else{
-		if(m_iWorkMode != lidarworkmode) { //work mode change
-			printf("change work mode:  %x to %x\n",m_iWorkMode, lidarworkmode);
-			m_iWorkMode = lidarworkmode;
-			m_iMotorSpeed = lidarmotorspeed;
-			changeAngleSize();
-			return 0;
-		}
-		if(m_iReturnMode != lidarreturnmode) { //return mode change
-			printf("change return mode:  %x to %x\n",m_iReturnMode, lidarreturnmode);
-			m_iReturnMode = lidarreturnmode;
-			changeReturnBlockSize();
-			return 0;
-		}
-		if(m_iMotorSpeed != lidarmotorspeed) { //motor speed change
-			// printf("change motor speed:  %d to %d\n",m_iMotorSpeed, lidarmotorspeed);
-			m_iMotorSpeed = lidarmotorspeed;
-			changeAngleSize();
-			return 0;
-		}
-		if (m_iLaserNum != laserNum) { //laser number change
-			m_iLaserNum = laserNum;
-			return 0;
-		}
-		return 1;
-	}
+  auto header = (PandarAT128Head*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]));
+  auto tail = (PandarAT128Tail*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]) + PANDAR_AT128_HEAD_SIZE +
+              PANDAR_AT128_UNIT_WITH_CONFIDENCE_SIZE * header->u8LaserNum * header->u8BlockNum + 
+              PANDAR_AT128_AZIMUTH_SIZE * header->u8BlockNum );
+  uint8_t lidarworkmode = tail->nShutdownFlag & 0x03;
+  uint8_t lidarreturnmode = tail->nReturnMode;
+  uint16_t lidarmotorspeed = tail->nMotorSpeed;
+  uint8_t laserNum = header->u8LaserNum;
+  uint8_t blockNum = header->u8BlockNum;
+  m_iFirstAzimuthIndex = PANDAR_AT128_HEAD_SIZE;
+  m_iLastAzimuthIndex = PANDAR_AT128_HEAD_SIZE + 
+						PANDAR_AT128_UNIT_WITH_CONFIDENCE_SIZE * header->u8LaserNum * (header->u8BlockNum - 1) + 
+						PANDAR_AT128_AZIMUTH_SIZE * (header->u8BlockNum - 1);
+  if(abs(lidarmotorspeed - MOTOR_SPEED_600) < 30) { //ignore the speed gap of 6000 rpm
+    lidarmotorspeed = MOTOR_SPEED_600;
+  }
+  else if(abs(lidarmotorspeed - MOTOR_SPEED_400) < 30) { //ignore the speed gap of 400 rpm
+    lidarmotorspeed = MOTOR_SPEED_400;
+  }
+  else if(abs(lidarmotorspeed - MOTOR_SPEED_300) < 30) { //ignore the speed gap of 300 rpm
+    lidarmotorspeed = MOTOR_SPEED_300;
+  }
+  else if(abs(lidarmotorspeed - MOTOR_SPEED_200) < 30) { //ignore the speed gap of 200 rpm
+    lidarmotorspeed = MOTOR_SPEED_200;
+  }
+  else {
+      lidarmotorspeed = MOTOR_SPEED_300; //changing the speed,give enough size
+  }
+
+  if (0 == m_iWorkMode && 0 == m_iReturnMode && 0 == m_iMotorSpeed && 0 == m_iLaserNum) { //init lidar mode 
+    m_iWorkMode = lidarworkmode;
+    m_iReturnMode = lidarreturnmode;
+    m_iMotorSpeed = lidarmotorspeed;
+    m_iLaserNum = laserNum;
+    printf("init mode: workermode: %x,return mode: %x,speed: %d,laser number: %d",m_iWorkMode, m_iReturnMode, m_iMotorSpeed, m_iLaserNum);
+    changeAngleSize();
+    changeReturnBlockSize(); 
+    // checkClockwise();
+    boost::shared_ptr<PPointCloud> outMag0(new PPointCloud(calculatePointBufferSize(), 1));
+    boost::shared_ptr<PPointCloud> outMag1(new PPointCloud(calculatePointBufferSize(), 1));
+    m_OutMsgArray[0] = outMag0;
+    m_OutMsgArray[1] = outMag1;
+    return 1;
+  } 
+  else {
+    if (m_iReturnMode != lidarreturnmode) { //return mode change
+      printf("change return mode:  %x to %x ",m_iReturnMode, lidarreturnmode);
+      m_iReturnMode = lidarreturnmode;
+      changeReturnBlockSize();
+      return 0;
+    }
+    if (m_iMotorSpeed != lidarmotorspeed) { //motor speed change
+      // printf("change motor speed:  %d to %d ",m_iMotorSpeed, lidarmotorspeed);
+      m_iMotorSpeed = lidarmotorspeed;
+      changeAngleSize();
+      return 0;
+    }
+    if (m_iLaserNum != laserNum) { //laser number change
+      m_iLaserNum = laserNum;
+      return 0;
+    }
+    return 1;
+  }
 }
 
 void PandarSwiftSDK::changeAngleSize() {
-	if(m_iLaserNum == 80) {
-		m_iAngleSize = LIDAR_ANGLE_SIZE_18;  // 18->0.18degree
-		return;
-	} 
-	if(0 == m_iWorkMode && MOTOR_SPEED_600 == m_iMotorSpeed) {
-		m_iAngleSize = LIDAR_ANGLE_SIZE_10 * m_iMotorSpeed / MOTOR_SPEED_600;  // 20->0.1degree
-	}
-	if(0 == m_iWorkMode && MOTOR_SPEED_1200 == m_iMotorSpeed) {
-		m_iAngleSize = LIDAR_ANGLE_SIZE_20;  // 20->0.2degreepktCount[2]
-	}
-	if(0 != m_iWorkMode && MOTOR_SPEED_600 == m_iMotorSpeed) {
-		m_iAngleSize = LIDAR_ANGLE_SIZE_20;  // 20->0.2degree
-	}
-	if(0 != m_iWorkMode && MOTOR_SPEED_1200 == m_iMotorSpeed) {
-		m_iAngleSize = LIDAR_ANGLE_SIZE_40;  // 40->0.4degree
-	}  
+  if (MOTOR_SPEED_600 == m_iMotorSpeed || MOTOR_SPEED_400 == m_iMotorSpeed) {
+    m_iAngleSize = LIDAR_ANGLE_SIZE_10;  // 10->0.1degree
+  }
+  else if(MOTOR_SPEED_300 == m_iMotorSpeed || MOTOR_SPEED_200 == m_iMotorSpeed){
+    m_iAngleSize = LIDAR_ANGLE_SIZE_5;  // 5->0.05degree
+  }
 }
 
 void PandarSwiftSDK::changeReturnBlockSize() {
@@ -609,184 +569,92 @@ void PandarSwiftSDK::changeReturnBlockSize() {
 	}
 }
 
-void PandarSwiftSDK::calcPointXYZIT(PandarPacket &pkt, int cursor) {
-	if (pkt.data[3] == 3){
-		Pandar128PacketVersion13 packet;
-		memcpy(&packet, &pkt.data[0], sizeof(Pandar128PacketVersion13));
-		struct tm t = {0};
-		t.tm_year = packet.tail.nUTCTime[0];
-		t.tm_mon = packet.tail.nUTCTime[1] - 1;
-		t.tm_mday = packet.tail.nUTCTime[2];
-		t.tm_hour = packet.tail.nUTCTime[3];
-		t.tm_min = packet.tail.nUTCTime[4];
-		t.tm_sec = packet.tail.nUTCTime[5];
-		t.tm_isdst = 0;
-		double unix_second = static_cast<double>(mktime(&t) + m_iTimeZoneSecond);
-		for (int blockid = 0; blockid < packet.head.u8BlockNum; blockid++) {
-			Pandar128Block &block = packet.blocks[blockid];
-			int mode = packet.tail.nShutdownFlag & 0x03;
-			int state = 0;
-			if(0 == blockid)
-				state = (packet.tail.nShutdownFlag & 0xC0) >> 6;
-			if(1 == blockid)
-				state = (packet.tail.nShutdownFlag & 0x30) >> 4;
-			for (int i = 0; i < packet.head.u8LaserNum; i++) {
-				/* for all the units in a block */
-				Pandar128Unit &unit = block.units[i];
-				PPoint point;
-				float distance =static_cast<float>(unit.u16Distance) * PANDAR128_DISTANCE_UNIT;
-				/* filter distance */
-				// if(distance < 0.1) {
-				// 	continue;
-				// }
-				float azimuth = m_fHorizatalAzimuth[i] + (block.fAzimuth / 100.0f);
-				float originAzimuth = azimuth;
-				float pitch = m_fElevAngle[i];
-				float originPitch = pitch;
-				int offset = m_objLaserOffset.getTSOffset(i, mode, state, distance, packet.head.u8LaserNum);
-				azimuth += m_objLaserOffset.getAngleOffset(offset, i, packet.head.u8LaserNum);
-				pitch += m_objLaserOffset.getPitchOffset(m_sFrameId, pitch, distance);
-				if(pitch < 0) {
-					pitch += 360.0f;
-				} 
-				else if(pitch >= 360.0f) {
-					pitch -= 360.0f;
-				}
-				float xyDistance = distance * m_fCosAllAngle[static_cast<int>(pitch * 100 + 0.5)];
-				azimuth += m_objLaserOffset.getAzimuthOffset(m_sFrameId, originAzimuth, block.fAzimuth / 100.0f, xyDistance);
-				int azimuthIdx = static_cast<int>(azimuth * 100 + 0.5);
-				if(azimuthIdx >= CIRCLE) {
-					azimuthIdx -= CIRCLE;
-				} 
-				else if(azimuthIdx < 0) {
-					azimuthIdx += CIRCLE;
-				}
-				point.x = xyDistance * m_fSinAllAngle[azimuthIdx];
-				point.y = xyDistance * m_fCosAllAngle[azimuthIdx];
-				point.z = distance * m_fSinAllAngle[static_cast<int>(pitch * 100 + 0.5)];
-				point.intensity = unit.u8Intensity;
-				point.timestamp = unix_second + (static_cast<double>(packet.tail.nTimestamp)) / 1000000.0;
-				point.timestamp = point.timestamp + m_objLaserOffset.getBlockTS(blockid, packet.tail.nReturnMode, mode, packet.head.u8LaserNum) / 1000000000.0 + offset / 1000000000.0;
-				if(0 == m_dTimestamp) {
-					m_dTimestamp = point.timestamp;
-				}
-				else if(m_dTimestamp > point.timestamp) {
-					m_dTimestamp = point.timestamp;
-				}
-				point.ring = i + 1;
-				int point_index;
-				if(LIDAR_RETURN_BLOCK_SIZE_2 == m_iReturnBlockSize) {
-					point_index = (block.fAzimuth - m_iLidarRotationStartAngle) / m_iAngleSize * m_iLaserNum * m_iReturnBlockSize + m_iLaserNum * blockid + i;
-					// printf("block 2 index:[%d]",index);
-				} 
-				else {
-					point_index = (block.fAzimuth - m_iLidarRotationStartAngle) / m_iAngleSize * m_iLaserNum + i;
-				}
-				if(m_OutMsgArray[cursor]->points[point_index].ring == 0){
-					m_OutMsgArray[cursor]->points[point_index] = point;
-				}
-				else{
-					pthread_mutex_lock(&m_RedundantPointLock);
-					m_RedundantPointBuffer.push_back(RedundantPoint{point_index, point});
-					pthread_mutex_unlock(&m_RedundantPointLock);
-				}
-			}
-		}
-	}
-	else if(pkt.data[3] == 4){
-		auto header = (Pandar128HeadVersion14*)(&pkt.data[0]);
-		auto tail = (Pandar128TailVersion14*)(&pkt.data[0] + PANDAR128_HEAD_SIZE + 
-					(header->hasConfidence() ? PANDAR128_UNIT_WITH_CONFIDENCE_SIZE * header->u8LaserNum * header->u8BlockNum : PANDAR128_UNIT_WITHOUT_CONFIDENCE_SIZE * header->u8LaserNum * header->u8BlockNum) + 
-					PANDAR128_AZIMUTH_SIZE * header->u8BlockNum + 
-					PANDAR128_CRC_SIZE + 
-					(header->hasFunctionSafety()? PANDAR128_FUNCTION_SAFETY_SIZE : 0) - 1);
-		struct tm t = {0};
-		t.tm_year = tail->nUTCTime[0];
-		t.tm_mon = tail->nUTCTime[1] - 1;
-		t.tm_mday = tail->nUTCTime[2];
-		t.tm_hour = tail->nUTCTime[3];
-		t.tm_min = tail->nUTCTime[4];
-		t.tm_sec = tail->nUTCTime[5];
-		t.tm_isdst = 0;
-		double unix_second = static_cast<double>(mktime(&t) + m_iTimeZoneSecond);
-		int index = 0;
-		index += PANDAR128_HEAD_SIZE;
-		for (int blockid = 0; blockid < header->u8BlockNum; blockid++) {
-			uint16_t u16Azimuth = *(uint16_t*)(&pkt.data[0] + index);
-			index += PANDAR128_AZIMUTH_SIZE;
-			int mode = tail->nShutdownFlag & 0x03;
-			int state = 0;
-			if(0 == blockid)
-				state = (tail->nShutdownFlag & 0xC0) >> 6;
-			if(1 == blockid)
-				state = (tail->nShutdownFlag & 0x30) >> 4;
-			for (int i = 0; i < header->u8LaserNum; i++) {
-				/* for all the units in a block */
-				uint16_t u16Distance = *(uint16_t*)(&pkt.data[0] + index);
-				index += DISTANCE_SIZE;
-				uint8_t u8Intensity = *(uint8_t*)(&pkt.data[0] + index);
-				index += INTENSITY_SIZE;
-				index += header->hasConfidence() ? CONFIDENCE_SIZE : 0;
-				PPoint point;
-				float distance =static_cast<float>(u16Distance) * PANDAR128_DISTANCE_UNIT;
-				/* filter distance */
-				// if(distance < 0.1) {
-				// 	continue;
-				// }
-				float azimuth = m_fHorizatalAzimuth[i] + (u16Azimuth / 100.0f);
-				float originAzimuth = azimuth;
-				float pitch = m_fElevAngle[i];
-				float originPitch = pitch;
-				int offset = m_objLaserOffset.getTSOffset(i, mode, state, distance, header->u8LaserNum);
-				azimuth += m_objLaserOffset.getAngleOffset(offset, i, header->u8LaserNum);
-				pitch += m_objLaserOffset.getPitchOffset(m_sFrameId, pitch, distance);
-				if(pitch < 0) {
-					pitch += 360.0f;
-				} 
-				else if(pitch >= 360.0f) {
-					pitch -= 360.0f;
-				}
-				float xyDistance = distance * m_fCosAllAngle[static_cast<int>(pitch * 100 + 0.5)];
-				azimuth += m_objLaserOffset.getAzimuthOffset(m_sFrameId, originAzimuth, u16Azimuth / 100.0f, xyDistance);
-				int azimuthIdx = static_cast<int>(azimuth * 100 + 0.5);
-				if(azimuthIdx >= CIRCLE) {
-					azimuthIdx -= CIRCLE;
-				} 
-				else if(azimuthIdx < 0) {
-					azimuthIdx += CIRCLE;
-				}
-				point.x = xyDistance * m_fSinAllAngle[azimuthIdx];
-				point.y = xyDistance * m_fCosAllAngle[azimuthIdx];
-				point.z = distance * m_fSinAllAngle[static_cast<int>(pitch * 100 + 0.5)];
-				point.intensity = u8Intensity;
-				point.timestamp = unix_second + (static_cast<double>(tail->nTimestamp)) / 1000000.0;
-				point.timestamp = point.timestamp + m_objLaserOffset.getBlockTS(blockid, tail->nReturnMode, mode, header->u8LaserNum) / 1000000000.0 + offset / 1000000000.0;
-				if(0 == m_dTimestamp) {
-					m_dTimestamp = point.timestamp;
-				}
-				else if(m_dTimestamp > point.timestamp) {
-					m_dTimestamp = point.timestamp;
-				}
-				point.ring = i + 1;
-				int point_index;
-				if(LIDAR_RETURN_BLOCK_SIZE_2 == m_iReturnBlockSize) {
-					point_index = (u16Azimuth - m_iLidarRotationStartAngle) / m_iAngleSize * m_iLaserNum * m_iReturnBlockSize + m_iLaserNum * (blockid % 2) + i;
-					// printf("block 2 index:[%d]",index);
-				} 
-				else {
-					point_index = (u16Azimuth - m_iLidarRotationStartAngle) / m_iAngleSize * m_iLaserNum + i;
-				}
-				if(m_OutMsgArray[cursor]->points[point_index].ring == 0){
-					m_OutMsgArray[cursor]->points[point_index] = point;
-				}
-				else{
-					pthread_mutex_lock(&m_RedundantPointLock);
-					m_RedundantPointBuffer.push_back(RedundantPoint{point_index, point});
-					pthread_mutex_unlock(&m_RedundantPointLock);
-				}
-			}
-		}
-	}
+void PandarSwiftSDK::calcPointXYZIT(PandarPacket &packet, int cursor) {
+  auto header = (PandarAT128Head*)(&packet.data[0]);
+  auto tail = (PandarAT128Tail*)(&packet.data[0] + PANDAR_AT128_HEAD_SIZE + 
+               PANDAR_AT128_UNIT_WITH_CONFIDENCE_SIZE * header->u8LaserNum * header->u8BlockNum + 
+              PANDAR_AT128_AZIMUTH_SIZE * header->u8BlockNum );
+      // ROS_WARN(" return mode:  %x, speed :%d ",tail->nReturnMode, tail->nMotorSpeed);         
+  struct tm t = {0};
+  t.tm_year = tail->nUTCTime[0];
+  if (t.tm_year >= 200) {
+    t.tm_year -= 100;
+  }
+  t.tm_mon = tail->nUTCTime[1] - 1;
+  t.tm_mday = tail->nUTCTime[2];
+  t.tm_hour = tail->nUTCTime[3];
+  t.tm_min = tail->nUTCTime[4];
+  t.tm_sec = tail->nUTCTime[5];
+  t.tm_isdst = 0;
+
+  double unix_second = static_cast<double>(mktime(&t) + m_iTimeZoneSecond);
+  int index = 0;
+  index += PANDAR_AT128_HEAD_SIZE;
+  for (int blockid = 0; blockid < header->u8BlockNum; blockid++) {
+    uint16_t u16Azimuth = *(uint16_t*)(&packet.data[0] + index);
+    // ROS_WARN("#####block.fAzimuth[%u]",u16Azimuth);
+    int count = 0, field = 0;
+    while ( count < m_PandarAT_corrections.header.frame_number
+            && (
+            ((u16Azimuth + CIRCLE_ANGLE  - m_PandarAT_corrections.start_frame[field]) % CIRCLE_ANGLE  + (m_PandarAT_corrections.end_frame[field] + CIRCLE_ANGLE  - u16Azimuth) % CIRCLE_ANGLE )
+                != (m_PandarAT_corrections.end_frame[field] + CIRCLE_ANGLE  - m_PandarAT_corrections.start_frame[field]) % CIRCLE_ANGLE  )
+    ) {
+        field = (field + 1) % m_PandarAT_corrections.header.frame_number;
+        count++;
+    }
+    if (count >= m_PandarAT_corrections.header.frame_number)
+        continue;
+    index += PANDAR_AT128_AZIMUTH_SIZE;
+    for (int i = 0; i < header->u8LaserNum; i++) {
+      /* for all the units in a block */
+      uint16_t u16Distance = *(uint16_t*)(&packet.data[0] + index);
+      index += DISTANCE_SIZE;
+      uint8_t u8Intensity = *(uint8_t*)(&packet.data[0] + index);
+      index += INTENSITY_SIZE;
+      index += CONFIDENCE_SIZE;
+      PPoint point;
+      float distance =
+          static_cast<float>(u16Distance) * PANDAR128_DISTANCE_UNIT;
+      auto elevation = m_iViewMode == 0 ?
+                m_PandarAT_corrections.elevation[i] * m_PandarAT_corrections.header.resolution : 
+              (m_PandarAT_corrections.elevation[i] + m_PandarAT_corrections.elevation_offset[u16Azimuth]) * m_PandarAT_corrections.header.resolution;
+      elevation = (CIRCLE_ANGLE + elevation) % CIRCLE_ANGLE;    
+      auto azimuth = m_iViewMode == 0 ?
+          (u16Azimuth + CIRCLE_ANGLE  - m_PandarAT_corrections.azimuth[i]) % CIRCLE_ANGLE  * m_PandarAT_corrections.header.resolution : 
+          ((u16Azimuth + CIRCLE_ANGLE  - m_PandarAT_corrections.start_frame[field] - 
+		  (m_PandarAT_corrections.header.frame_number == 3 ? 3000 : 0)) * 2
+          - m_PandarAT_corrections.azimuth[i]
+          + m_PandarAT_corrections.azimuth_offset[u16Azimuth]) * m_PandarAT_corrections.header.resolution;
+      azimuth = (CIRCLE_ANGLE  + azimuth) % CIRCLE_ANGLE ;
+      float xyDistance =
+          distance * m_fCosAllAngle[(elevation)];
+      point.x = xyDistance * m_fSinAllAngle[(azimuth)];
+      point.y = xyDistance * m_fCosAllAngle[(azimuth)];
+      point.z = distance * m_fSinAllAngle[(elevation)];
+
+      point.intensity = u8Intensity;
+      point.timestamp =
+          unix_second + (static_cast<double>(tail->nTimestamp)) / 1000000.0;
+
+      if (0 == m_dTimestamp) {
+        m_dTimestamp = point.timestamp;
+      } else if (m_dTimestamp > point.timestamp) {
+        m_dTimestamp = point.timestamp;
+     }
+
+      point.ring = i + 1;
+      int point_index;
+      point_index = calculatePointIndex(u16Azimuth, blockid, i);
+      if(m_OutMsgArray[cursor]->points[point_index].ring == 0){
+        m_OutMsgArray[cursor]->points[point_index] = point;
+      }
+      else{
+        pthread_mutex_lock(&m_RedundantPointLock);
+        m_RedundantPointBuffer.push_back(RedundantPoint{point_index, point});
+        pthread_mutex_unlock(&m_RedundantPointLock);
+      }
+    }
+  }
 }
 
 void PandarSwiftSDK::loadOffsetFile(std::string file) {
@@ -805,4 +673,119 @@ void PandarSwiftSDK::processGps(PandarGPS *gpsMsg) {
 	if(NULL != m_funcGpsCallback) {
 		m_funcGpsCallback(static_cast<double>(mktime(&t) + m_iTimeZoneSecond));
 	}
+}
+
+bool PandarSwiftSDK::isNeedPublish(){
+  uint16_t beginAzimuth = *(uint16_t*)(&(m_PacketsBuffer.getTaskBegin()->data[0]) + m_iFirstAzimuthIndex);
+  uint16_t endAzimuth = *(uint16_t*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]) + m_iLastAzimuthIndex);
+  if(m_iViewMode == 1){
+    for(int i = 0; i < m_PandarAT_corrections.header.frame_number; i++){
+      if((abs(endAzimuth - (m_PandarAT_corrections.start_frame[i])) <= m_iAngleSize) || 
+        (beginAzimuth < (m_PandarAT_corrections.start_frame[i])) && ((m_PandarAT_corrections.start_frame[i]) <= endAzimuth) ||
+        (endAzimuth < beginAzimuth && endAzimuth >= m_PandarAT_corrections.start_frame[i]))
+            return true;
+    }
+    return false;
+  }
+  else{
+    if((abs(endAzimuth - m_PandarAT_corrections.start_frame[0]) <= m_iAngleSize) || 
+        (beginAzimuth < m_PandarAT_corrections.start_frame[0]) && (m_PandarAT_corrections.start_frame[0] <= endAzimuth) ||
+        (endAzimuth < beginAzimuth && endAzimuth >= m_PandarAT_corrections.start_frame[0])){
+      return true;
+    }
+    return false;
+
+  }
+}
+
+int PandarSwiftSDK::calculatePointIndex(uint16_t u16Azimuth, int blockid, int laserid){
+  int point_index = 0;
+  switch(m_PandarAT_corrections.header.frame_number){
+    case 4: // two mirror case
+      if (LIDAR_RETURN_BLOCK_SIZE_2 == m_iReturnBlockSize) {
+        if(m_iViewMode == 1){
+          point_index = ((u16Azimuth  + PANDAR_AT128_FRAME_ANGLE_SIZE / 2) % 9000) % PANDAR_AT128_FRAME_ANGLE_SIZE / m_iAngleSize * m_iLaserNum *
+                    m_iReturnBlockSize +
+                m_iLaserNum * (blockid % 2) + laserid;
+        }
+        else{
+          if(u16Azimuth >= (CIRCLE_ANGLE - PANDAR_AT128_FRAME_ANGLE_SIZE / 2) || u16Azimuth <= (PANDAR_AT128_FRAME_ANGLE_SIZE / 2)){
+            point_index = ((u16Azimuth  + PANDAR_AT128_FRAME_ANGLE_SIZE / 2) % 9000) % PANDAR_AT128_FRAME_ANGLE_SIZE / m_iAngleSize * m_iLaserNum *
+                      m_iReturnBlockSize +
+                  m_iLaserNum * (blockid % 2) + laserid;
+          }
+          else{
+            point_index = (((u16Azimuth  + PANDAR_AT128_FRAME_ANGLE_SIZE / 2) % 9000) % PANDAR_AT128_FRAME_ANGLE_SIZE + PANDAR_AT128_FRAME_ANGLE_SIZE) / m_iAngleSize * m_iLaserNum *
+                      m_iReturnBlockSize +
+                  m_iLaserNum * (blockid % 2) + laserid;
+          }        
+        }
+
+      } else {
+        if(m_iViewMode == 1){
+          point_index = ((u16Azimuth  + PANDAR_AT128_FRAME_ANGLE_SIZE / 2) % 9000) % PANDAR_AT128_FRAME_ANGLE_SIZE  / m_iAngleSize * m_iLaserNum + laserid;
+        }
+        else{
+          if(u16Azimuth >= (CIRCLE_ANGLE - PANDAR_AT128_FRAME_ANGLE_SIZE / 2) || u16Azimuth <= (PANDAR_AT128_FRAME_ANGLE_SIZE / 2)){
+            point_index = ((u16Azimuth  + PANDAR_AT128_FRAME_ANGLE_SIZE / 2) % 9000) % PANDAR_AT128_FRAME_ANGLE_SIZE  / m_iAngleSize * m_iLaserNum + laserid;
+          }
+          else{
+            point_index = (((u16Azimuth  + PANDAR_AT128_FRAME_ANGLE_SIZE / 2) % 9000) % PANDAR_AT128_FRAME_ANGLE_SIZE + PANDAR_AT128_FRAME_ANGLE_SIZE) / m_iAngleSize * m_iLaserNum + laserid;
+          }        
+        }
+      }
+    break;
+    case 3: // three mirror case
+      if (LIDAR_RETURN_BLOCK_SIZE_2 == m_iReturnBlockSize) {
+        if(m_iViewMode == 1){
+          point_index = (u16Azimuth) % PANDAR_AT128_FRAME_ANGLE_SIZE / m_iAngleSize * m_iLaserNum *
+                    m_iReturnBlockSize +
+                m_iLaserNum * (blockid % 2) + laserid;
+        }
+        else{
+          if(u16Azimuth >= 0 && u16Azimuth <= (PANDAR_AT128_FRAME_ANGLE_SIZE)){
+            point_index =  u16Azimuth / m_iAngleSize * m_iLaserNum *
+                      m_iReturnBlockSize +
+                  m_iLaserNum * (blockid % 2) + laserid;
+          }
+          else if (u16Azimuth > (PANDAR_AT128_FRAME_ANGLE_SIZE) && u16Azimuth <= (PANDAR_AT128_FRAME_ANGLE_SIZE * 3)){
+            point_index = (u16Azimuth % PANDAR_AT128_FRAME_ANGLE_SIZE + PANDAR_AT128_FRAME_ANGLE_SIZE) / m_iAngleSize * m_iLaserNum *
+                      m_iReturnBlockSize +
+                  m_iLaserNum * (blockid % 2) + laserid;
+          }
+          else{
+            point_index = (u16Azimuth % PANDAR_AT128_FRAME_ANGLE_SIZE + PANDAR_AT128_FRAME_ANGLE_SIZE * 2) / m_iAngleSize * m_iLaserNum *
+                      m_iReturnBlockSize +
+                  m_iLaserNum * (blockid % 2) + laserid;
+          }        
+        }
+
+      } else {
+        if(m_iViewMode == 1){
+          point_index = (u16Azimuth) % PANDAR_AT128_FRAME_ANGLE_SIZE  / m_iAngleSize * m_iLaserNum + laserid;
+        }
+        else {
+          if(u16Azimuth >= 0 && u16Azimuth <= (PANDAR_AT128_FRAME_ANGLE_SIZE)){
+            point_index = (u16Azimuth)/ m_iAngleSize * m_iLaserNum + laserid;
+          }
+          else if (u16Azimuth > (PANDAR_AT128_FRAME_ANGLE_SIZE) && u16Azimuth <= (PANDAR_AT128_FRAME_ANGLE_SIZE * 3)){
+            point_index = (u16Azimuth % PANDAR_AT128_FRAME_ANGLE_SIZE + PANDAR_AT128_FRAME_ANGLE_SIZE) / m_iAngleSize * m_iLaserNum + laserid;
+          }
+          else{
+            point_index = (u16Azimuth % PANDAR_AT128_FRAME_ANGLE_SIZE + PANDAR_AT128_FRAME_ANGLE_SIZE * 2) / m_iAngleSize * m_iLaserNum + laserid;
+          }        
+        }
+      }
+    break;
+  }
+	return point_index;
+}
+int PandarSwiftSDK::calculatePointBufferSize(){
+  switch(m_PandarAT_corrections.header.frame_number){
+    case 4: // two mirror case
+      return (m_iViewMode == 0 ? PANDAR_AT128_FRAME_ANGLE_SIZE * 2 : PANDAR_AT128_FRAME_ANGLE_SIZE) / m_iAngleSize * m_iLaserNum * m_iReturnBlockSize;
+    break;
+    case 3: // three mirror case
+      return (m_iViewMode == 0 ? PANDAR_AT128_FRAME_ANGLE_SIZE * 3 : PANDAR_AT128_FRAME_ANGLE_SIZE) / m_iAngleSize * m_iLaserNum * m_iReturnBlockSize;
+  }
 }
