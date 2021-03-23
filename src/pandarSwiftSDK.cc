@@ -72,7 +72,7 @@ PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uin
 							std::string certFile, std::string privateKeyFile, std::string caFile, \
 							int startangle, int timezone, int viewMode, \ 
 							std::string publishmode, std::string datatype) {
-	m_sSdkVersion = "PandarSwiftSDK_1.2.10";
+	m_sSdkVersion = "PandarSwiftSDK_1.2.11";
 	printf("\n--------PandarSwift SDK version: %s--------\n",m_sSdkVersion.c_str());
 	m_sDeviceIpAddr = deviceipaddr;
 	m_sFrameId = frameid;
@@ -621,8 +621,7 @@ void PandarSwiftSDK::calcPointXYZIT(PandarPacket &packet, int cursor) {
       elevation = (CIRCLE_ANGLE + elevation) % CIRCLE_ANGLE;    
       auto azimuth = m_iViewMode == 0 ?
           (u16Azimuth + CIRCLE_ANGLE  - m_PandarAT_corrections.azimuth[i]) % CIRCLE_ANGLE  * m_PandarAT_corrections.header.resolution : 
-          ((u16Azimuth + CIRCLE_ANGLE  - m_PandarAT_corrections.start_frame[field] - 
-		  (m_PandarAT_corrections.header.frame_number == 3 ? 3000 : 0)) * 2
+          ((u16Azimuth + CIRCLE_ANGLE  - m_PandarAT_corrections.start_frame[field]) * 2
           - m_PandarAT_corrections.azimuth[i]
           + m_PandarAT_corrections.azimuth_offset[u16Azimuth]) * m_PandarAT_corrections.header.resolution;
       azimuth = (CIRCLE_ANGLE  + azimuth) % CIRCLE_ANGLE ;
@@ -736,25 +735,26 @@ int PandarSwiftSDK::calculatePointIndex(uint16_t u16Azimuth, int blockid, int la
       }
     break;
     case 3: // three mirror case
+      uint16_t Azimuth = (u16Azimuth + 3000) % CIRCLE_ANGLE;
       if (LIDAR_RETURN_BLOCK_SIZE_2 == m_iReturnBlockSize) {
         if(m_iViewMode == 1){
-          point_index = (u16Azimuth) % PANDAR_AT128_FRAME_ANGLE_SIZE / m_iAngleSize * m_iLaserNum *
+          point_index = (Azimuth) % PANDAR_AT128_FRAME_ANGLE_SIZE / m_iAngleSize * m_iLaserNum *
                     m_iReturnBlockSize +
                 m_iLaserNum * (blockid % 2) + laserid;
         }
         else{
-          if(u16Azimuth >= 0 && u16Azimuth <= (PANDAR_AT128_FRAME_ANGLE_SIZE)){
-            point_index =  u16Azimuth / m_iAngleSize * m_iLaserNum *
+          if(Azimuth >= 0 && Azimuth <= (PANDAR_AT128_FRAME_ANGLE_SIZE)){
+            point_index =  Azimuth / m_iAngleSize * m_iLaserNum *
                       m_iReturnBlockSize +
                   m_iLaserNum * (blockid % 2) + laserid;
           }
-          else if (u16Azimuth > (PANDAR_AT128_FRAME_ANGLE_SIZE) && u16Azimuth <= (PANDAR_AT128_FRAME_ANGLE_SIZE * 3)){
-            point_index = (u16Azimuth % PANDAR_AT128_FRAME_ANGLE_SIZE + PANDAR_AT128_FRAME_ANGLE_SIZE) / m_iAngleSize * m_iLaserNum *
+          else if (Azimuth > (PANDAR_AT128_FRAME_ANGLE_SIZE) && Azimuth <= (PANDAR_AT128_FRAME_ANGLE_SIZE * 3)){
+            point_index = (Azimuth % PANDAR_AT128_FRAME_ANGLE_SIZE + PANDAR_AT128_FRAME_ANGLE_SIZE) / m_iAngleSize * m_iLaserNum *
                       m_iReturnBlockSize +
                   m_iLaserNum * (blockid % 2) + laserid;
           }
           else{
-            point_index = (u16Azimuth % PANDAR_AT128_FRAME_ANGLE_SIZE + PANDAR_AT128_FRAME_ANGLE_SIZE * 2) / m_iAngleSize * m_iLaserNum *
+            point_index = (Azimuth % PANDAR_AT128_FRAME_ANGLE_SIZE + PANDAR_AT128_FRAME_ANGLE_SIZE * 2) / m_iAngleSize * m_iLaserNum *
                       m_iReturnBlockSize +
                   m_iLaserNum * (blockid % 2) + laserid;
           }        
@@ -765,14 +765,14 @@ int PandarSwiftSDK::calculatePointIndex(uint16_t u16Azimuth, int blockid, int la
           point_index = (u16Azimuth) % PANDAR_AT128_FRAME_ANGLE_SIZE  / m_iAngleSize * m_iLaserNum + laserid;
         }
         else {
-          if(u16Azimuth >= 0 && u16Azimuth <= (PANDAR_AT128_FRAME_ANGLE_SIZE)){
-            point_index = (u16Azimuth)/ m_iAngleSize * m_iLaserNum + laserid;
+          if(Azimuth >= 0 && Azimuth <= (PANDAR_AT128_FRAME_ANGLE_SIZE)){
+            point_index = (Azimuth)/ m_iAngleSize * m_iLaserNum + laserid;
           }
-          else if (u16Azimuth > (PANDAR_AT128_FRAME_ANGLE_SIZE) && u16Azimuth <= (PANDAR_AT128_FRAME_ANGLE_SIZE * 3)){
-            point_index = (u16Azimuth % PANDAR_AT128_FRAME_ANGLE_SIZE + PANDAR_AT128_FRAME_ANGLE_SIZE) / m_iAngleSize * m_iLaserNum + laserid;
+          else if (Azimuth > (PANDAR_AT128_FRAME_ANGLE_SIZE) && Azimuth <= (PANDAR_AT128_FRAME_ANGLE_SIZE * 3)){
+            point_index = (Azimuth % PANDAR_AT128_FRAME_ANGLE_SIZE + PANDAR_AT128_FRAME_ANGLE_SIZE) / m_iAngleSize * m_iLaserNum + laserid;
           }
           else{
-            point_index = (u16Azimuth % PANDAR_AT128_FRAME_ANGLE_SIZE + PANDAR_AT128_FRAME_ANGLE_SIZE * 2) / m_iAngleSize * m_iLaserNum + laserid;
+            point_index = (Azimuth % PANDAR_AT128_FRAME_ANGLE_SIZE + PANDAR_AT128_FRAME_ANGLE_SIZE * 2) / m_iAngleSize * m_iLaserNum + laserid;
           }        
         }
       }

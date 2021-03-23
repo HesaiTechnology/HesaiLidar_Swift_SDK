@@ -74,3 +74,10 @@ PandarSwiftSDK_1.2.10
 
 ##modify
 1. Support Pandar AT128 first time
+
+星期一, 22. 三月 2021 19:30下午 
+##version
+PandarSwiftSDK_1.2.11
+
+##modify
+1. Support Pandar AT128 with three mirror
