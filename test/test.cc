@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *****************************************************************************/
-#include "pandarSwiftSDK.h"s
+#include "pandarSwiftSDK.h"
 
 #define PRINT_FLAG (false)
 #define PCD_FILE_WRITE_FLAG (false) //false: don't save point cloud data;
@@ -21,7 +21,8 @@
 int frameItem = 0;
 
 void gpsCallback(double timestamp) {
-    printf("gps: %lf\n", timestamp);
+    if(PRINT_FLAG)
+        printf("gps: %lf\n", timestamp);
 }
 
 void lidarCallback(boost::shared_ptr<PPointCloud> cld, double timestamp) {

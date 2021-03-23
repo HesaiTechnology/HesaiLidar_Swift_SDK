@@ -162,6 +162,8 @@ InputSocket::InputSocket(std::string deviceipaddr, uint16_t lidarport, uint16_t 
 		perror("bind error");  // TODO: ERROR errno
 		return;
 	}
+	int nRecvBuf = 26214400;
+	setsockopt(m_iSockfd, SOL_SOCKET, SO_RCVBUF, (const char*)&nRecvBuf, sizeof(int));
 
 	if(fcntl(m_iSockfd, F_SETFL, O_NONBLOCK | FASYNC) < 0) {
 		perror("non-block");
