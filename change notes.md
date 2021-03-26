@@ -81,3 +81,11 @@ PandarSwiftSDK_1.2.11
 
 ##modify
 1. Support Pandar AT128 with three mirror
+
+星期五, 26. 三月 2021 19:30下午 
+##version
+PandarSwiftSDK_1.2.12
+
+##modify
+1. Change the calculation formula of azimuth
+2. Fix bug in switch frame

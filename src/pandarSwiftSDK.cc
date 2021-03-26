@@ -72,7 +72,7 @@ PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uin
 							std::string certFile, std::string privateKeyFile, std::string caFile, \
 							int startangle, int timezone, int viewMode, \ 
 							std::string publishmode, std::string datatype) {
-	m_sSdkVersion = "PandarSwiftSDK_1.2.11";
+	m_sSdkVersion = "PandarSwiftSDK_1.2.12";
 	printf("\n--------PandarSwift SDK version: %s--------\n",m_sSdkVersion.c_str());
 	m_sDeviceIpAddr = deviceipaddr;
 	m_sFrameId = frameid;
@@ -333,7 +333,7 @@ int PandarSwiftSDK::processLiDARData() {
 				// 	if(m_OutMsgArray[cursor]->points[i].ring != 0){
 				// 		totalNum++;
 				// 	}
-				// }
+        // } 
 				// printf("total points num = :%d\n",totalNum);		
 			} 
 			else
@@ -372,9 +372,9 @@ void PandarSwiftSDK::moveTaskEndToStartAngle() {
 		for(PktArray::iterator iter = m_PacketsBuffer.m_iterTaskBegin; iter < m_PacketsBuffer.m_iterTaskEnd; iter++) {
 			for(int i = 0; i < m_PandarAT_corrections.header.frame_number; i++){
 				if((*(uint16_t*)(&(iter->data[0]) + m_iFirstAzimuthIndex) < (m_PandarAT_corrections.start_frame[i])) &&
-				((m_PandarAT_corrections.start_frame[i]) <= *(uint16_t*)(&((iter + 1)->data[0]) + m_iLastAzimuthIndex)) ||
-				(*(uint16_t*)(&((iter)->data[0]) + m_iFirstAzimuthIndex) > *(uint16_t*)(&((iter + 1)->data[0]) + m_iLastAzimuthIndex)) &&
-				((m_PandarAT_corrections.start_frame[i]) <= *(uint16_t*)(&((iter + 1)->data[0]) + m_iLastAzimuthIndex))){
+				((m_PandarAT_corrections.start_frame[i]) <= *(uint16_t*)(&((iter + 1)->data[0]) + m_iFirstAzimuthIndex)) ||
+				(*(uint16_t*)(&((iter)->data[0]) + m_iFirstAzimuthIndex) > *(uint16_t*)(&((iter + 1)->data[0]) + m_iFirstAzimuthIndex)) &&
+				((m_PandarAT_corrections.start_frame[i]) <= *(uint16_t*)(&((iter + 1)->data[0]) + m_iFirstAzimuthIndex))){
 					m_PacketsBuffer.moveTaskEnd(iter + 1);
 					break;
 				}
@@ -385,8 +385,8 @@ void PandarSwiftSDK::moveTaskEndToStartAngle() {
 		for(PktArray::iterator iter = m_PacketsBuffer.m_iterTaskBegin; iter < m_PacketsBuffer.m_iterTaskEnd; iter++) {
 			if ((*(uint16_t*)(&(iter->data[0]) + m_iFirstAzimuthIndex) < m_PandarAT_corrections.start_frame[0]) &&
 				(m_PandarAT_corrections.start_frame[0] <= *(uint16_t*)(&((iter + 1)->data[0]) + m_iFirstAzimuthIndex)) || 
-				(*(uint16_t*)(&((iter)->data[0]) + m_iFirstAzimuthIndex) > *(uint16_t*)(&((iter + 1)->data[0]) + m_iLastAzimuthIndex)) &&
-				((m_PandarAT_corrections.start_frame[0]) <= *(uint16_t*)(&((iter + 1)->data[0]) + m_iLastAzimuthIndex))) {
+				(*(uint16_t*)(&((iter)->data[0]) + m_iFirstAzimuthIndex) > *(uint16_t*)(&((iter + 1)->data[0]) + m_iFirstAzimuthIndex)) &&
+				((m_PandarAT_corrections.start_frame[0]) <= *(uint16_t*)(&((iter + 1)->data[0]) + m_iFirstAzimuthIndex))) {
 				// printf("move iter to : %d\n", (iter + 1)->blocks[0].fAzimuth);
 				m_PacketsBuffer.moveTaskEnd(iter + 1);
 				break;
@@ -620,7 +620,7 @@ void PandarSwiftSDK::calcPointXYZIT(PandarPacket &packet, int cursor) {
               (m_PandarAT_corrections.elevation[i] + m_PandarAT_corrections.elevation_offset[u16Azimuth]) * m_PandarAT_corrections.header.resolution;
       elevation = (CIRCLE_ANGLE + elevation) % CIRCLE_ANGLE;    
       auto azimuth = m_iViewMode == 0 ?
-          (u16Azimuth + CIRCLE_ANGLE  - m_PandarAT_corrections.azimuth[i]) % CIRCLE_ANGLE  * m_PandarAT_corrections.header.resolution : 
+          (u16Azimuth + CIRCLE_ANGLE  - m_PandarAT_corrections.azimuth[i] / 2) % CIRCLE_ANGLE  * m_PandarAT_corrections.header.resolution : 
           ((u16Azimuth + CIRCLE_ANGLE  - m_PandarAT_corrections.start_frame[field]) * 2
           - m_PandarAT_corrections.azimuth[i]
           + m_PandarAT_corrections.azimuth_offset[u16Azimuth]) * m_PandarAT_corrections.header.resolution;
@@ -681,7 +681,7 @@ bool PandarSwiftSDK::isNeedPublish(){
     for(int i = 0; i < m_PandarAT_corrections.header.frame_number; i++){
       if((abs(endAzimuth - (m_PandarAT_corrections.start_frame[i])) <= m_iAngleSize) || 
         (beginAzimuth < (m_PandarAT_corrections.start_frame[i])) && ((m_PandarAT_corrections.start_frame[i]) <= endAzimuth) ||
-        (endAzimuth < beginAzimuth && endAzimuth >= m_PandarAT_corrections.start_frame[i]))
+        (endAzimuth < beginAzimuth && (endAzimuth + CIRCLE_ANGLE - beginAzimuth) > PANDAR_AT128_FRAME_ANGLE_SIZE))
             return true;
     }
     return false;
@@ -689,7 +689,7 @@ bool PandarSwiftSDK::isNeedPublish(){
   else{
     if((abs(endAzimuth - m_PandarAT_corrections.start_frame[0]) <= m_iAngleSize) || 
         (beginAzimuth < m_PandarAT_corrections.start_frame[0]) && (m_PandarAT_corrections.start_frame[0] <= endAzimuth) ||
-        (endAzimuth < beginAzimuth && endAzimuth >= m_PandarAT_corrections.start_frame[0])){
+        (endAzimuth < beginAzimuth && (endAzimuth + CIRCLE_ANGLE - beginAzimuth) > PANDAR_AT128_FRAME_ANGLE_SIZE)){
       return true;
     }
     return false;
@@ -762,7 +762,7 @@ int PandarSwiftSDK::calculatePointIndex(uint16_t u16Azimuth, int blockid, int la
 
       } else {
         if(m_iViewMode == 1){
-          point_index = (u16Azimuth) % PANDAR_AT128_FRAME_ANGLE_SIZE  / m_iAngleSize * m_iLaserNum + laserid;
+          point_index = (Azimuth) % PANDAR_AT128_FRAME_ANGLE_SIZE  / m_iAngleSize * m_iLaserNum + laserid;
         }
         else {
           if(Azimuth >= 0 && Azimuth <= (PANDAR_AT128_FRAME_ANGLE_SIZE)){
