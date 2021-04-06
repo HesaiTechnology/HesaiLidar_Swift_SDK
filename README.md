@@ -6,16 +6,22 @@ This repository includes the software development kit for Pandar LiDAR sensor ma
 
 LiDAR sensor manufactured by Hesai Technology.
 ## Environment and Dependencies
-**G++ version requirement:G++ 7.0 or above**
-**System environment requirement: Linux + G++ 7.0 or above**
+
+**System environment requirement:Linux**
+```
+Recommanded
+-Ubuntu 16.04
+-Ubuntu 18.04
+```
+
+**Compiler vresion requirement**
+```
+Cmake version requirement:Cmake 3.8.0 or above
+G++ version requirement:G++ 7.5 or above
+```
 **Library Dependencies: libpcl-dev + libpcap-dev + libyaml-cpp-dev + libboost-dev**
 ```
 $ sudo apt install libpcl-dev libpcap-dev libyaml-cpp-dev libboost-dev
-```
-
-## Clone
-```
-$ git clone https://github.com/HesaiTechnology/HesaiLidar_Swift_SDK.git
 ```
 
 ## Build
