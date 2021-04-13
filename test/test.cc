@@ -15,19 +15,20 @@
  *****************************************************************************/
 #include "pandarSwiftSDK.h"
 
-#define PRINT_FLAG (false)
+// #define PRINT_FLAG 
 #define PCD_FILE_WRITE_FLAG (false) //false: don't save point cloud data;
                                     //true : save a frame of point cloud data
 int frameItem = 0;
 
 void gpsCallback(double timestamp) {
-    if(PRINT_FLAG)
-        printf("gps: %lf\n", timestamp);
+#ifdef PRINT_FLAG     
+    printf("gps: %lf\n", timestamp);
+#endif    
 }
 
 void lidarCallback(boost::shared_ptr<PPointCloud> cld, double timestamp) {
-    if(PRINT_FLAG)
-        printf("timestamp: %lf,point_size: %ld\n", timestamp, cld->points.size());
+#ifdef PRINT_FLAG 
+    printf("timestamp: %lf,point_size: %ld\n", timestamp, cld->points.size());
     //Debug code,save the tenth frame data to the local pcd file to verify the correctness of the data
     if(PCD_FILE_WRITE_FLAG) {
         frameItem++;
@@ -37,6 +38,7 @@ void lidarCallback(boost::shared_ptr<PPointCloud> cld, double timestamp) {
             writer.write("PandarAT128Pcd.pcd", *cld);
         }
     }
+#endif
 }
 
 void rawcallback(PandarPacketsArray *array) {
@@ -48,7 +50,7 @@ int main(int argc, char** argv) {
     spPandarSwiftSDK.reset(new PandarSwiftSDK(std::string("192.168.1.201"), 2368, 10110, std::string("PandarAT128"), \
                                 std::string("../params/corrections.dat"), \
                                 std::string(""), \
-                                std::string(""), lidarCallback, rawcallback, gpsCallback, \
+                                std::string("/home/hesai/Downloads/test_AT.pcap"), lidarCallback, rawcallback, gpsCallback, \
                                 std::string(""), \
                                 std::string(""), \
                                 std::string(""), \
