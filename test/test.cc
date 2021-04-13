@@ -21,7 +21,8 @@
 int frameItem = 0;
 
 void gpsCallback(double timestamp) {
-    printf("gps: %lf\n", timestamp);
+    if(PRINT_FLAG)
+        printf("gps: %lf\n", timestamp);
 }
 
 void lidarCallback(boost::shared_ptr<PPointCloud> cld, double timestamp) {
@@ -45,7 +46,7 @@ void rawcallback(PandarPacketsArray *array) {
 int main(int argc, char** argv) {
     boost::shared_ptr<PandarSwiftSDK> spPandarSwiftSDK;
     spPandarSwiftSDK.reset(new PandarSwiftSDK(std::string("192.168.1.201"), 2368, 10110, std::string("PandarAT128"), \
-                                std::string("../params/default_PandarAT.dat"), \
+                                std::string("../params/corrections.dat"), \
                                 std::string(""), \
                                 std::string(""), lidarCallback, rawcallback, gpsCallback, \
                                 std::string(""), \
