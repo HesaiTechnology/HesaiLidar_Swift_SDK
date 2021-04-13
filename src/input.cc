@@ -214,6 +214,8 @@ InputSocket::InputSocket(std::string deviceipaddr, uint16_t lidarport, uint16_t 
 	int get_error = getsockopt(m_iSockfd, SOL_SOCKET, SO_NO_CHECK, &getchecksum, &option_int);
 	int nochecksum = 1;
 	int set_error = setsockopt(m_iSockfd, SOL_SOCKET, SO_NO_CHECK, &nochecksum, sizeof(nochecksum));
+	int nRecvBuf = 26214400;
+	setsockopt(m_iSockfd, SOL_SOCKET, SO_RCVBUF, (const char*)&nRecvBuf, sizeof(int));
 	printf("Pandar socket fd is %d\n", m_iSockfd);
 }
 
@@ -248,7 +250,7 @@ int InputSocket::getPacket(PandarPacket *pkt) {
 		fds[0].fd = m_iSockfd;
 		fds[0].events = POLLIN;
 	}
-	static const int POLL_TIMEOUT = 20;  // one second (in msec)
+	static const int POLL_TIMEOUT = 1000;  // one second (in msec)
 
 	sockaddr_in sender_address;
 	socklen_t sender_address_len = sizeof(sender_address);

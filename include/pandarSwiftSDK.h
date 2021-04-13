@@ -310,7 +310,7 @@ class PandarSwiftSDK {
 								boost::function<void(PandarPacketsArray*)> rawcallback, \
 								boost::function<void(double)> gpscallback, \
 								std::string certFile, std::string privateKeyFile, std::string caFile, \
-								int startangle, int timezone, std::string publishmode, std::string datatype=LIDAR_DATA_TYPE);
+								int startangle, int timezone, std::string publishmode, bool coordinateCorrectionFlag, std::string datatype=LIDAR_DATA_TYPE);
 	~PandarSwiftSDK() {}
 
 	void driverReadThread();
@@ -318,7 +318,7 @@ class PandarSwiftSDK {
 	void processGps(PandarGPS *gpsMsg);
 	void pushLiDARData(PandarPacket packet);
 	int processLiDARData();
-	void publishPointsThread();
+	void publishPoints();
 
  private:
 
@@ -334,6 +334,8 @@ class PandarSwiftSDK {
 	void changeReturnBlockSize();
 	void moveTaskEndToStartAngle();
   void checkClockwise();
+  void SetEnvironmentVariableTZ();
+  bool isNeedPublish();
 
   pthread_mutex_t m_RedundantPointLock;
 	boost::shared_ptr<PandarSwiftDriver> m_spPandarDriver;
@@ -371,6 +373,7 @@ class PandarSwiftSDK {
   int m_iFirstAzimuthIndex;
   int m_iLastAzimuthIndex;
   bool m_bClockwise;
+  bool m_bCoordinateCorrectionFlag;
 };
 
 #endif  // _PANDAR_POINTCLOUD_Pandar128SDK_H_
