@@ -14,16 +14,20 @@
  * limitations under the License.
  *****************************************************************************/
 #include "pandarSwiftSDK.h"
+// #define PRINT_FLAG
 
 #define PCD_FILE_WRITE_FLAG (false) //false: don't save point cloud data;
                                     //true : save a frame of point cloud data
 int frameItem = 0;
 
 void gpsCallback(double timestamp) {
+#ifdef PRINT_FLAG    
     printf("gps: %lf\n", timestamp);
+#endif    
 }
 
 void lidarCallback(boost::shared_ptr<PPointCloud> cld, double timestamp) {
+#ifdef PRINT_FLAG       
     printf("timestamp: %lf,point_size: %ld\n", timestamp, cld->points.size());
     //Debug code,save the tenth frame data to the local pcd file to verify the correctness of the data
     if(PCD_FILE_WRITE_FLAG) {
@@ -34,6 +38,7 @@ void lidarCallback(boost::shared_ptr<PPointCloud> cld, double timestamp) {
             writer.write("P128Pcd.pcd", *cld);
         }
     }
+#endif    
 }
 
 void rawcallback(PandarPacketsArray *array) {
@@ -49,7 +54,7 @@ int main(int argc, char** argv) {
                                 std::string(""), \
                                 std::string(""), \
                                 std::string(""), \
-                                0, 0, std::string("both_point_raw")));
+                                0, 0, std::string("both_point_raw"), false));
     while (true) {
         sleep(100);
     }
