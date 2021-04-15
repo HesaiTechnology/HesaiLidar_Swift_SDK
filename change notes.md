@@ -70,7 +70,7 @@ PandarSwiftSDK_1.2.9
 
 Wednesday, April 14th, 2021 17:30
 ##version
-PandarSwiftSDK_1.2.10
+PandarSwiftSDK_1.2.13
 
 ##modify
 1. Optimize calculation efficiency
