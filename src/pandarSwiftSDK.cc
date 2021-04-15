@@ -71,7 +71,7 @@ PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uin
 							boost::function<void(double)> gpscallback, \
 							std::string certFile, std::string privateKeyFile, std::string caFile, \
 							int startangle, int timezone, std::string publishmode, bool coordinateCorrectionFlag, std::string datatype) {
-	m_sSdkVersion = "PandarSwiftSDK_1.2.10";
+	m_sSdkVersion = "PandarSwiftSDK_1.2.13";
 	printf("\n--------PandarSwift SDK version: %s--------\n",m_sSdkVersion.c_str());
 	m_sDeviceIpAddr = deviceipaddr;
 	m_sFrameId = frameid;
@@ -754,8 +754,10 @@ void PandarSwiftSDK::calcPointXYZIT(PandarPacket &pkt, int cursor) {
 				float pitch = m_fElevAngle[i];
 				float originPitch = pitch;
 				int offset = m_objLaserOffset.getTSOffset(i, mode, state, distance, packet.head.u8LaserNum);
-				azimuth += m_objLaserOffset.getAngleOffset(offset, i, packet.head.u8LaserNum);
-				pitch += m_objLaserOffset.getPitchOffset(m_sFrameId, pitch, distance);
+				azimuth += m_objLaserOffset.getAngleOffset(offset, i, packet.head.u8LaserNum, packet.tail.nMotorSpeed);
+        if(m_bCoordinateCorrectionFlag){
+          pitch += m_objLaserOffset.getPitchOffset(m_sFrameId, pitch, distance);
+        }
 				if(pitch < 0) {
 					pitch += 360.0f;
 				} 
@@ -763,7 +765,9 @@ void PandarSwiftSDK::calcPointXYZIT(PandarPacket &pkt, int cursor) {
 					pitch -= 360.0f;
 				}
 				float xyDistance = distance * m_fCosAllAngle[static_cast<int>(pitch * 100 + 0.5)];
-				azimuth += m_objLaserOffset.getAzimuthOffset(m_sFrameId, originAzimuth, block.fAzimuth / 100.0f, xyDistance);
+        if(m_bCoordinateCorrectionFlag){
+          azimuth += m_objLaserOffset.getAzimuthOffset(m_sFrameId, originAzimuth, block.fAzimuth / 100.0f, xyDistance);
+        }
 				int azimuthIdx = static_cast<int>(azimuth * 100 + 0.5);
 				if(azimuthIdx >= CIRCLE) {
 					azimuthIdx -= CIRCLE;
@@ -848,7 +852,7 @@ void PandarSwiftSDK::calcPointXYZIT(PandarPacket &pkt, int cursor) {
 				float pitch = m_fElevAngle[i];
 				float originPitch = pitch;
 				int offset = m_objLaserOffset.getTSOffset(i, mode, state, distance, header->u8LaserNum);
-				azimuth += m_objLaserOffset.getAngleOffset(offset, i, header->u8LaserNum);
+				azimuth += m_objLaserOffset.getAngleOffset(offset, i, header->u8LaserNum, tail->nMotorSpeed);
 				if(m_bCoordinateCorrectionFlag){
 					pitch += m_objLaserOffset.getPitchOffset(m_sFrameId, pitch, distance);
 				}
