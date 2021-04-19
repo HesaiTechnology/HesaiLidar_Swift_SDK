@@ -24,6 +24,11 @@ G++ version requirement:G++ 7.5 or above
 $ sudo apt install libpcl-dev libpcap-dev libyaml-cpp-dev libboost-dev
 ```
 
+## Clone
+```
+$ git clone https://github.com/HesaiTechnology/HesaiLidar_Swift_SDK.git
+```
+
 ## Build
 ```
 1.$ cd HesaiLidar_Swift_SDK
@@ -54,8 +59,20 @@ Set the parameters of class PandarSwiftSDK in test.cc
 ```
 // for Pandar128
 PandarSwiftSDK(std::string("192.168.1.201"), 2368, 10110, std::string("Pandar128"), \
-                                std::string("../params/correction.csv"), \
+                                std::string("../params/Pandar128_Correction.csv"), \
+                                std::string("../params/Pandar128_Firetimes.csv"), \
                                 std::string(""), \
+                                lidarCallback, rawcallback, gpsCallback, \
+                                std::string(""), \
+                                std::string(""), \
+                                std::string(""), \
+                                0, 0, std::string("both_point_raw"), false);
+
+
+// for PandarQT128
+PandarSwiftSDK(std::string("192.168.1.201"), 2368, 10110, std::string("PandarQT128"), \
+                                std::string("../params/PandarQT128_Correction.csv"), \
+                                std::string("../params/PandarQT128_Firetimes.csv"), \
                                 std::string(""), \
                                 lidarCallback, rawcallback, gpsCallback, \
                                 std::string(""), \
