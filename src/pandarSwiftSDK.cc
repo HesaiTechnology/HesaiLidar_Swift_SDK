@@ -753,9 +753,11 @@ void PandarSwiftSDK::calcPointXYZIT(PandarPacket &pkt, int cursor) {
 				float originAzimuth = azimuth;
 				float pitch = m_fElevAngle[i];
 				float originPitch = pitch;
-				int offset = m_objLaserOffset.getTSOffset(i, mode, state, distance, packet.head.u8LaserNum);
-				azimuth += m_objLaserOffset.getAngleOffset(offset, i, packet.head.u8LaserNum, packet.tail.nMotorSpeed);
-				pitch += m_objLaserOffset.getPitchOffset(m_sFrameId, pitch, distance);
+				int offset = m_objLaserOffset.getTSOffset(i, mode, state, distance, m_u8UdpVersionMajor);
+				azimuth += m_objLaserOffset.getAngleOffset(offset, packet.tail.nMotorSpeed, m_u8UdpVersionMajor);
+				if(m_bCoordinateCorrectionFlag){
+					pitch += m_objLaserOffset.getPitchOffset(m_sFrameId, pitch, distance);
+				}
 				if(pitch < 0) {
 					pitch += 360.0f;
 				} 
@@ -763,7 +765,9 @@ void PandarSwiftSDK::calcPointXYZIT(PandarPacket &pkt, int cursor) {
 					pitch -= 360.0f;
 				}
 				float xyDistance = distance * m_fCosAllAngle[static_cast<int>(pitch * 100 + 0.5)];
-				azimuth += m_objLaserOffset.getAzimuthOffset(m_sFrameId, originAzimuth, block.fAzimuth / 100.0f, xyDistance);
+				if(m_bCoordinateCorrectionFlag){
+					azimuth += m_objLaserOffset.getAzimuthOffset(m_sFrameId, originAzimuth, block.fAzimuth / 100.0f, xyDistance);
+				}
 				int azimuthIdx = static_cast<int>(azimuth * 100 + 0.5);
 				if(azimuthIdx >= CIRCLE) {
 					azimuthIdx -= CIRCLE;
@@ -847,8 +851,8 @@ void PandarSwiftSDK::calcPointXYZIT(PandarPacket &pkt, int cursor) {
 				float originAzimuth = azimuth;
 				float pitch = m_fElevAngle[i];
 				float originPitch = pitch;
-				int offset = m_objLaserOffset.getTSOffset(i, mode, state, distance, header->u8LaserNum);
-				azimuth += m_objLaserOffset.getAngleOffset(offset, i, header->u8LaserNum, tail->nMotorSpeed);
+				int offset = m_objLaserOffset.getTSOffset(i, mode, state, distance, m_u8UdpVersionMajor);
+				azimuth += m_objLaserOffset.getAngleOffset(offset, tail->nMotorSpeed, m_u8UdpVersionMajor);
 				if(m_bCoordinateCorrectionFlag){
 					pitch += m_objLaserOffset.getPitchOffset(m_sFrameId, pitch, distance);
 				}
@@ -948,6 +952,8 @@ void PandarSwiftSDK::calcQT128PointXYZIT(PandarPacket &pkt, int cursor) {
 			float originAzimuth = azimuth;
 			float pitch = m_fElevAngle[i];
 			float originPitch = pitch;
+			int offset = m_objLaserOffset.getTSOffset(i, mode, state, distance, m_u8UdpVersionMajor);
+			azimuth += m_objLaserOffset.getAngleOffset(offset, tail->nMotorSpeed, m_u8UdpVersionMajor);
 			if(pitch < 0) {
 				pitch += 360.0f;
 			} 
