@@ -14,17 +14,22 @@
  * limitations under the License.
  *****************************************************************************/
 #include "pandarSwiftSDK.h"
+// #define PRINT_FLAG
 
 #define PCD_FILE_WRITE_FLAG (false) //false: don't save point cloud data;
                                     //true : save a frame of point cloud data
 int frameItem = 0;
 
 void gpsCallback(double timestamp) {
+#ifdef PRINT_FLAG    
     printf("gps: %lf\n", timestamp);
+#endif    
 }
 
 void lidarCallback(boost::shared_ptr<PPointCloud> cld, double timestamp) {
+#ifdef PRINT_FLAG       
     printf("timestamp: %lf,point_size: %ld\n", timestamp, cld->points.size());
+#endif
     //Debug code,save the tenth frame data to the local pcd file to verify the correctness of the data
     if(PCD_FILE_WRITE_FLAG) {
         frameItem++;
@@ -33,7 +38,7 @@ void lidarCallback(boost::shared_ptr<PPointCloud> cld, double timestamp) {
             pcl::PCDWriter writer;
             writer.write("P128Pcd.pcd", *cld);
         }
-    }
+    }   
 }
 
 void rawcallback(PandarPacketsArray *array) {
@@ -43,13 +48,13 @@ void rawcallback(PandarPacketsArray *array) {
 int main(int argc, char** argv) {
     boost::shared_ptr<PandarSwiftSDK> spPandarSwiftSDK;
     spPandarSwiftSDK.reset(new PandarSwiftSDK(std::string("192.168.1.201"), 2368, 10110, std::string("Pandar128"), \
-                                std::string("../params/correction.csv"), \
-                                std::string(""), \
+                                std::string("../params/Pandar128_Correction.csv"), \
+                                std::string("../params/Pandar128_Firetimes.csv"), \
                                 std::string(""), lidarCallback, rawcallback, gpsCallback, \
                                 std::string(""), \
                                 std::string(""), \
                                 std::string(""), \
-                                0, 0, std::string("both_point_raw")));
+                                0, 0, std::string("both_point_raw"), false));
     while (true) {
         sleep(100);
     }
