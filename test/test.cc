@@ -50,7 +50,7 @@ int main(int argc, char** argv) {
     spPandarSwiftSDK.reset(new PandarSwiftSDK(std::string("192.168.1.201"), 2368, 10110, std::string("Pandar128"), \
                                 std::string("../params/Pandar128_Correction.csv"), \
                                 std::string("../params/Pandar128_Firetimes.csv"), \
-                                std::string("/home/hesai/Downloads/QT128.pcap"), lidarCallback, rawcallback, gpsCallback, \
+                                std::string(""), lidarCallback, rawcallback, gpsCallback, \
                                 std::string(""), \
                                 std::string(""), \
                                 std::string(""), \
