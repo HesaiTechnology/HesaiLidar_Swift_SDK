@@ -353,7 +353,7 @@ class PandarSwiftSDK {
 	void processGps(PandarGPS *gpsMsg);
 	void pushLiDARData(PandarPacket packet);
 	int processLiDARData();
-	void publishPoints();
+	void publishPointsThread();
 
  private:
 
