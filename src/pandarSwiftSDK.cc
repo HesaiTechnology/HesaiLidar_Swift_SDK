@@ -19,6 +19,7 @@
 #include <iostream>
 #include "taskflow.hpp"
 #include "platUtil.h"
+// #define FIRETIME_CORRECTION_CHECK 
 
 static tf::Executor executor;
 float degreeToRadian(float degree) { return degree * M_PI / 180.0f; }
@@ -121,6 +122,7 @@ PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uin
 	}
 	if(m_sPublishmodel == "both_point_raw" || m_sPublishmodel == "point" || LIDAR_DATA_TYPE != datatype) {
 		boost::thread processThr(boost::bind(&PandarSwiftSDK::processLiDARData, this));
+		boost::thread publishPointsThr(boost::bind(&PandarSwiftSDK::publishPointsThread, this));
 	}
 	if((m_sPublishmodel == "both_point_raw" || m_sPublishmodel == "raw") && LIDAR_DATA_TYPE == datatype) {
 		boost::thread processThr(boost::bind(&PandarSwiftSDK::publishRawDataThread, this));
@@ -321,9 +323,13 @@ int PandarSwiftSDK::processLiDARData() {
 			doTaskFlow(cursor);
 			// uint32_t startTick2 = GetTickCount();
 			// printf("move and taskflow time:%d\n", startTick2 - startTick1);
-			m_iPublishPointsIndex = cursor;
-			publishPoints();
-			cursor = (cursor + 1) % 2;
+			if(m_bPublishPointsFlag == false) {
+				m_bPublishPointsFlag = true;
+				m_iPublishPointsIndex = cursor;
+				cursor = (cursor + 1) % 2;
+			} 
+			else
+				printf("publishPoints not done yet, new publish is comming\n");
 			m_OutMsgArray[cursor]->clear();
 			m_OutMsgArray[cursor]->resize(CIRCLE_ANGLE / m_iAngleSize * m_iLaserNum * m_iReturnBlockSize );
 			if(m_RedundantPointBuffer.size() > 0 && m_RedundantPointBuffer.size() < 1000){
@@ -383,15 +389,21 @@ void PandarSwiftSDK::moveTaskEndToStartAngle() {
 	// printf("moveTaskEndToStartAngle time: %d\n", endTick - startTick);
 }
 
-void PandarSwiftSDK::publishPoints() {
-	// uint32_t start = GetTickCount();
-	if(NULL != m_funcPclCallback) {
-		m_funcPclCallback(m_OutMsgArray[m_iPublishPointsIndex], m_dTimestamp);
-		m_dTimestamp = 0;
-		// m_bPublishPointsFlag = false;
+void PandarSwiftSDK::publishPointsThread() {
+	SetThreadPriority(SCHED_FIFO, 90);
+	while (1) {
+		usleep(1000);
+		if(m_bPublishPointsFlag) {
+			// uint32_t start = GetTickCount();
+			if(NULL != m_funcPclCallback) {
+				m_funcPclCallback(m_OutMsgArray[m_iPublishPointsIndex], m_dTimestamp);
+				m_dTimestamp = 0;
+				m_bPublishPointsFlag = false;
+			}
+			// uint32_t end = GetTickCount();
+  			// if(end - start > 150) printf("publishPoints time:%d\n", end - start);
+		}
 	}
-	// uint32_t end = GetTickCount();
-	// if(end - start > 150) printf("publishPoints time:%d\n", end - start);
 }
 
 void PandarSwiftSDK::doTaskFlow(int cursor) {
@@ -753,8 +765,11 @@ void PandarSwiftSDK::calcPointXYZIT(PandarPacket &pkt, int cursor) {
 				float originAzimuth = azimuth;
 				float pitch = m_fElevAngle[i];
 				float originPitch = pitch;
-				int offset = m_objLaserOffset.getTSOffset(i, mode, state, distance, m_u8UdpVersionMajor);
+				float offset = m_objLaserOffset.getTSOffset(i, mode, state, distance, m_u8UdpVersionMajor);
 				azimuth += m_objLaserOffset.getAngleOffset(offset, packet.tail.nMotorSpeed, m_u8UdpVersionMajor);
+#ifdef FIRETIME_CORRECTION_CHECK 
+        printf("Laser ID = %d, speed = %d, origin azimuth = %f, azimuth = %f, delt = %f\n", i + 1, packet.tail.nMotorSpeed, originAzimuth, azimuth, azimuth - originAzimuth);  
+#endif 
 				if(m_bCoordinateCorrectionFlag){
 					pitch += m_objLaserOffset.getPitchOffset(m_sFrameId, pitch, distance);
 				}
@@ -851,8 +866,11 @@ void PandarSwiftSDK::calcPointXYZIT(PandarPacket &pkt, int cursor) {
 				float originAzimuth = azimuth;
 				float pitch = m_fElevAngle[i];
 				float originPitch = pitch;
-				int offset = m_objLaserOffset.getTSOffset(i, mode, state, distance, m_u8UdpVersionMajor);
+				float offset = m_objLaserOffset.getTSOffset(i, mode, state, distance, m_u8UdpVersionMajor);
 				azimuth += m_objLaserOffset.getAngleOffset(offset, tail->nMotorSpeed, m_u8UdpVersionMajor);
+#ifdef FIRETIME_CORRECTION_CHECK 
+        printf("Laser ID = %d, speed = %d, origin azimuth = %f, azimuth = %f, delt = %f\n", i + 1, tail->nMotorSpeed, originAzimuth, azimuth, azimuth - originAzimuth);  
+#endif
 				if(m_bCoordinateCorrectionFlag){
 					pitch += m_objLaserOffset.getPitchOffset(m_sFrameId, pitch, distance);
 				}
@@ -952,8 +970,11 @@ void PandarSwiftSDK::calcQT128PointXYZIT(PandarPacket &pkt, int cursor) {
 			float originAzimuth = azimuth;
 			float pitch = m_fElevAngle[i];
 			float originPitch = pitch;
-			int offset = m_objLaserOffset.getTSOffset(i, mode, state, distance, m_u8UdpVersionMajor);
+			float offset = m_objLaserOffset.getTSOffset(i, mode, state, distance, m_u8UdpVersionMajor);
 			azimuth += m_objLaserOffset.getAngleOffset(offset, tail->nMotorSpeed, m_u8UdpVersionMajor);
+#ifdef FIRETIME_CORRECTION_CHECK 
+        printf("Laser ID = %d, speed = %d, origin azimuth = %f, azimuth = %f, delt = %f\n", i + 1, tail->nMotorSpeed, originAzimuth, azimuth, azimuth - originAzimuth);  
+#endif
 			if(pitch < 0) {
 				pitch += 360.0f;
 			} 
