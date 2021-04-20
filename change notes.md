@@ -89,3 +89,11 @@ PandarSwiftSDK_1.2.12
 ##modify
 1. Change the calculation formula of azimuth
 2. Fix bug in switch frame
+
+Wednesday, April 14th, 2021 17:30
+##version
+PandarSwiftSDK_1.2.13
+
+##modify
+1. Optimize calculation efficiency
+2. Support QT128

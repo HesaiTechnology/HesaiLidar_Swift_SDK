@@ -438,7 +438,7 @@ class PandarSwiftSDK {
 	void processGps(PandarGPS *gpsMsg);
 	void pushLiDARData(PandarPacket packet);
 	int processLiDARData();
-	void publishPointsThread();
+	void publishPoints();
 
  private:
 
@@ -457,6 +457,7 @@ class PandarSwiftSDK {
   bool isNeedPublish();
   int calculatePointIndex(uint16_t azimuth, int blockId, int laserId);
   int calculatePointBufferSize();
+  void SetEnvironmentVariableTZ();
 
   pthread_mutex_t m_RedundantPointLock;
 	boost::shared_ptr<PandarSwiftDriver> m_spPandarDriver;

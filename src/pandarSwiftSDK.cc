@@ -72,7 +72,7 @@ PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uin
 							std::string certFile, std::string privateKeyFile, std::string caFile, \
 							int startangle, int timezone, int viewMode, \ 
 							std::string publishmode, std::string datatype) {
-	m_sSdkVersion = "PandarSwiftSDK_1.2.12";
+	m_sSdkVersion = "PandarSwiftSDK_1.2.13";
 	printf("\n--------PandarSwift SDK version: %s--------\n",m_sSdkVersion.c_str());
 	m_sDeviceIpAddr = deviceipaddr;
 	m_sFrameId = frameid;
@@ -102,6 +102,7 @@ PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uin
 	printf("frame id: %s\n", m_sFrameId.c_str());
 	printf("lidar firetime file: %s\n", m_sLidarFiretimeFile.c_str());
 	printf("lidar correction file: %s\n", m_sLidarCorrectionFile.c_str());
+	SetEnvironmentVariableTZ();
 	for (int i = 0; i < PANDAR128_LASER_NUM; i++) {
 		m_fElevAngle[i] = elevAngle[i];
 		m_fHorizatalAzimuth[i] = azimuthOffset[i];
@@ -121,7 +122,6 @@ PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uin
 	}
 	if(m_sPublishmodel == "both_point_raw" || m_sPublishmodel == "point" || LIDAR_DATA_TYPE != datatype) {
 		boost::thread processThr(boost::bind(&PandarSwiftSDK::processLiDARData, this));
-		boost::thread publishPointsThr(boost::bind(&PandarSwiftSDK::publishPointsThread, this));
 	}
 	if((m_sPublishmodel == "both_point_raw" || m_sPublishmodel == "raw") && LIDAR_DATA_TYPE == datatype) {
 		boost::thread processThr(boost::bind(&PandarSwiftSDK::publishRawDataThread, this));
@@ -298,8 +298,8 @@ int PandarSwiftSDK::processLiDARData() {
 	struct timespec ts;
 	int ret = 0;
 	int cursor = 0;
-	uint32_t startTick = GetTickCount();
-	uint32_t endTick;
+	// uint32_t startTick = GetTickCount();
+	// uint32_t endTick;
 	init();
 	while (1) {
 		if(!m_PacketsBuffer.hasEnoughPackets()) {
@@ -317,27 +317,23 @@ int PandarSwiftSDK::processLiDARData() {
 		}
         // checkClockwise();
 		// printf("begin: %d, end: %d\n",m_PacketsBuffer.getTaskBegin()->blocks[0].fAzimuth, (m_PacketsBuffer.getTaskEnd() - 1)->blocks[1].fAzimuth);
-		uint32_t ifstart = GetTickCount();
+		// uint32_t ifstart = GetTickCount();
 		if(isNeedPublish()) {   // Judging whether pass the  start angle
-			uint32_t startTick1 = GetTickCount();
+			// uint32_t startTick1 = GetTickCount();
 			moveTaskEndToStartAngle();
 			doTaskFlow(cursor);
-			uint32_t startTick2 = GetTickCount();
+			// uint32_t startTick2 = GetTickCount();
 			// printf("move and taskflow time:%d\n", startTick2 - startTick1);
-			if(m_bPublishPointsFlag == false) {
-				m_bPublishPointsFlag = true;
-				m_iPublishPointsIndex = cursor;
-				cursor = (cursor + 1) % 2;
-				int totalNum=0;
+			m_iPublishPointsIndex = cursor;
+			cursor = (cursor + 1) % 2;
+			publishPoints();
+				// int totalNum=0;
 				// for(int i =0 ; i<m_OutMsgArray[cursor]->points.size() ;i++){
 				// 	if(m_OutMsgArray[cursor]->points[i].ring != 0){
 				// 		totalNum++;
 				// 	}
         // } 
 				// printf("total points num = :%d\n",totalNum);		
-			} 
-			else
-				printf("publishPoints not done yet, new publish is comming\n");
 			m_OutMsgArray[cursor]->clear();
 			m_OutMsgArray[cursor]->resize(calculatePointBufferSize());
 			if(m_RedundantPointBuffer.size() > 0 && m_RedundantPointBuffer.size() < 1000){
@@ -346,28 +342,28 @@ int PandarSwiftSDK::processLiDARData() {
 				}
 			}
 			m_RedundantPointBuffer.clear();
-			uint32_t endTick2 = GetTickCount();
-			if(endTick2 - startTick2 > 2) {
+			// uint32_t endTick2 = GetTickCount();
+			// if(endTick2 - startTick2 > 2) {
 				// printf("m_OutMsgArray time:%d\n", endTick2 - startTick2);
-			}
+			// }
 			m_OutMsgArray[cursor]->header.frame_id = m_sFrameId;
 			m_OutMsgArray[cursor]->height = 1;
-			endTick = GetTickCount();
+			// endTick = GetTickCount();
 			// printf("total time: %d\n", endTick - startTick);
-			startTick = endTick;
+			// startTick = endTick;
 			continue;
 		}
-		uint32_t taskflow1 = GetTickCount();
+		// uint32_t taskflow1 = GetTickCount();
 			// printf("if compare time: %d\n", ifTick - startTick);
 		doTaskFlow(cursor);
-		uint32_t taskflow2 = GetTickCount();
+		// uint32_t taskflow2 = GetTickCount();
 			// printf("taskflow time: %d\n", taskflow2 - taskflow1);
 
 	}
 }
 
 void PandarSwiftSDK::moveTaskEndToStartAngle() {
-	uint32_t startTick = GetTickCount();
+	// uint32_t startTick = GetTickCount();
 	if(m_iViewMode == 1){
 		for(PktArray::iterator iter = m_PacketsBuffer.m_iterTaskBegin; iter < m_PacketsBuffer.m_iterTaskEnd; iter++) {
 			for(int i = 0; i < m_PandarAT_corrections.header.frame_number; i++){
@@ -393,25 +389,18 @@ void PandarSwiftSDK::moveTaskEndToStartAngle() {
 			}
 		}
 	}
-	uint32_t endTick = GetTickCount();
+	// uint32_t endTick = GetTickCount();
 	// printf("moveTaskEndToStartAngle time: %d\n", endTick - startTick);
 }
 
-void PandarSwiftSDK::publishPointsThread() {
-	SetThreadPriority(SCHED_FIFO, 90);
-	while (1) {
-		usleep(1000);
-		if(m_bPublishPointsFlag) {
-			uint32_t start = GetTickCount();
-			if(NULL != m_funcPclCallback) {
-				m_funcPclCallback(m_OutMsgArray[m_iPublishPointsIndex], m_dTimestamp);
-				m_dTimestamp = 0;
-				m_bPublishPointsFlag = false;
-			}
-			uint32_t end = GetTickCount();
-  			if(end - start > 150) printf("publishPoints time:%d\n", end - start);
-		}
+void PandarSwiftSDK::publishPoints() {	
+	// uint32_t start = GetTickCount();
+	if(NULL != m_funcPclCallback) {
+		m_funcPclCallback(m_OutMsgArray[m_iPublishPointsIndex], m_dTimestamp);
+		m_dTimestamp = 0;
 	}
+	// uint32_t end = GetTickCount();
+	// if(end - start > 150) printf("publishPoints time:%d\n", end - start);
 }
 
 void PandarSwiftSDK::doTaskFlow(int cursor) {
@@ -787,5 +776,33 @@ int PandarSwiftSDK::calculatePointBufferSize(){
     break;
     case 3: // three mirror case
       return (m_iViewMode == 0 ? PANDAR_AT128_FRAME_ANGLE_SIZE * 3 : PANDAR_AT128_FRAME_ANGLE_SIZE) / m_iAngleSize * m_iLaserNum * m_iReturnBlockSize;
+  }
+}
+
+void PandarSwiftSDK::SetEnvironmentVariableTZ(){
+  char *TZ; 
+  if((TZ = getenv("TZ"))){
+    printf("TZ=%s\n",TZ); 
+    return;
+  } 
+  unsigned int timezone = 0;
+  time_t t1, t2 ;
+  struct tm *tm_local, *tm_utc;
+  time(&t1);
+  t2 = t1;
+  tm_local = localtime(&t1);
+  t1 = mktime(tm_local) ;
+  tm_utc = gmtime(&t2);
+  t2 = mktime(tm_utc);
+  timezone = t2 >= t1 ? (t2 - t1) / 3600 : (t1 - t2) / 3600;
+  std::string data = "TZ=UTC" + std::to_string(timezone);
+  int len = data.length();
+  TZ = (char *)malloc((len + 1) * sizeof(char));
+  data.copy(TZ, len, 0); 
+  if(putenv(TZ) == 0){
+    printf("set environment %s\n", TZ);
+  }
+  else{
+    printf("set environment fail\n");
   }
 }
