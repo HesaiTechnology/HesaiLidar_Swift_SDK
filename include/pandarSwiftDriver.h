@@ -19,10 +19,12 @@
 #include <input.h>
 
 #define PANDAR128_READ_PACKET_SIZE (1800)
+#define PANDARQT128_READ_PACKET_SIZE (200)
 #define PANDAR80_READ_PACKET_SIZE (1800)
 #define PANDAR64S_READ_PACKET_SIZE (450)
 #define PANDAR40S_READ_PACKET_SIZE (225)
 #define PANDAR_LASER_NUMBER_INDEX (6)
+#define PANDAR_MAJOR_VERSION_INDEX (2)
 typedef struct PandarGPS_s PandarGPS;
 typedef std::array<PandarPacket, PANDAR128_READ_PACKET_SIZE> PandarPacketsArray;
 class PandarSwiftSDK;
