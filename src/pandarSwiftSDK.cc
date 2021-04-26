@@ -72,7 +72,7 @@ PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uin
 							boost::function<void(double)> gpscallback, \
 							std::string certFile, std::string privateKeyFile, std::string caFile, \
 							int startangle, int timezone, std::string publishmode, bool coordinateCorrectionFlag, std::string datatype) {
-	m_sSdkVersion = "PandarSwiftSDK_1.2.13";
+	m_sSdkVersion = "PandarSwiftSDK_1.2.14";
 	printf("\n--------PandarSwift SDK version: %s--------\n",m_sSdkVersion.c_str());
 	m_sDeviceIpAddr = deviceipaddr;
 	m_sFrameId = frameid;
@@ -773,13 +773,13 @@ void PandarSwiftSDK::calcPointXYZIT(PandarPacket &pkt, int cursor) {
 				if(m_bCoordinateCorrectionFlag){
 					pitch += m_objLaserOffset.getPitchOffset(m_sFrameId, pitch, distance);
 				}
-				if(pitch < 0) {
-					pitch += 360.0f;
-				} 
-				else if(pitch >= 360.0f) {
-					pitch -= 360.0f;
+				int pitchIdx = static_cast<int>(pitch * 100 + 0.5);
+				if (pitchIdx  >= CIRCLE) {
+					pitchIdx  -= CIRCLE;
+				} else if (pitchIdx  < 0) {
+					pitchIdx  += CIRCLE;
 				}
-				float xyDistance = distance * m_fCosAllAngle[static_cast<int>(pitch * 100 + 0.5)];
+				float xyDistance = distance * m_fCosAllAngle[pitchIdx];
 				if(m_bCoordinateCorrectionFlag){
 					azimuth += m_objLaserOffset.getAzimuthOffset(m_sFrameId, originAzimuth, block.fAzimuth / 100.0f, xyDistance);
 				}
@@ -792,7 +792,7 @@ void PandarSwiftSDK::calcPointXYZIT(PandarPacket &pkt, int cursor) {
 				}
 				point.x = xyDistance * m_fSinAllAngle[azimuthIdx];
 				point.y = xyDistance * m_fCosAllAngle[azimuthIdx];
-				point.z = distance * m_fSinAllAngle[static_cast<int>(pitch * 100 + 0.5)];
+				point.z = distance * m_fSinAllAngle[pitchIdx];
 				point.intensity = unit.u8Intensity;
 				point.timestamp = unix_second + (static_cast<double>(packet.tail.nTimestamp)) / 1000000.0;
 				point.timestamp = point.timestamp + m_objLaserOffset.getBlockTS(blockid, packet.tail.nReturnMode, mode, packet.head.u8LaserNum) / 1000000000.0 + offset / 1000000000.0;
@@ -874,13 +874,13 @@ void PandarSwiftSDK::calcPointXYZIT(PandarPacket &pkt, int cursor) {
 				if(m_bCoordinateCorrectionFlag){
 					pitch += m_objLaserOffset.getPitchOffset(m_sFrameId, pitch, distance);
 				}
-				if(pitch < 0) {
-					pitch += 360.0f;
-				} 
-				else if(pitch >= 360.0f) {
-					pitch -= 360.0f;
+				int pitchIdx = static_cast<int>(pitch * 100 + 0.5);
+				if (pitchIdx  >= CIRCLE) {
+					pitchIdx  -= CIRCLE;
+				} else if (pitchIdx  < 0) {
+					pitchIdx  += CIRCLE;
 				}
-				float xyDistance = distance * m_fCosAllAngle[static_cast<int>(pitch * 100 + 0.5)];
+				float xyDistance = distance * m_fCosAllAngle[pitchIdx];
 				if(m_bCoordinateCorrectionFlag){
 					azimuth += m_objLaserOffset.getAzimuthOffset(m_sFrameId, originAzimuth, u16Azimuth / 100.0f, xyDistance);
 				}
@@ -893,7 +893,7 @@ void PandarSwiftSDK::calcPointXYZIT(PandarPacket &pkt, int cursor) {
 				}
 				point.x = xyDistance * m_fSinAllAngle[azimuthIdx];
 				point.y = xyDistance * m_fCosAllAngle[azimuthIdx];
-				point.z = distance * m_fSinAllAngle[static_cast<int>(pitch * 100 + 0.5)];
+				point.z = distance * m_fSinAllAngle[pitchIdx];
 				point.intensity = u8Intensity;
 				point.timestamp = unix_second + (static_cast<double>(tail->nTimestamp)) / 1000000.0;
 				point.timestamp = point.timestamp + m_objLaserOffset.getBlockTS(blockid, tail->nReturnMode, mode, header->u8LaserNum) / 1000000000.0 + offset / 1000000000.0;
@@ -975,13 +975,13 @@ void PandarSwiftSDK::calcQT128PointXYZIT(PandarPacket &pkt, int cursor) {
 #ifdef FIRETIME_CORRECTION_CHECK 
         printf("Laser ID = %d, speed = %d, origin azimuth = %f, azimuth = %f, delt = %f\n", i + 1, tail->nMotorSpeed, originAzimuth, azimuth, azimuth - originAzimuth);  
 #endif
-			if(pitch < 0) {
-				pitch += 360.0f;
-			} 
-			else if(pitch >= 360.0f) {
-				pitch -= 360.0f;
+			int pitchIdx = static_cast<int>(pitch * 100 + 0.5);
+			if (pitchIdx  >= CIRCLE) {
+				pitchIdx  -= CIRCLE;
+			} else if (pitchIdx  < 0) {
+				pitchIdx  += CIRCLE;
 			}
-			float xyDistance = distance * m_fCosAllAngle[static_cast<int>(pitch * 100 + 0.5)];
+			float xyDistance = distance * m_fCosAllAngle[pitchIdx];
 			int azimuthIdx = static_cast<int>(azimuth * 100 + 0.5);
 			if(azimuthIdx >= CIRCLE) {
 				azimuthIdx -= CIRCLE;
@@ -991,7 +991,7 @@ void PandarSwiftSDK::calcQT128PointXYZIT(PandarPacket &pkt, int cursor) {
 			}
 			point.x = xyDistance * m_fSinAllAngle[azimuthIdx];
 			point.y = xyDistance * m_fCosAllAngle[azimuthIdx];
-			point.z = distance * m_fSinAllAngle[static_cast<int>(pitch * 100 + 0.5)];
+			point.z = distance * m_fSinAllAngle[pitchIdx];
 			point.intensity = u8Intensity;
 			point.timestamp = unix_second + (static_cast<double>(tail->nTimestamp)) / 1000000.0;
 			if(0 == m_dTimestamp) {
