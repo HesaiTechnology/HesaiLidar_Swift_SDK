@@ -75,3 +75,10 @@ PandarSwiftSDK_1.2.13
 ##modify
 1. Optimize calculation efficiency
 2. Support QT128
+
+Monday, April 26th, 2021 20:30
+##version
+PandarSwiftSDK_1.2.14
+
+##modify
+1. Fix bug in calculate cosAllAngle and sinAllAngle
