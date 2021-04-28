@@ -4,7 +4,7 @@ project(PandarSwiftSDK)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package( Boost REQUIRED )
+find_package( Boost REQUIRED  COMPONENTS thread)
 find_package( PCL REQUIRED COMPONENTS common )
 find_package(OpenSSL REQUIRED)
  
@@ -33,6 +33,7 @@ target_link_libraries(${PROJECT_NAME}
     ${Boost_LIBRARIES}
     ${PCL_IO_LIBRARIES}
     ${OPENSSL_LIBRARIES}
+    Boost::thread
     pcap
 )
 
