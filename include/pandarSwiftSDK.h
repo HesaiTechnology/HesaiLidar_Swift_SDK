@@ -29,6 +29,7 @@
 #include "laser_ts.h"
 #include "tcp_command_client.h"
 #include "point_types.h"
+#include <boost/thread.hpp>
 
 #ifndef CIRCLE
 #define CIRCLE (36000)
