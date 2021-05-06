@@ -355,6 +355,7 @@ class PandarSwiftSDK {
 	void pushLiDARData(PandarPacket packet);
 	int processLiDARData();
 	void publishPointsThread();
+  void stop();
 
  private:
 
@@ -393,6 +394,10 @@ class PandarSwiftSDK {
 	std::string m_sLidarFiretimeFile;
 	std::string m_sLidarCorrectionFile;
 	std::string m_sPublishmodel;
+  boost::thread *m_driverReadThread;
+  boost::thread *m_processLiDARDataThread;
+  boost::thread *m_publishPointsThread;
+  boost::thread *m_publishRawDataThread;
 	int m_iWorkMode;
 	int m_iReturnMode;
 	int m_iMotorSpeed;
