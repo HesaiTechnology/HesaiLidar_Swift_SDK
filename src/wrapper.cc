@@ -1,8 +1,8 @@
-// #include "wrapper.h"
-// #include "pandarSwiftSDK.h"
-// #include <pcl/io/pcd_io.h>
-// #include <pcl/point_types.h>
-// #include <iostream>
+#include "wrapper.h"
+#include "pandarSwiftSDK.h"
+#include <pcl/io/pcd_io.h>
+#include <pcl/point_types.h>
+#include <iostream>
 #ifdef __cplusplus
 extern "C" {
 #endif
