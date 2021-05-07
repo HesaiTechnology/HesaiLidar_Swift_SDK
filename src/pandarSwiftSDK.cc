@@ -117,14 +117,19 @@ PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uin
 		m_fCosAllAngle[j] = cosf(degreeToRadian(angle));
 		m_fSinAllAngle[j] = sinf(degreeToRadian(angle));
 	}
+	m_driverReadThread = NULL;
+	m_processLiDARDataThread = NULL;
+	m_publishPointsThread = NULL;
+	m_publishRawDataThread = NULL;
 	if(LIDAR_DATA_TYPE == datatype) {
-		boost::thread thrd(boost::bind(&PandarSwiftSDK::driverReadThread, this));
+		m_driverReadThread = new boost::thread(boost::bind(&PandarSwiftSDK::driverReadThread, this));
 	}
 	if(m_sPublishmodel == "both_point_raw" || m_sPublishmodel == "point" || LIDAR_DATA_TYPE != datatype) {
-		boost::thread processThr(boost::bind(&PandarSwiftSDK::processLiDARData, this));
+		m_processLiDARDataThread = new boost::thread(boost::bind(&PandarSwiftSDK::processLiDARData, this));
+		// m_publishPointsThread = new boost::thread(boost::bind(&PandarSwiftSDK::publishPointsThread, this));
 	}
 	if((m_sPublishmodel == "both_point_raw" || m_sPublishmodel == "raw") && LIDAR_DATA_TYPE == datatype) {
-		boost::thread processThr(boost::bind(&PandarSwiftSDK::publishRawDataThread, this));
+		m_publishRawDataThread = new boost::thread(boost::bind(&PandarSwiftSDK::publishRawDataThread, this));
 	}
 }
 
@@ -231,6 +236,7 @@ int PandarSwiftSDK::loadCorrectionString(char * data) {
 void PandarSwiftSDK::driverReadThread() {
 	SetThreadPriority(SCHED_RR, 99);
 	while (1) {
+		boost::this_thread::interruption_point();
 		m_spPandarDriver->poll();
 	}
 }
@@ -238,6 +244,7 @@ void PandarSwiftSDK::driverReadThread() {
 void PandarSwiftSDK::publishRawDataThread() {
 	SetThreadPriority(SCHED_FIFO, 90);
 	while (1) {
+		boost::this_thread::interruption_point();
 		m_spPandarDriver->publishRawData();
 	}
 }
@@ -246,6 +253,37 @@ void PandarSwiftSDK::pushLiDARData(PandarPacket packet) {
 	//  printf("PandarSwiftSDK::pushLiDARData");
 	m_PacketsBuffer.push_back(packet);
 	// printf("%d, %d\n",pkt.blocks[0].fAzimuth,pkt.blocks[1].fAzimuth);
+}
+
+void PandarSwiftSDK::stop() {
+	if (m_driverReadThread) {
+		m_driverReadThread->interrupt();
+		m_driverReadThread->join();
+		delete m_driverReadThread;
+		m_driverReadThread = NULL;
+	}
+
+	if (m_processLiDARDataThread) {
+		m_processLiDARDataThread->interrupt();
+		m_processLiDARDataThread->join();
+		delete m_processLiDARDataThread;
+		m_processLiDARDataThread = NULL;
+	}
+
+	if (m_publishPointsThread) {
+		m_publishPointsThread->interrupt();
+		m_publishPointsThread->join();
+		delete m_publishPointsThread;
+		m_publishPointsThread = NULL;
+	}
+
+	if (m_publishRawDataThread) {
+		m_publishRawDataThread->interrupt();
+		m_publishRawDataThread->join();
+		delete m_publishRawDataThread;
+		m_publishRawDataThread = NULL;
+	}
+	return;
 }
 
 int PandarSwiftSDK::parseData(Pandar128PacketVersion13 &packet, const uint8_t *recvbuf, const int len) {
@@ -302,6 +340,7 @@ int PandarSwiftSDK::processLiDARData() {
 	// uint32_t endTick;
 	init();
 	while (1) {
+		boost::this_thread::interruption_point();
 		if(!m_PacketsBuffer.hasEnoughPackets()) {
 			// printf("dont have enough packet\n");
 			usleep(1000);

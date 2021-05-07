@@ -42,7 +42,7 @@ void rawcallback(PandarPacketsArray *array) {
     // printf("array size: %d\n", array->size());
 }
 
-void RunPandarSwiftSDK(char* deviceipaddr, int lidarport, int gpsport, char* correctionfile, char* firtimeflie, char* pcapfile,
+void RunPandarSwiftSDK(char* deviceipaddr, int lidarport, int gpsport, char* correctionfile, char* firtimeflie, char* pcapfile, int viewMode,
 						char* certFile, char* privateKeyFile, char* caFile, int runTime) {
     spPandarSwiftSDK.reset(new PandarSwiftSDK(deviceipaddr, lidarport, gpsport, std::string("Pandar128"), \
                                 correctionfile, \
@@ -51,7 +51,7 @@ void RunPandarSwiftSDK(char* deviceipaddr, int lidarport, int gpsport, char* cor
                                 certFile, \
                                 privateKeyFile, \
                                 caFile, \
-                                0, 0, std::string("both_point_raw"), false));  
+                                0, 0, viewMode, std::string("both_point_raw")));  
   
     sleep(runTime);
     spPandarSwiftSDK->stop();
