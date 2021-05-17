@@ -972,6 +972,10 @@ void PandarSwiftSDK::calcQT128PointXYZIT(PandarPacket &pkt, int cursor) {
 				PANDAR128_AZIMUTH_SIZE * header->u8BlockNum + 
 				PANDAR128_CRC_SIZE + 
 				(header->hasFunctionSafety()? PANDAR128_FUNCTION_SAFETY_SIZE : 0));
+  if (pkt.data[0] != 0xEE && pkt.data[1] != 0xFF) {    
+    return ;
+  }
+
 	struct tm t = {0};
 	t.tm_year = tail->nUTCTime[0];
 	t.tm_mon = tail->nUTCTime[1] - 1;
@@ -984,6 +988,7 @@ void PandarSwiftSDK::calcQT128PointXYZIT(PandarPacket &pkt, int cursor) {
 	int index = 0;
 	index += PANDAR128_HEAD_SIZE;
 	for (int blockid = 0; blockid < header->u8BlockNum; blockid++) {
+		bool firetimeCorrectionMode = (blockid % 2 == 0) ? (tail->nReserved2[2] & 1) : (tail->nReserved2[2] & 2);
 		uint16_t u16Azimuth = *(uint16_t*)(&pkt.data[0] + index);
 		index += PANDAR128_AZIMUTH_SIZE;
 		int mode = tail->nShutdownFlag & 0x03;
@@ -1009,10 +1014,10 @@ void PandarSwiftSDK::calcQT128PointXYZIT(PandarPacket &pkt, int cursor) {
 			float originAzimuth = azimuth;
 			float pitch = m_fElevAngle[i];
 			float originPitch = pitch;
-			float offset = m_objLaserOffset.getTSOffset(i, mode, state, distance, m_u8UdpVersionMajor);
+			float offset = m_bClockwise ? m_objLaserOffset.getTSOffset(i, firetimeCorrectionMode, state, distance, m_u8UdpVersionMajor) : - m_objLaserOffset.getTSOffset(i, firetimeCorrectionMode, state, distance, m_u8UdpVersionMajor);
 			azimuth += m_objLaserOffset.getAngleOffset(offset, tail->nMotorSpeed, m_u8UdpVersionMajor);
 #ifdef FIRETIME_CORRECTION_CHECK 
-        printf("Laser ID = %d, speed = %d, origin azimuth = %f, azimuth = %f, delt = %f\n", i + 1, tail->nMotorSpeed, originAzimuth, azimuth, azimuth - originAzimuth);  
+        printf("Laser ID = %d, speed = %d, correction mode = %d, block id = %d, origin azimuth = %f, azimuth = %f, delt = %f\n", i + 1, tail->nMotorSpeed, firetimeCorrectionMode, blockid, originAzimuth, azimuth, azimuth - originAzimuth);   
 #endif
 			int pitchIdx = static_cast<int>(pitch * 100 + 0.5);
 			if (pitchIdx  >= CIRCLE) {
