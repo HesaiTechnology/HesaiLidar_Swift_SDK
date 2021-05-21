@@ -97,3 +97,12 @@ PandarSwiftSDK_1.2.13
 ##modify
 1. Optimize calculation efficiency
 2. Support QT128
+
+Thursday, May 20th, 2021 17:30
+##version
+PandarSwiftSDK_1.2.15
+
+##modify
+1. Support ubuntu 20.04
+2. Add c type interface
+
