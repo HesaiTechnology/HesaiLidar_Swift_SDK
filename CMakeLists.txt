@@ -4,7 +4,7 @@ project(PandarSwiftSDK)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package( Boost REQUIRED )
+find_package( Boost REQUIRED  COMPONENTS thread)
 find_package( PCL REQUIRED COMPONENTS common )
 find_package(OpenSSL REQUIRED)
  
@@ -27,12 +27,15 @@ add_library( ${PROJECT_NAME} SHARED
     src/platUtil.cc
     src/tcp_command_client.c
     src/util.c
+    src/wrapper.cc
+
 )
 
 target_link_libraries(${PROJECT_NAME} 
     ${Boost_LIBRARIES}
     ${PCL_IO_LIBRARIES}
     ${OPENSSL_LIBRARIES}
+    Boost::thread
     pcap
 )
 
@@ -46,5 +49,6 @@ if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR})
         ${PROJECT_NAME}
         ${Boost_LIBRARIES}
         ${PCL_IO_LIBRARIES}
+        Boost::thread
     )
 endif(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR})
