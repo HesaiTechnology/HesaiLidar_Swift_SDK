@@ -1,7 +1,7 @@
 # HesaiLidar_Swift_SDK
 ## About the project
 This repository includes the software development kit for Pandar LiDAR sensor manufactured by Hesai Technology. Branches are included for different systems and UDP protocol versions:
-* master: The software development kit for Ubuntu 18.04 supports Hesai lidar with UDP protocol v1.3, v1.4, v3.2 
+* master: The software development kit for Ubuntu 18.04 and Ubuntu20.04 supports Hesai lidar with UDP protocol v1.3, v1.4, v3.2 
 * ubuntu16.04: The software development kit for Ubuntu 16.04 supports Hesai lidar with UDP protocol v1.3, v1.4, v3.2  
 
 LiDAR sensor manufactured by Hesai Technology.
