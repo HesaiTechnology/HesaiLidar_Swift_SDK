@@ -72,7 +72,7 @@ PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uin
 							boost::function<void(double)> gpscallback, \
 							std::string certFile, std::string privateKeyFile, std::string caFile, \
 							int startangle, int timezone, std::string publishmode, bool coordinateCorrectionFlag, std::string datatype) {
-	m_sSdkVersion = "PandarSwiftSDK_1.2.14";
+	m_sSdkVersion = "PandarSwiftSDK_1.2.15";
 	printf("\n--------PandarSwift SDK version: %s--------\n",m_sSdkVersion.c_str());
 	m_sDeviceIpAddr = deviceipaddr;
 	m_sFrameId = frameid;
@@ -117,15 +117,19 @@ PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uin
 		m_fCosAllAngle[j] = cosf(degreeToRadian(angle));
 		m_fSinAllAngle[j] = sinf(degreeToRadian(angle));
 	}
+	m_driverReadThread = NULL;
+	m_processLiDARDataThread = NULL;
+	m_publishPointsThread = NULL;
+	m_publishRawDataThread = NULL;
 	if(LIDAR_DATA_TYPE == datatype) {
-		boost::thread thrd(boost::bind(&PandarSwiftSDK::driverReadThread, this));
+		m_driverReadThread = new boost::thread(boost::bind(&PandarSwiftSDK::driverReadThread, this));
 	}
 	if(m_sPublishmodel == "both_point_raw" || m_sPublishmodel == "point" || LIDAR_DATA_TYPE != datatype) {
-		boost::thread processThr(boost::bind(&PandarSwiftSDK::processLiDARData, this));
-		boost::thread publishPointsThr(boost::bind(&PandarSwiftSDK::publishPointsThread, this));
+		m_processLiDARDataThread = new boost::thread(boost::bind(&PandarSwiftSDK::processLiDARData, this));
+		m_publishPointsThread = new boost::thread(boost::bind(&PandarSwiftSDK::publishPointsThread, this));
 	}
 	if((m_sPublishmodel == "both_point_raw" || m_sPublishmodel == "raw") && LIDAR_DATA_TYPE == datatype) {
-		boost::thread processThr(boost::bind(&PandarSwiftSDK::publishRawDataThread, this));
+		m_publishRawDataThread = new boost::thread(boost::bind(&PandarSwiftSDK::publishRawDataThread, this));
 	}
 }
 
@@ -230,6 +234,7 @@ int PandarSwiftSDK::loadCorrectionString(std::string correction_content) {
 void PandarSwiftSDK::driverReadThread() {
 	SetThreadPriority(SCHED_RR, 99);
 	while (1) {
+		boost::this_thread::interruption_point();
 		m_spPandarDriver->poll();
 	}
 }
@@ -237,6 +242,7 @@ void PandarSwiftSDK::driverReadThread() {
 void PandarSwiftSDK::publishRawDataThread() {
 	SetThreadPriority(SCHED_FIFO, 90);
 	while (1) {
+		boost::this_thread::interruption_point();
 		m_spPandarDriver->publishRawData();
 	}
 }
@@ -245,6 +251,37 @@ void PandarSwiftSDK::pushLiDARData(PandarPacket packet) {
 	//  printf("PandarSwiftSDK::pushLiDARData");
 	m_PacketsBuffer.push_back(packet);
 	// printf("%d, %d\n",pkt.blocks[0].fAzimuth,pkt.blocks[1].fAzimuth);
+}
+
+void PandarSwiftSDK::stop() {
+	if (m_driverReadThread) {
+		m_driverReadThread->interrupt();
+		m_driverReadThread->join();
+		delete m_driverReadThread;
+		m_driverReadThread = NULL;
+	}
+
+	if (m_processLiDARDataThread) {
+		m_processLiDARDataThread->interrupt();
+		m_processLiDARDataThread->join();
+		delete m_processLiDARDataThread;
+		m_processLiDARDataThread = NULL;
+	}
+
+	if (m_publishPointsThread) {
+		m_publishPointsThread->interrupt();
+		m_publishPointsThread->join();
+		delete m_publishPointsThread;
+		m_publishPointsThread = NULL;
+	}
+
+	if (m_publishRawDataThread) {
+		m_publishRawDataThread->interrupt();
+		m_publishRawDataThread->join();
+		delete m_publishRawDataThread;
+		m_publishRawDataThread = NULL;
+	}
+	return;
 }
 
 int PandarSwiftSDK::parseData(Pandar128PacketVersion13 &packet, const uint8_t *recvbuf, const int len) {
@@ -301,6 +338,7 @@ int PandarSwiftSDK::processLiDARData() {
 	// uint32_t endTick;
 	init();
 	while (1) {
+		boost::this_thread::interruption_point();
 		if(!m_PacketsBuffer.hasEnoughPackets()) {
 			// printf("dont have enough packet\n");
 			usleep(1000);
@@ -392,6 +430,7 @@ void PandarSwiftSDK::moveTaskEndToStartAngle() {
 void PandarSwiftSDK::publishPointsThread() {
 	SetThreadPriority(SCHED_FIFO, 90);
 	while (1) {
+		boost::this_thread::interruption_point();
 		usleep(1000);
 		if(m_bPublishPointsFlag) {
 			// uint32_t start = GetTickCount();
@@ -933,6 +972,10 @@ void PandarSwiftSDK::calcQT128PointXYZIT(PandarPacket &pkt, int cursor) {
 				PANDAR128_AZIMUTH_SIZE * header->u8BlockNum + 
 				PANDAR128_CRC_SIZE + 
 				(header->hasFunctionSafety()? PANDAR128_FUNCTION_SAFETY_SIZE : 0));
+  if (pkt.data[0] != 0xEE && pkt.data[1] != 0xFF) {    
+    return ;
+  }
+
 	struct tm t = {0};
 	t.tm_year = tail->nUTCTime[0];
 	t.tm_mon = tail->nUTCTime[1] - 1;
@@ -945,6 +988,7 @@ void PandarSwiftSDK::calcQT128PointXYZIT(PandarPacket &pkt, int cursor) {
 	int index = 0;
 	index += PANDAR128_HEAD_SIZE;
 	for (int blockid = 0; blockid < header->u8BlockNum; blockid++) {
+		bool firetimeCorrectionMode = (blockid % 2 == 0) ? (tail->nReserved2[2] & 1) : (tail->nReserved2[2] & 2);
 		uint16_t u16Azimuth = *(uint16_t*)(&pkt.data[0] + index);
 		index += PANDAR128_AZIMUTH_SIZE;
 		int mode = tail->nShutdownFlag & 0x03;
@@ -970,10 +1014,10 @@ void PandarSwiftSDK::calcQT128PointXYZIT(PandarPacket &pkt, int cursor) {
 			float originAzimuth = azimuth;
 			float pitch = m_fElevAngle[i];
 			float originPitch = pitch;
-			float offset = m_objLaserOffset.getTSOffset(i, mode, state, distance, m_u8UdpVersionMajor);
+			float offset = m_bClockwise ? m_objLaserOffset.getTSOffset(i, firetimeCorrectionMode, state, distance, m_u8UdpVersionMajor) : - m_objLaserOffset.getTSOffset(i, firetimeCorrectionMode, state, distance, m_u8UdpVersionMajor);
 			azimuth += m_objLaserOffset.getAngleOffset(offset, tail->nMotorSpeed, m_u8UdpVersionMajor);
 #ifdef FIRETIME_CORRECTION_CHECK 
-        printf("Laser ID = %d, speed = %d, origin azimuth = %f, azimuth = %f, delt = %f\n", i + 1, tail->nMotorSpeed, originAzimuth, azimuth, azimuth - originAzimuth);  
+        printf("Laser ID = %d, speed = %d, correction mode = %d, block id = %d, origin azimuth = %f, azimuth = %f, delt = %f\n", i + 1, tail->nMotorSpeed, firetimeCorrectionMode, blockid, originAzimuth, azimuth, azimuth - originAzimuth);   
 #endif
 			int pitchIdx = static_cast<int>(pitch * 100 + 0.5);
 			if (pitchIdx  >= CIRCLE) {
