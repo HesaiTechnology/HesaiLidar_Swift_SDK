@@ -458,19 +458,45 @@ void PandarSwiftSDK::init() {
 		}
 		uint16_t lidarmotorspeed = 0;
 		auto header = (PandarAT128Head*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]));
-		auto tail = (PandarAT128Tail*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]) + PANDAR_AT128_HEAD_SIZE +
-					PANDAR_AT128_UNIT_WITH_CONFIDENCE_SIZE * header->u8LaserNum * header->u8BlockNum + 
-					PANDAR_AT128_AZIMUTH_SIZE * header->u8BlockNum );
-		m_iWorkMode = tail->nShutdownFlag & 0x03;
-		m_iReturnMode = tail->nReturnMode;
-		lidarmotorspeed = tail->nMotorSpeed;
-		m_iLaserNum = header->u8LaserNum;
-		m_iFirstAzimuthIndex = PANDAR_AT128_HEAD_SIZE;
-		m_iLastAzimuthIndex = PANDAR_AT128_HEAD_SIZE + 
-								PANDAR_AT128_UNIT_WITH_CONFIDENCE_SIZE * header->u8LaserNum * (header->u8BlockNum - 1) + 
-								PANDAR_AT128_AZIMUTH_SIZE * (header->u8BlockNum - 1);
-		if(abs(lidarmotorspeed - MOTOR_SPEED_600) < 30) { //ignore the speed gap of 600 rpm
-			lidarmotorspeed = MOTOR_SPEED_600;
+		switch(header->u8VersionMinor){
+			case 1:
+			{
+				auto tail = (PandarAT128Tail*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]) + PANDAR_AT128_HEAD_SIZE +
+							PANDAR_AT128_UNIT_WITH_CONFIDENCE_SIZE * header->u8LaserNum * header->u8BlockNum + 
+							PANDAR_AT128_AZIMUTH_SIZE * header->u8BlockNum );
+				m_iWorkMode = tail->nShutdownFlag & 0x03;
+				m_iReturnMode = tail->nReturnMode;
+				lidarmotorspeed = tail->nMotorSpeed;
+				m_iLaserNum = header->u8LaserNum;
+				m_iFirstAzimuthIndex = PANDAR_AT128_HEAD_SIZE; 
+				m_iLastAzimuthIndex = PANDAR_AT128_HEAD_SIZE + 
+									PANDAR_AT128_UNIT_WITH_CONFIDENCE_SIZE * header->u8LaserNum * (header->u8BlockNum - 1) + 
+									PANDAR_AT128_AZIMUTH_SIZE * (header->u8BlockNum - 1);
+				m_spPandarDriver->setUdpVersion(header->u8VersionMajor,header->u8VersionMinor);	
+			}
+			break;
+			case 2:
+			{
+				auto tail = (PandarAT128Tail*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]) + PANDAR_AT128_HEAD_SIZE +
+							(header->hasConfidence() ? PANDAR_AT128_UNIT_WITH_CONFIDENCE_SIZE * header->u8LaserNum * header->u8BlockNum : PANDAR_AT128_UNIT_WITHOUT_CONFIDENCE_SIZE * header->u8LaserNum * header->u8BlockNum) +
+							PANDAR_AT128_CRC_SIZE + 
+							PANDAR_AT128_AZIMUTH_SIZE * header->u8BlockNum );
+				m_iWorkMode = tail->nShutdownFlag & 0x03;
+				m_iReturnMode = tail->nReturnMode;
+				lidarmotorspeed = tail->nMotorSpeed;
+				m_iLaserNum = header->u8LaserNum;
+				m_iFirstAzimuthIndex = PANDAR_AT128_HEAD_SIZE;
+				m_iLastAzimuthIndex = PANDAR_AT128_HEAD_SIZE + 
+										(header->hasConfidence() ? PANDAR_AT128_UNIT_WITH_CONFIDENCE_SIZE * header->u8LaserNum * (header->u8BlockNum - 1): PANDAR_AT128_UNIT_WITHOUT_CONFIDENCE_SIZE * header->u8LaserNum * (header->u8BlockNum - 1)) + 
+										PANDAR_AT128_AZIMUTH_SIZE * (header->u8BlockNum - 1);
+				m_spPandarDriver->setUdpVersion(header->u8VersionMajor,header->u8VersionMinor);	
+
+			}
+			default:
+			break;
+		}			
+		if(abs(lidarmotorspeed - MOTOR_SPEED_500) < 30) { //ignore the speed gap of 600 rpm
+			lidarmotorspeed = MOTOR_SPEED_500;
 		}
 		else if(abs(lidarmotorspeed - MOTOR_SPEED_400) < 30) { //ignore the speed gap of 400 rpm
 			lidarmotorspeed = MOTOR_SPEED_400;
@@ -515,21 +541,53 @@ void PandarSwiftSDK::checkClockwise(){
 }
 
 int PandarSwiftSDK::checkLiadaMode() {
+  uint8_t lidarworkmode = 0;
+  uint8_t lidarreturnmode = 0;
+  uint16_t lidarmotorspeed = 0;
+  uint8_t laserNum = 0;
+  uint8_t blockNum = 0;
   auto header = (PandarAT128Head*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]));
-  auto tail = (PandarAT128Tail*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]) + PANDAR_AT128_HEAD_SIZE +
-              PANDAR_AT128_UNIT_WITH_CONFIDENCE_SIZE * header->u8LaserNum * header->u8BlockNum + 
-              PANDAR_AT128_AZIMUTH_SIZE * header->u8BlockNum );
-  uint8_t lidarworkmode = tail->nShutdownFlag & 0x03;
-  uint8_t lidarreturnmode = tail->nReturnMode;
-  uint16_t lidarmotorspeed = tail->nMotorSpeed;
-  uint8_t laserNum = header->u8LaserNum;
-  uint8_t blockNum = header->u8BlockNum;
-  m_iFirstAzimuthIndex = PANDAR_AT128_HEAD_SIZE;
-  m_iLastAzimuthIndex = PANDAR_AT128_HEAD_SIZE + 
-						PANDAR_AT128_UNIT_WITH_CONFIDENCE_SIZE * header->u8LaserNum * (header->u8BlockNum - 1) + 
-						PANDAR_AT128_AZIMUTH_SIZE * (header->u8BlockNum - 1);
-  if(abs(lidarmotorspeed - MOTOR_SPEED_600) < 30) { //ignore the speed gap of 6000 rpm
+  switch(header->u8VersionMinor){
+	case 1:
+	{
+		auto tail = (PandarAT128Tail*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]) + PANDAR_AT128_HEAD_SIZE +
+					PANDAR_AT128_UNIT_WITH_CONFIDENCE_SIZE * header->u8LaserNum * header->u8BlockNum + 
+					PANDAR_AT128_AZIMUTH_SIZE * header->u8BlockNum );
+		lidarworkmode = tail->nShutdownFlag & 0x03;
+		lidarreturnmode = tail->nReturnMode;
+		lidarmotorspeed = tail->nMotorSpeed;
+		laserNum = header->u8LaserNum;
+		blockNum = header->u8BlockNum;
+		m_iFirstAzimuthIndex = PANDAR_AT128_HEAD_SIZE;
+		m_iLastAzimuthIndex = PANDAR_AT128_HEAD_SIZE + 
+								PANDAR_AT128_UNIT_WITH_CONFIDENCE_SIZE * header->u8LaserNum * (header->u8BlockNum - 1) + 
+								PANDAR_AT128_AZIMUTH_SIZE * (header->u8BlockNum - 1);
+	}
+	break;
+	case 2:
+	{
+		auto tail = (PandarAT128Tail*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]) + PANDAR_AT128_HEAD_SIZE +
+					(header->hasConfidence() ? PANDAR_AT128_UNIT_WITH_CONFIDENCE_SIZE * header->u8LaserNum * header->u8BlockNum : PANDAR_AT128_UNIT_WITHOUT_CONFIDENCE_SIZE * header->u8LaserNum * header->u8BlockNum) +
+					PANDAR_AT128_CRC_SIZE + 
+					PANDAR_AT128_AZIMUTH_SIZE * header->u8BlockNum );
+		lidarworkmode = tail->nShutdownFlag & 0x03;
+		lidarreturnmode = tail->nReturnMode;
+		lidarmotorspeed = tail->nMotorSpeed;
+		laserNum = header->u8LaserNum;
+		blockNum = header->u8BlockNum;
+		m_iFirstAzimuthIndex = PANDAR_AT128_HEAD_SIZE;
+		m_iLastAzimuthIndex = PANDAR_AT128_HEAD_SIZE + 
+								(header->hasConfidence() ? PANDAR_AT128_UNIT_WITH_CONFIDENCE_SIZE * header->u8LaserNum * (header->u8BlockNum - 1): PANDAR_AT128_UNIT_WITHOUT_CONFIDENCE_SIZE * header->u8LaserNum * (header->u8BlockNum - 1)) + 
+								PANDAR_AT128_AZIMUTH_SIZE * (header->u8BlockNum - 1);
+	}
+	default:
+	break;
+  }
+  if(abs(lidarmotorspeed - MOTOR_SPEED_600) < 30) { //ignore the speed gap of 500 rpm
     lidarmotorspeed = MOTOR_SPEED_600;
+  }
+  if(abs(lidarmotorspeed - MOTOR_SPEED_500) < 30) { //ignore the speed gap of 500 rpm
+    lidarmotorspeed = MOTOR_SPEED_500;
   }
   else if(abs(lidarmotorspeed - MOTOR_SPEED_400) < 30) { //ignore the speed gap of 400 rpm
     lidarmotorspeed = MOTOR_SPEED_400;
@@ -541,7 +599,7 @@ int PandarSwiftSDK::checkLiadaMode() {
     lidarmotorspeed = MOTOR_SPEED_200;
   }
   else {
-      lidarmotorspeed = MOTOR_SPEED_300; //changing the speed,give enough size
+      lidarmotorspeed = MOTOR_SPEED_200; //changing the speed,give enough size
   }
 
   if (0 == m_iWorkMode && 0 == m_iReturnMode && 0 == m_iMotorSpeed && 0 == m_iLaserNum) { //init lidar mode 
@@ -598,11 +656,27 @@ void PandarSwiftSDK::changeReturnBlockSize() {
 }
 
 void PandarSwiftSDK::calcPointXYZIT(PandarPacket &packet, int cursor) {
+  if(packet.data[0] != 0xEE || packet.data[1] != 0xFF)
+	return;
   auto header = (PandarAT128Head*)(&packet.data[0]);
-  auto tail = (PandarAT128Tail*)(&packet.data[0] + PANDAR_AT128_HEAD_SIZE + 
-               PANDAR_AT128_UNIT_WITH_CONFIDENCE_SIZE * header->u8LaserNum * header->u8BlockNum + 
-              PANDAR_AT128_AZIMUTH_SIZE * header->u8BlockNum );
-      // ROS_WARN(" return mode:  %x, speed :%d ",tail->nReturnMode, tail->nMotorSpeed);         
+  PandarAT128Tail* tail = nullptr;  
+  switch(header->u8VersionMinor){
+	case 1:
+	{
+		tail = (PandarAT128Tail*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]) + PANDAR_AT128_HEAD_SIZE +
+					PANDAR_AT128_UNIT_WITH_CONFIDENCE_SIZE * header->u8LaserNum * header->u8BlockNum + 
+					PANDAR_AT128_AZIMUTH_SIZE * header->u8BlockNum );
+	}
+	break;
+	case 2:
+	{
+		tail = (PandarAT128Tail*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]) + PANDAR_AT128_HEAD_SIZE +
+					(header->hasConfidence() ? PANDAR_AT128_UNIT_WITH_CONFIDENCE_SIZE * header->u8LaserNum * header->u8BlockNum : PANDAR_AT128_UNIT_WITHOUT_CONFIDENCE_SIZE * header->u8LaserNum * header->u8BlockNum) +
+					PANDAR_AT128_CRC_SIZE + 
+					PANDAR_AT128_AZIMUTH_SIZE * header->u8BlockNum );
+
+	}
+  }		        
   struct tm t = {0};
   t.tm_year = tail->nUTCTime[0];
   if (t.tm_year >= 200) {
@@ -639,7 +713,8 @@ void PandarSwiftSDK::calcPointXYZIT(PandarPacket &packet, int cursor) {
       index += DISTANCE_SIZE;
       uint8_t u8Intensity = *(uint8_t*)(&packet.data[0] + index);
       index += INTENSITY_SIZE;
-      index += CONFIDENCE_SIZE;
+	  if(header->u8VersionMinor == 1 || header->hasConfidence())
+		index += CONFIDENCE_SIZE;
       PPoint point;
       float distance =
           static_cast<float>(u16Distance) * PANDAR128_DISTANCE_UNIT;
@@ -833,7 +908,7 @@ void PandarSwiftSDK::SetEnvironmentVariableTZ(){
   t1 = mktime(tm_local) ;
   tm_utc = gmtime(&t2);
   t2 = mktime(tm_utc);
-  timezone = t2 >= t1 ? (t2 - t1) / 3600 : (t1 - t2) / 3600;
+  timezone = 0;
   std::string data = "TZ=UTC" + std::to_string(timezone);
   int len = data.length();
   TZ = (char *)malloc((len + 1) * sizeof(char));
