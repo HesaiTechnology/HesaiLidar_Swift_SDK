@@ -73,7 +73,7 @@ PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uin
 							boost::function<void(double)> gpscallback, \
 							std::string certFile, std::string privateKeyFile, std::string caFile, \
 							int startangle, int timezone, std::string publishmode, bool coordinateCorrectionFlag, std::string datatype) {
-	m_sSdkVersion = "PandarSwiftSDK_1.2.15";
+	m_sSdkVersion = "PandarSwiftSDK_1.2.17";
 	printf("\n--------PandarSwift SDK version: %s--------\n",m_sSdkVersion.c_str());
 	m_sDeviceIpAddr = deviceipaddr;
 	m_sFrameId = frameid;
@@ -1088,7 +1088,7 @@ void PandarSwiftSDK::calcQT128PointXYZIT(PandarPacket &pkt, int cursor) {
 					float point_y = static_cast<float>(xyDistance * m_fCosAllAngle[azimuthIdx]);
 					float point_z = static_cast<float>(distance * m_fSinAllAngle[pitchIdx]);
 					printf("distance = %f; elevation = %f; azimuth = %f; delta X = %f; delta Y = %f; delta Z = %f; \n", 
-						distance , float(pitchIdx / 100), float(azimuthIdx / 100), point.x - point_x, point.y - point_y, point.z - point_z);
+						distance , float(pitchIdx) / 100, float(azimuthIdx) / 100, point.x - point_x, point.y - point_y, point.z - point_z);
 #endif
 			}
 			else{
