@@ -91,3 +91,10 @@ PandarSwiftSDK_1.2.15
 1. Support ubuntu 20.04
 2. Update firetime correction of QT128
 3. Add c type interface
+
+Friday, July 23th, 2021 17:30
+##version
+PandarSwiftSDK_1.2.17
+
+##modify
+1. Support coordinate correction of QT128 
