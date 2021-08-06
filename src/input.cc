@@ -64,7 +64,7 @@ bool Input::checkPacketSize(PandarPacket *pkt) {
     printf("Packet with invaild delimiter\n");
     return false;
   }
-  if (pkt->data[2] != 4 || (pkt->data[3] != 1 && pkt->data[3] != 2)) {    
+  if (pkt->data[2] != 4 || (pkt->data[3] != 1 && pkt->data[3] != 3)) {    
     printf("Packet with invaild lidar type\n");
     return false;
   }
@@ -96,7 +96,8 @@ bool Input::checkPacketSize(PandarPacket *pkt) {
 		m_iTimestampIndex = PANDAR_AT128_HEAD_SIZE +
 						(hasConfidence ? PANDAR_AT128_UNIT_WITH_CONFIDENCE_SIZE * laserNum * blockNum : PANDAR_AT128_UNIT_WITHOUT_CONFIDENCE_SIZE * laserNum * blockNum)+ 
 						PANDAR_AT128_AZIMUTH_SIZE * blockNum +
-						(UDPMinorVersion == 2 ? PANDAR_AT128_CRC_SIZE : 0) +
+						PANDAR_AT128_FINE_AZIMUTH_SIZE * blockNum +
+						(UDPMinorVersion == 3 ? PANDAR_AT128_CRC_SIZE : 0) +
 						(hasFunctionSafety ? PANDAR_AT128_FUNCTION_SAFETY_SIZE : 0) + 
 						PANDAR_AT128_TAIL_RESERVED1_SIZE + 
 						PANDAR_AT128_TAIL_RESERVED2_SIZE +
@@ -152,8 +153,8 @@ void Input::setUdpVersion(uint8_t major, uint8_t minor) {
 			printf("UDP version is : %d.%d\n", major, minor);
 			return;
 		}
-		if(UDP_VERSION_MINOR_2 == minor) {
-			m_sUdpVresion = UDP_VERSION_4_2;
+		if(UDP_VERSION_MINOR_3 == minor) {
+			m_sUdpVresion = UDP_VERSION_4_3;
 			m_bGetUdpVersion = true;
 			printf("UDP version is : %d.%d\n", major, minor);
 			return;
