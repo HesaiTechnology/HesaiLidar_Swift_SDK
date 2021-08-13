@@ -103,6 +103,7 @@ bool Input::checkPacketSize(PandarPacket *pkt) {
 						PANDAR_AT128_TAIL_RESERVED2_SIZE +
 						PANDAR_AT128_SHUTDOWN_FLAG_SIZE +
 						PANDAR_AT128_TAIL_RESERVED3_SIZE +
+						PANDAR_AT128_TAIL_RESERVED4_SIZE +
 						PANDAR_AT128_MOTOR_SPEED_SIZE;
 		m_iUtcIindex = m_iTimestampIndex + PANDAR_AT128_TS_SIZE +
 					PANDAR_AT128_RETURN_MODE_SIZE +
@@ -112,7 +113,7 @@ bool Input::checkPacketSize(PandarPacket *pkt) {
   }
 
   uint32_t size = m_iSequenceNumberIndex + (hasSeqNum ? PANDAR_AT128_SEQ_NUM_SIZE  : 0) +
-				(UDPMinorVersion == 2 ? PANDAR_AT128_CRC_SIZE : 0)+
+				(UDPMinorVersion == 3 ? PANDAR_AT128_CRC_SIZE : 0)+
 				(hasSignature ? PANDAR_AT128_SIGNATURE_SIZE : 0);
   if(pkt->size == size){
     return true;

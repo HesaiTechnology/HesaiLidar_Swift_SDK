@@ -115,6 +115,7 @@
 #define PANDAR128_FUNCTION_SAFETY_SIZE (17)
 
 #define CIRCLE_ANGLE (36000)
+#define MAX_AZI_LEN (36000 * 256)
 #define MOTOR_SPEED_600 (600)
 #define MOTOR_SPEED_500 (500)
 #define MOTOR_SPEED_400 (400)
@@ -170,7 +171,7 @@
 #define PANDAR_AT128_PACKET_SEQ_NUM_SIZE \
   (PANDAR_AT128_PACKET_SIZE + PANDAR_AT128_SEQ_NUM_SIZE)
 #define PANDAR_AT128_WITHOUT_CONF_UNIT_SIZE (DISTANCE_SIZE + INTENSITY_SIZE)
-#define PANDAR_AT128_FRAME_ANGLE_SIZE (6200)
+#define PANDAR_AT128_FRAME_ANGLE_SIZE (6400)
 #define PANDAR_AT128_CRC_SIZE (4)  
 #define PANDAR_AT128_FUNCTION_SAFETY_SIZE (17)  
 #define PANDAR_AT128_SIGNATURE_SIZE (32)
@@ -320,6 +321,15 @@ struct PandarATCorrectionsHeader {
 static_assert(sizeof(PandarATCorrectionsHeader) == 16);
 #pragma pack(pop)
 
+struct PandarATFrameInfo {
+    uint32_t start_frame[8];
+    uint32_t end_frame[8];
+    int32_t azimuth[128];
+    int32_t elevation[128];
+    std::array<float, MAX_AZI_LEN> sin_map;
+    std::array<float, MAX_AZI_LEN> cos_map;
+};
+
 struct PandarATCorrections {
 public:
     PandarATCorrectionsHeader header;
@@ -330,24 +340,40 @@ public:
     int8_t azimuth_offset[36000];
     int8_t elevation_offset[36000];
     uint8_t SHA256[32];
-    std::array<float, 36000> sin_map;
-    std::array<float, 36000> cos_map;
+    PandarATFrameInfo l; // V1.5
+    std::array<float, MAX_AZI_LEN> sin_map;
+    std::array<float, MAX_AZI_LEN> cos_map;
     PandarATCorrections() {
-        for(int i = 0; i < 36000; ++i) {
-            sin_map[i] = std::sin(i * M_PI / 18000);
-            cos_map[i] = std::cos(i * M_PI / 18000);
+        for(int i = 0; i < MAX_AZI_LEN; ++i) {
+            sin_map[i] = std::sin(2 * i * M_PI / MAX_AZI_LEN );
+            cos_map[i] = std::cos(2 * i * M_PI / MAX_AZI_LEN);
         }
     }
     static const int STEP = 200;
     int8_t getAzimuthAdjust(uint8_t ch, uint16_t azi) const{
-        unsigned int i = std::floor(azi / STEP);
+        unsigned int i = std::floor(1.f * azi / STEP);
         unsigned int l = azi - i * STEP;
-        return (azimuth_offset[ch*180 + i] * (STEP - l) + azimuth_offset[ch*180 + i+1] * l) / STEP;
+        float k = 1.f * l / STEP;
+        return round((1-k) * azimuth_offset[ch*180 + i] + k * azimuth_offset[ch*180 + i+1]);
     }
     int8_t getElevationAdjust(uint8_t ch, uint16_t azi) const{
-        unsigned int i = std::floor(azi / STEP);
+        unsigned int i = std::floor(1.f * azi / STEP);
         unsigned int l = azi - i * STEP;
-        return (elevation_offset[ch*180 + i] * (STEP - l) + elevation_offset[ch*180 + i+1] * l) / STEP;
+        float k = 1.f * l / STEP;
+        return round((1-k) *elevation_offset[ch*180 + i] + k *elevation_offset[ch*180 + i+1]);
+    }
+    static const int STEP3 = 200 * 256;
+    int8_t getAzimuthAdjustV3(uint8_t ch, uint32_t azi) const{
+        unsigned int i = std::floor(1.f * azi / STEP3);
+        unsigned int l = azi - i * STEP3;
+        float k = 1.f * l / STEP3;
+        return round((1-k) * azimuth_offset[ch*180 + i] + k * azimuth_offset[ch*180 + i+1]);
+    }
+    int8_t getElevationAdjustV3(uint8_t ch, uint32_t azi) const{
+        unsigned int i = std::floor(1.f * azi / STEP3);
+        unsigned int l = azi - i * STEP3;
+        float k = 1.f * l / STEP3;
+        return round((1-k) *elevation_offset[ch*180 + i] + k *elevation_offset[ch*180 + i+1]);
     }
 };
 
@@ -536,7 +562,6 @@ class PandarSwiftSDK {
   bool m_bClockwise;
   PandarATCorrections m_PandarAT_corrections;
   int m_iViewMode;
-  int m_iVersionMinor;
 };
 
 #endif  // _PANDAR_POINTCLOUD_Pandar128SDK_H_
