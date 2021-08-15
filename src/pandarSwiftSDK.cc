@@ -466,6 +466,8 @@ void PandarSwiftSDK::moveTaskEndToStartAngle() {
 
 void PandarSwiftSDK::publishPoints() {	
 	// uint32_t start = GetTickCount();
+	if(m_dTimestamp == 0)
+		return;
 	if(NULL != m_funcPclCallback) {
 		m_funcPclCallback(m_OutMsgArray[m_iPublishPointsIndex], m_dTimestamp);
 		m_dTimestamp = 0;
@@ -625,7 +627,7 @@ int PandarSwiftSDK::checkLiadaMode() {
   else if(abs(abs(lidarmotorspeed) - MOTOR_SPEED_750) < 30) { //ignore the speed gap of 750 rpm
     lidarmotorspeed = MOTOR_SPEED_750;
   }
-  if(abs(abs(lidarmotorspeed) - MOTOR_SPEED_500) < 30) { //ignore the speed gap of 500 rpm
+  else if(abs(abs(lidarmotorspeed) - MOTOR_SPEED_500) < 30) { //ignore the speed gap of 500 rpm
     lidarmotorspeed = MOTOR_SPEED_500;
   }
   else if(abs(abs(lidarmotorspeed)- MOTOR_SPEED_400) < 30) { //ignore the speed gap of 400 rpm
