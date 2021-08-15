@@ -106,3 +106,10 @@ PandarSwiftSDK_1.2.15
 1. Support ubuntu 20.04
 2. Add c type interface
 
+Sunsday, August 15th, 2021 17:30
+##version
+PandarSwiftSDK_1.2.18
+
+##modify
+1. Support udp4.3
+

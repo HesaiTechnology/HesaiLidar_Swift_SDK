@@ -72,7 +72,7 @@ PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uin
 							std::string certFile, std::string privateKeyFile, std::string caFile, \
 							int startangle, int timezone, int viewMode, \ 
 							std::string publishmode, std::string datatype) {
-	m_sSdkVersion = "PandarSwiftSDK_1.2.15";
+	m_sSdkVersion = "PandarSwiftSDK_1.2.18";
 	printf("\n--------PandarSwift SDK version: %s--------\n",m_sSdkVersion.c_str());
 	m_sDeviceIpAddr = deviceipaddr;
 	m_sFrameId = frameid;
@@ -535,7 +535,10 @@ void PandarSwiftSDK::init() {
 		}
 		if(abs(abs(lidarmotorspeed) - MOTOR_SPEED_600) < 30) { //ignore the speed gap of 600 rpm
 			m_iMotorSpeed = MOTOR_SPEED_600;
-		}			
+		}	
+		else if(abs(abs(lidarmotorspeed) - MOTOR_SPEED_750) < 30) { //ignore the speed gap of 750 rpm
+			m_iMotorSpeed = MOTOR_SPEED_750;
+		}		
 		else if(abs(abs(lidarmotorspeed) - MOTOR_SPEED_500) < 30) { //ignore the speed gap of 500 rpm
 			m_iMotorSpeed = MOTOR_SPEED_500;
 		}
@@ -547,6 +550,9 @@ void PandarSwiftSDK::init() {
 		}
 		else if(abs(abs(lidarmotorspeed) - MOTOR_SPEED_200) < 30) { //ignore the speed gap of 200 rpm
 			m_iMotorSpeed = MOTOR_SPEED_200;
+		}
+		else if(abs(abs(lidarmotorspeed) - MOTOR_SPEED_150) < 30) { //ignore the speed gap of 150 rpm
+			m_iMotorSpeed = MOTOR_SPEED_150;
 		}
 		else {
 			m_iMotorSpeed = MOTOR_SPEED_200; //changing the speed,give enough size
@@ -616,6 +622,9 @@ int PandarSwiftSDK::checkLiadaMode() {
   if(abs(abs(lidarmotorspeed) - MOTOR_SPEED_600) < 30) { //ignore the speed gap of 600 rpm
     lidarmotorspeed = MOTOR_SPEED_600;
   }
+  else if(abs(abs(lidarmotorspeed) - MOTOR_SPEED_750) < 30) { //ignore the speed gap of 750 rpm
+    lidarmotorspeed = MOTOR_SPEED_750;
+  }
   if(abs(abs(lidarmotorspeed) - MOTOR_SPEED_500) < 30) { //ignore the speed gap of 500 rpm
     lidarmotorspeed = MOTOR_SPEED_500;
   }
@@ -627,6 +636,9 @@ int PandarSwiftSDK::checkLiadaMode() {
   }
   else if(abs(abs(lidarmotorspeed) - MOTOR_SPEED_200) < 30) { //ignore the speed gap of 200 rpm
     lidarmotorspeed = MOTOR_SPEED_200;
+  }
+  else if(abs(abs(lidarmotorspeed) - MOTOR_SPEED_150) < 30) { //ignore the speed gap of 150 rpm
+    lidarmotorspeed = MOTOR_SPEED_150;
   }
   else {
       lidarmotorspeed = MOTOR_SPEED_200; //changing the speed,give enough size
@@ -686,6 +698,9 @@ void PandarSwiftSDK::changeAngleSize() {
 		if (MOTOR_SPEED_600 == m_iMotorSpeed ) {
 			m_iAngleSize = LIDAR_ANGLE_SIZE_15;  // 10->0.15degree
 		}
+		else if(MOTOR_SPEED_750 == m_iMotorSpeed){
+			m_iAngleSize = LIDAR_ANGLE_SIZE_18_75;  // 18_75->0.01875degree
+		}
 		else if(MOTOR_SPEED_500 == m_iMotorSpeed){
 			m_iAngleSize = LIDAR_ANGLE_SIZE_12_5;  // 12_5->0.0125degree
 		}
@@ -697,6 +712,9 @@ void PandarSwiftSDK::changeAngleSize() {
 		}
 		else if(MOTOR_SPEED_200 == m_iMotorSpeed){
 			m_iAngleSize = LIDAR_ANGLE_SIZE_5;  // 5->0.05degree
+		}
+		else if(MOTOR_SPEED_150 == m_iMotorSpeed){
+			m_iAngleSize = LIDAR_ANGLE_SIZE_3_75;  // 3_75->0.0375degree
 		}
 	}
 	break;	
