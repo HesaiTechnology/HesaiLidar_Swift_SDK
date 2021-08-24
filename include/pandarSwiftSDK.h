@@ -243,7 +243,7 @@ struct PandarGPS_s {
 typedef std::array<PandarPacket, 36000> PktArray;
 
 typedef struct PacketsBuffer_s {
-    PktArray m_buffers{};
+    PktArray m_buffers;
     PktArray::iterator m_iterPush;
     PktArray::iterator m_iterTaskBegin;
     PktArray::iterator m_iterTaskEnd;

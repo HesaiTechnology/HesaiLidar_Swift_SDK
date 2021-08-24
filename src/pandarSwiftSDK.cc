@@ -73,7 +73,7 @@ PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uin
 							boost::function<void(double)> gpscallback, \
 							std::string certFile, std::string privateKeyFile, std::string caFile, \
 							int startangle, int timezone, std::string publishmode, bool coordinateCorrectionFlag, std::string datatype) {
-	m_sSdkVersion = "PandarSwiftSDK_1.2.17";
+	m_sSdkVersion = "PandarSwiftSDK_1.2.19";
 	printf("\n--------PandarSwift SDK version: %s--------\n",m_sSdkVersion.c_str());
 	m_sDeviceIpAddr = deviceipaddr;
 	m_sFrameId = frameid;
@@ -453,7 +453,7 @@ void PandarSwiftSDK::doTaskFlow(int cursor) {
     case 1:
     {
       taskFlow.parallel_for(m_PacketsBuffer.getTaskBegin(),
-                            m_PacketsBuffer.getTaskEnd(),
+                            m_PacketsBuffer.getTaskEnd() - 1,
                             [this, &cursor](auto &taskpkt) {
                               calcPointXYZIT(taskpkt,cursor);
                             });
@@ -462,7 +462,7 @@ void PandarSwiftSDK::doTaskFlow(int cursor) {
     case 3:
     {
       taskFlow.parallel_for(m_PacketsBuffer.getTaskBegin(),
-                            m_PacketsBuffer.getTaskEnd(),
+                            m_PacketsBuffer.getTaskEnd() - 1,
                             [this, &cursor](auto &taskpkt) {
                               calcQT128PointXYZIT(taskpkt,cursor);
                             });
