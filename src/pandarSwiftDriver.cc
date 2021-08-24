@@ -81,6 +81,8 @@ bool PandarSwiftDriver::poll(void) {
 			if(parseGPS(&packet, &m_arrPandarPackets[m_iPktPushIndex][i].data[0], GPS_PACKET_SIZE) == 0) {
 				m_pPandarSwiftSDK->processGps(&packet);// gps callback
 			}
+			i--;
+			continue;
 		}
 		if(rc > 0) return false;  // end of file reached?
 		if(m_sPublishmodel == "both_point_raw" || m_sPublishmodel == "point") {

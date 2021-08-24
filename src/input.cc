@@ -305,6 +305,8 @@ int InputSocket::getPacket(PandarPacket *pkt) {
       		break;
     	}
   	}
+	if(!m_bGetUdpVersion)
+			return 0;
 	if (pkt->size == 512) {
 		// ROS_ERROR("GPS");
 		return 2;
