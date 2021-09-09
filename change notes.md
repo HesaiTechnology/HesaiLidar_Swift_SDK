@@ -113,3 +113,10 @@ PandarSwiftSDK_1.2.18
 ##modify
 1. Support udp4.3
 
+
+Thursday, September 9th, 2021 17:30
+##version
+PandarSwiftSDK_1.2.20
+
+##modify
+1. Support to accept lidar fault message

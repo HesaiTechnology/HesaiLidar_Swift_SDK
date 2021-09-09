@@ -409,7 +409,7 @@ int InputPCAP::getPacket(PandarPacket *pkt) {
 			return 2;
 		}
 		else if(!checkPacketSize(pkt)){
-			return 1;  // Packet size not match
+			return 3;  // error packet
 		}
 		if( (m_iPktCount >= m_iTimeGap)) {
 			// printf("count : %d\n",m_iPktCount);
