@@ -965,22 +965,22 @@ bool PandarSwiftSDK::isNeedPublish(){
 		break;
 		case 3:
 		{
-			uint32_t beginAzimuth = *(uint16_t*)(&(m_PacketsBuffer.getTaskBegin()->data[0]) + m_iFirstAzimuthIndex) * 256 + *(uint8_t*)(&(m_PacketsBuffer.getTaskBegin()->data[0]) + m_iFirstAzimuthIndex + 1);
-			uint32_t endAzimuth = *(uint16_t*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]) + m_iLastAzimuthIndex) * 256+ *(uint8_t*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]) + m_iLastAzimuthIndex + 1);
+			uint32_t beginAzimuth = *(uint16_t*)(&(m_PacketsBuffer.getTaskBegin()->data[0]) + m_iFirstAzimuthIndex) * LIDAR_AZIMUTH_UNIT + *(uint8_t*)(&(m_PacketsBuffer.getTaskBegin()->data[0]) + m_iFirstAzimuthIndex + 1);
+			uint32_t endAzimuth = *(uint16_t*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]) + m_iLastAzimuthIndex) * LIDAR_AZIMUTH_UNIT+ *(uint8_t*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]) + m_iLastAzimuthIndex + 1);
 			if(m_bClockwise){
 				if(m_iViewMode == 1){
 					for(int i = 0; i < m_PandarAT_corrections.header.frame_number; i++){
-					if((fabs(endAzimuth - (m_PandarAT_corrections.l.start_frame[i])) <= m_iAngleSize) || 
+					if((fabs(float(endAzimuth - (m_PandarAT_corrections.l.start_frame[i]))) <= m_iAngleSize * LIDAR_AZIMUTH_UNIT) || 
 						(beginAzimuth < (m_PandarAT_corrections.l.start_frame[i])) && ((m_PandarAT_corrections.l.start_frame[i]) <= endAzimuth) ||
-						(endAzimuth < beginAzimuth && (endAzimuth + CIRCLE_ANGLE - beginAzimuth) > PANDAR_AT128_FRAME_ANGLE_SIZE))
+						(endAzimuth < beginAzimuth && (endAzimuth + CIRCLE_ANGLE * LIDAR_AZIMUTH_UNIT - beginAzimuth) > PANDAR_AT128_FRAME_ANGLE_SIZE * LIDAR_AZIMUTH_UNIT))
 							return true;
 					}
 					return false;
 				}
 				else{
-					if((fabs(endAzimuth - m_PandarAT_corrections.l.start_frame[0]) <= m_iAngleSize) || 
+					if((fabs(float(endAzimuth - m_PandarAT_corrections.l.start_frame[0])) <= m_iAngleSize * LIDAR_AZIMUTH_UNIT) || 
 						(beginAzimuth < m_PandarAT_corrections.l.start_frame[0]) && (m_PandarAT_corrections.l.start_frame[0] <= endAzimuth) ||
-						(endAzimuth < beginAzimuth && (endAzimuth + CIRCLE_ANGLE - beginAzimuth) > PANDAR_AT128_FRAME_ANGLE_SIZE)){
+						(endAzimuth < beginAzimuth && (endAzimuth + CIRCLE_ANGLE * LIDAR_AZIMUTH_UNIT - beginAzimuth) > PANDAR_AT128_FRAME_ANGLE_SIZE * LIDAR_AZIMUTH_UNIT)){
 						return true;
 					}
 					return false;
@@ -989,17 +989,17 @@ bool PandarSwiftSDK::isNeedPublish(){
 			else{
 				if(m_iViewMode == 1){
 					for(int i = 0; i < m_PandarAT_corrections.header.frame_number; i++){
-					if((fabs(beginAzimuth - (m_PandarAT_corrections.l.start_frame[i])) <= m_iAngleSize) || 
+					if((fabs(float(beginAzimuth - (m_PandarAT_corrections.l.start_frame[i]))) <= m_iAngleSize * LIDAR_AZIMUTH_UNIT) || 
 						(endAzimuth < (m_PandarAT_corrections.l.start_frame[i])) && ((m_PandarAT_corrections.l.start_frame[i]) <= beginAzimuth) ||
-						(beginAzimuth < endAzimuth && (beginAzimuth + CIRCLE_ANGLE - endAzimuth) > PANDAR_AT128_FRAME_ANGLE_SIZE))
+						(beginAzimuth < endAzimuth && (beginAzimuth + CIRCLE_ANGLE * LIDAR_AZIMUTH_UNIT - endAzimuth) > PANDAR_AT128_FRAME_ANGLE_SIZE * LIDAR_AZIMUTH_UNIT))
 						return true;
 					}
 					return false;
 				}
 				else{
-					if((fabs(beginAzimuth - m_PandarAT_corrections.l.start_frame[0]) <= m_iAngleSize) || 
+					if((fabs(float(beginAzimuth - m_PandarAT_corrections.l.start_frame[0])) <= m_iAngleSize * LIDAR_AZIMUTH_UNIT) || 
 						(endAzimuth < m_PandarAT_corrections.l.start_frame[0]) && (m_PandarAT_corrections.l.start_frame[0] <= beginAzimuth) ||
-						(beginAzimuth < endAzimuth && (beginAzimuth + CIRCLE_ANGLE - endAzimuth) > PANDAR_AT128_FRAME_ANGLE_SIZE)){
+						(beginAzimuth < endAzimuth && (beginAzimuth + CIRCLE_ANGLE * LIDAR_AZIMUTH_UNIT - endAzimuth) > PANDAR_AT128_FRAME_ANGLE_SIZE * LIDAR_AZIMUTH_UNIT)){
 						return true;
 					}
 					return false;
