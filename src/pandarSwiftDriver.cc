@@ -84,7 +84,11 @@ bool PandarSwiftDriver::poll(void) {
 			i--;
 			continue;
 		}
-		if(rc > 0) return false;  // end of file reached?
+		if(rc == 3){    // error packet
+			i--;
+			continue;
+		} 
+		if(rc == 1) return false;  // end of file reached
 		if(m_sPublishmodel == "both_point_raw" || m_sPublishmodel == "point") {
 			m_pPandarSwiftSDK->pushLiDARData(m_arrPandarPackets[m_iPktPushIndex][i]);
 		}
