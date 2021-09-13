@@ -1061,7 +1061,7 @@ int PandarSwiftSDK::calculatePointIndex(uint16_t u16Azimuth, int blockid, int la
         }
         else{
           if(Azimuth >= 0 && Azimuth <= (PANDAR_AT128_FRAME_ANGLE_SIZE * 2)){
-            point_index =  Azimuth / m_iAngleSize * m_iLaserNum *
+            point_index =  (Azimuth % PANDAR_AT128_FRAME_ANGLE_SIZE) / m_iAngleSize * m_iLaserNum *
                       m_iReturnBlockSize +
                   m_iLaserNum * (blockid % 2) + laserid;
           }
@@ -1083,7 +1083,7 @@ int PandarSwiftSDK::calculatePointIndex(uint16_t u16Azimuth, int blockid, int la
         }
         else {
           if(Azimuth >= 0 && Azimuth <= (PANDAR_AT128_FRAME_ANGLE_SIZE * 2)){
-            point_index = (Azimuth)/ m_iAngleSize * m_iLaserNum + laserid;
+            point_index = (Azimuth % PANDAR_AT128_FRAME_ANGLE_SIZE)/ m_iAngleSize * m_iLaserNum + laserid;
           }
           else if (Azimuth > (PANDAR_AT128_FRAME_ANGLE_SIZE) && Azimuth <= (PANDAR_AT128_FRAME_ANGLE_SIZE * 4)){
             point_index = (Azimuth % PANDAR_AT128_FRAME_ANGLE_SIZE + PANDAR_AT128_FRAME_ANGLE_SIZE) / m_iAngleSize * m_iLaserNum + laserid;
