@@ -257,7 +257,7 @@ InputSocket::~InputSocket(void) {
 //          2 - gps
 //          1 - error
 /** @brief Get one pandar packet. */
-int InputSocket::getPacket(PandarPacket *pkt) {
+int InputSocket::getPacket(PandarPacket *pkt, bool &isTimeout) {
 	// double time1 = ros::Time::now().toSec();
 
 	uint64_t startTime = 0;
@@ -278,7 +278,7 @@ int InputSocket::getPacket(PandarPacket *pkt) {
 		fds[0].fd = m_iSockfd;
 		fds[0].events = POLLIN;
 	}
-	static const int POLL_TIMEOUT = 1000;  // one second (in msec)
+	static const int POLL_TIMEOUT = 1;  // one second (in msec)
 
 	sockaddr_in sender_address;
 	socklen_t sender_address_len = sizeof(sender_address);
@@ -288,13 +288,15 @@ int InputSocket::getPacket(PandarPacket *pkt) {
 		return 1;
 	}
 	if(retval == 0) { // poll() timeout?
-		printf("Pandar poll() timeout\n");
+		isTimeout = true;
+		// printf("Pandar poll() timeout\n");
 		return 1;
 	}
 	if((fds[0].revents & POLLERR) || (fds[0].revents & POLLHUP) ||(fds[0].revents & POLLNVAL)) { // device error?
 		printf("poll() reports Pandar error\n");
 		return 1;
 	}
+	isTimeout = false;
 	ssize_t nbytes;
   	for (int i = 0; i != m_iSocktNumber; ++i) {
     	if (fds[i].revents & POLLIN) {
@@ -379,7 +381,7 @@ InputPCAP::InputPCAP(std::string deviceipaddr, uint16_t lidarport, std::string p
 	}
 	filter << "udp dst port " << lidarport;
 	pcap_compile(m_pcapt, &m_objPcapPacketFilter, filter.str().c_str(), 1, PCAP_NETMASK_UNKNOWN);
-	m_iTimeGap = 100;
+	m_iTimeGap = 0;
 	m_i64LastPktTimestamp = 0;
 	m_iPktCount = 0;
 	m_i64LastTime = 0;
@@ -394,7 +396,7 @@ InputPCAP::~InputPCAP(void) { pcap_close(m_pcapt); }
 //          2 - gps
 //          1 - error
 /** @brief Get one pandar packet. */
-int InputPCAP::getPacket(PandarPacket *pkt) {
+int InputPCAP::getPacket(PandarPacket *pkt, bool &isTimeout) {
 	pcap_pkthdr *pktHeader;
 	const unsigned char *packetBuf;
 
@@ -413,7 +415,7 @@ int InputPCAP::getPacket(PandarPacket *pkt) {
 		}
 		if( (m_iPktCount >= m_iTimeGap)) {
 			// printf("count : %d\n",m_iPktCount);
-			sleep(packet);
+			sleep(packet, isTimeout);
 		}
 		pkt->stamp = getNowTimeSec();  // time_offset not considered here, as no synchronization required
 		return 0;  // success
@@ -421,7 +423,8 @@ int InputPCAP::getPacket(PandarPacket *pkt) {
 	return 1;
 }
 
-void InputPCAP::sleep(const uint8_t *packet) {
+void InputPCAP::sleep(const uint8_t *packet, bool &isTimeout) {
+	static int sleep_count = 0;
 	struct tm t;
 	m_iPktCount = 0;
 	t.tm_year  = packet[m_iUtcIindex];
@@ -450,6 +453,17 @@ void InputPCAP::sleep(const uint8_t *packet) {
 			struct timeval waitTime;
 			waitTime.tv_sec = sleep_time / 1000000;
 			waitTime.tv_usec = sleep_time % 1000000;
+			if((sleep_time % 1000000) > 1000 && (sleep_count == 0)){
+				sleep_count += 1;
+				isTimeout  = true;
+				return ;
+			}
+			else{
+				if(sleep_count != 1)
+				isTimeout  = false;
+				sleep_count = 0;
+				
+			}
 			int err;
 			do {
 				err = select(0, NULL, NULL, NULL, &waitTime);

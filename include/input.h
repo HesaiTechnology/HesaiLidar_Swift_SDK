@@ -185,7 +185,7 @@ public:
 	 *          -1 if end of file
 	 *          > 0 if incomplete packet (is this possible?)
 	 */
-	virtual int getPacket(PandarPacket *pkt) = 0;
+	virtual int getPacket(PandarPacket *pkt, bool &isTimeout) = 0;
 	bool checkPacketSize(PandarPacket *pkt);
 	void setUdpVersion(uint8_t major, uint8_t minor);
 	std::string getUdpVersion();
@@ -207,7 +207,7 @@ class InputSocket: public Input
 public:
 	InputSocket(std::string deviceipaddr, uint16_t lidarport = DATA_PORT_NUMBER, uint16_t gpsport = GPS_PORT_NUMBER);
 	virtual ~InputSocket();
-	virtual int getPacket(PandarPacket *pkt);
+	virtual int getPacket(PandarPacket *pkt, bool &isTimeout);
 	void calcPacketLoss(PandarPacket *pkt);
 
 private:
@@ -227,8 +227,8 @@ class InputPCAP: public Input
 public:
 	InputPCAP(std::string deviceipaddr, uint16_t lidarport, std::string pcapfile);
 	virtual ~InputPCAP();
-	virtual int getPacket(PandarPacket *pkt);
-	void sleep(const uint8_t *packet);
+	virtual int getPacket(PandarPacket *pkt, bool &isTimeout);
+	void sleep(const uint8_t *packet, bool &isTimeout);
 
 private:
 	std::string m_sPcapFile;

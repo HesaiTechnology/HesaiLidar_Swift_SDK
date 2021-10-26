@@ -120,3 +120,10 @@ PandarSwiftSDK_1.2.20
 
 ##modify
 1. Support to accept lidar fault message
+
+Tuesday, October 26th, 2021 17:30
+##version
+PandarSwiftSDK_1.2.21
+
+##modify
+1. Optimize the point to switch frame

@@ -74,7 +74,9 @@ bool PandarSwiftDriver::poll(void) {
 	timespec time;
 	memset(&time, 0, sizeof(time));
 	for (int i = 0; i < m_iPandarScanArraySize; ++i) {
-		int rc = m_spInput->getPacket(&m_arrPandarPackets[m_iPktPushIndex][i]);
+		bool isSocketTimeout = false;
+		int rc = m_spInput->getPacket(&m_arrPandarPackets[m_iPktPushIndex][i], isSocketTimeout);
+		m_pPandarSwiftSDK->setIsSocketTimeout(isSocketTimeout);
 		if(rc == 2) {
 			// gps packet;
 			PandarGPS packet;
@@ -120,7 +122,8 @@ void PandarSwiftDriver::setUdpVersion(uint8_t major, uint8_t minor) {
 int PandarSwiftDriver::getPandarScanArraySize(boost::shared_ptr<Input> input_){
   for (int i = 0; i < 256; ++i) {
     PandarPacket packet;
-    int rc = input_->getPacket(&packet);
+    bool isTimeout = false;
+    int rc = input_->getPacket(&packet, isTimeout);
     switch (packet.data[PANDAR_LASER_NUMBER_INDEX]){
     case PANDAR128_LASER_NUM:
       return PANDAR128_READ_PACKET_SIZE;
