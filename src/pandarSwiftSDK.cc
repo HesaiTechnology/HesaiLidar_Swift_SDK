@@ -72,7 +72,7 @@ PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uin
 							std::string certFile, std::string privateKeyFile, std::string caFile, \
 							int startangle, int timezone, int viewMode, \ 
 							std::string publishmode, std::string datatype) {
-	m_sSdkVersion = "PandarSwiftSDK_1.2.20";
+	m_sSdkVersion = "PandarSwiftSDK_1.2.21";
 	printf("\n--------PandarSwift SDK version: %s--------\n",m_sSdkVersion.c_str());
 	m_sDeviceIpAddr = deviceipaddr;
 	m_sFrameId = frameid;
@@ -392,17 +392,18 @@ int PandarSwiftSDK::processLiDARData() {
 	init();
 	while (1) {
 		boost::this_thread::interruption_point();
-		if(!m_PacketsBuffer.hasEnoughPackets()) {
-			// printf("dont have enough packet\n");
-			usleep(1000);
-			continue;
+		if ((!m_PacketsBuffer.hasEnoughPackets())) {
+			if(!m_bIsSocketTimeout || m_PacketsBuffer.empty()){
+				usleep(1000);
+				continue;
+			}
 		}
 		
 		if(0 == checkLiadaMode()) {
 			// printf("checkLiadaMode now!!");
 			m_OutMsgArray[cursor]->clear();
 			m_OutMsgArray[cursor]->resize(calculatePointBufferSize());
-			m_PacketsBuffer.creatNewTask();
+			// m_PacketsBuffer.creatNewTask();
 			continue;
 		}
         // checkClockwise();
@@ -445,7 +446,9 @@ int PandarSwiftSDK::processLiDARData() {
 		}
 		// uint32_t taskflow1 = GetTickCount();
 			// printf("if compare time: %d\n", ifTick - startTick);
-		doTaskFlow(cursor);
+		if ((m_PacketsBuffer.hasEnoughPackets()))
+			doTaskFlow(cursor);
+
 		// uint32_t taskflow2 = GetTickCount();
 			// printf("taskflow time: %d\n", taskflow2 - taskflow1);
 
@@ -454,13 +457,7 @@ int PandarSwiftSDK::processLiDARData() {
 
 void PandarSwiftSDK::moveTaskEndToStartAngle() {
 	// uint32_t startTick = GetTickCount();
-	for(PktArray::iterator iter = m_PacketsBuffer.m_iterTaskBegin; iter < m_PacketsBuffer.m_iterTaskEnd; iter++) {
-		if(abs(*(uint16_t*)(&((iter)->data[0]) + m_iFirstAzimuthIndex) - *(uint16_t*)(&((iter + 1)->data[0]) + m_iFirstAzimuthIndex)) > 1000 &&
-		abs(abs(*(uint16_t*)(&((iter)->data[0]) + m_iFirstAzimuthIndex) - *(uint16_t*)(&((iter + 1)->data[0]) + m_iFirstAzimuthIndex)) - CIRCLE_ANGLE) > m_iAngleSize * 3){
-			m_PacketsBuffer.moveTaskEnd(iter+ 1);
-			break;
-		}
-	}
+	m_PacketsBuffer.moveTaskEnd(m_PacketsBuffer.m_iterPush - 1);
 	// uint32_t endTick = GetTickCount();
 	// printf("moveTaskEndToStartAngle time: %d\n", endTick - startTick);
 }
@@ -492,11 +489,14 @@ void PandarSwiftSDK::init() {
 			continue;
 		}
 		int16_t lidarmotorspeed = 0;
-		auto header = (PandarAT128Head*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]));
+		if(m_PacketsBuffer.getTaskBegin()->data[0] != 0xEE){
+			m_PacketsBuffer.m_iterTaskBegin++;
+		}
+		auto header = (PandarAT128Head*)(&(m_PacketsBuffer.getTaskBegin()->data[0]));
 		switch(header->u8VersionMinor){
 			case 1:
 			{
-				auto tail = (PandarAT128TailVersion41*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]) + PANDAR_AT128_HEAD_SIZE +
+				auto tail = (PandarAT128TailVersion41*)(&(m_PacketsBuffer.getTaskBegin()->data[0]) + PANDAR_AT128_HEAD_SIZE +
 							PANDAR_AT128_UNIT_WITH_CONFIDENCE_SIZE * header->u8LaserNum * header->u8BlockNum + 
 							PANDAR_AT128_AZIMUTH_SIZE * header->u8BlockNum );
 				m_iWorkMode = tail->nShutdownFlag & 0x03;
@@ -513,7 +513,7 @@ void PandarSwiftSDK::init() {
 			break;
 			case 3:
 			{
-				auto tail = (PandarAT128TailVersion43*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]) + PANDAR_AT128_HEAD_SIZE +
+				auto tail = (PandarAT128TailVersion43*)(&(m_PacketsBuffer.getTaskBegin()->data[0]) + PANDAR_AT128_HEAD_SIZE +
 							(header->hasConfidence() ? PANDAR_AT128_UNIT_WITH_CONFIDENCE_SIZE * header->u8LaserNum * header->u8BlockNum : PANDAR_AT128_UNIT_WITHOUT_CONFIDENCE_SIZE * header->u8LaserNum * header->u8BlockNum) +
 							PANDAR_AT128_CRC_SIZE + 
 							PANDAR_AT128_AZIMUTH_SIZE * header->u8BlockNum +
@@ -533,6 +533,7 @@ void PandarSwiftSDK::init() {
 			}
 			break;
 			default:
+			usleep(1000);
 			continue;
 			break;
 		}
@@ -582,11 +583,11 @@ int PandarSwiftSDK::checkLiadaMode() {
   uint16_t lidarmotorspeed = 0;
   uint8_t laserNum = 0;
   uint8_t blockNum = 0;
-  auto header = (PandarAT128Head*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]));
+  auto header = (PandarAT128Head*)(&((m_PacketsBuffer.getTaskBegin())->data[0]));
   switch(header->u8VersionMinor){
 	case 1:
 	{
-		auto tail = (PandarAT128TailVersion41*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]) + PANDAR_AT128_HEAD_SIZE +
+		auto tail = (PandarAT128TailVersion41*)(&((m_PacketsBuffer.getTaskBegin())->data[0]) + PANDAR_AT128_HEAD_SIZE +
 					PANDAR_AT128_UNIT_WITH_CONFIDENCE_SIZE * header->u8LaserNum * header->u8BlockNum + 
 					PANDAR_AT128_AZIMUTH_SIZE * header->u8BlockNum );
 		lidarworkmode = tail->nShutdownFlag & 0x03;
@@ -602,7 +603,7 @@ int PandarSwiftSDK::checkLiadaMode() {
 	break;
 	case 3:
 	{
-		auto tail = (PandarAT128TailVersion43*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]) + PANDAR_AT128_HEAD_SIZE +
+		auto tail = (PandarAT128TailVersion43*)(&((m_PacketsBuffer.getTaskBegin())->data[0]) + PANDAR_AT128_HEAD_SIZE +
 					(header->hasConfidence() ? PANDAR_AT128_UNIT_WITH_CONFIDENCE_SIZE * header->u8LaserNum * header->u8BlockNum : PANDAR_AT128_UNIT_WITHOUT_CONFIDENCE_SIZE * header->u8LaserNum * header->u8BlockNum) +
 					PANDAR_AT128_CRC_SIZE + 
 					PANDAR_AT128_AZIMUTH_SIZE * header->u8BlockNum +
@@ -967,22 +968,26 @@ bool PandarSwiftSDK::isNeedPublish(){
 		case 3:
 		{
 			uint32_t beginAzimuth = *(uint16_t*)(&(m_PacketsBuffer.getTaskBegin()->data[0]) + m_iFirstAzimuthIndex) * LIDAR_AZIMUTH_UNIT + *(uint8_t*)(&(m_PacketsBuffer.getTaskBegin()->data[0]) + m_iFirstAzimuthIndex + 1);
-			uint32_t endAzimuth = *(uint16_t*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]) + m_iLastAzimuthIndex) * LIDAR_AZIMUTH_UNIT+ *(uint8_t*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]) + m_iLastAzimuthIndex + 1);
+			uint32_t endAzimuth = *(uint16_t*)(&((m_PacketsBuffer.m_iterPush - 2)->data[0]) + m_iFirstAzimuthIndex) * LIDAR_AZIMUTH_UNIT + *(uint8_t*)(&((m_PacketsBuffer.m_iterPush - 2)->data[0]) + m_iLastAzimuthIndex + 1);
 			if(m_bClockwise){
 				if(m_iViewMode == 1){
-					for(int i = 0; i < m_PandarAT_corrections.header.frame_number; i++){
-					if((fabs(float(endAzimuth - (m_PandarAT_corrections.l.start_frame[i]))) <= m_iAngleSize * LIDAR_AZIMUTH_UNIT) || 
-						(beginAzimuth < (m_PandarAT_corrections.l.start_frame[i])) && ((m_PandarAT_corrections.l.start_frame[i]) <= endAzimuth) ||
-						(endAzimuth < beginAzimuth && (endAzimuth + CIRCLE_ANGLE * LIDAR_AZIMUTH_UNIT - beginAzimuth) > PANDAR_AT128_FRAME_ANGLE_INTERVAL_SIZE * LIDAR_AZIMUTH_UNIT))
-							return true;
+					if((m_bIsSocketTimeout || !m_PacketsBuffer.hasEnoughPackets()) && !m_PacketsBuffer.empty()){
+						for(int i = 0; i < m_PandarAT_corrections.header.frame_number; i++){
+							if((float(endAzimuth - (m_PandarAT_corrections.l.start_frame[i] + PANDAR_AT128_EDGE_AZIMUTH_OFFSET * LIDAR_AZIMUTH_UNIT)) <= PANDAR_AT128_EDGE_AZIMUTH_SIZE * LIDAR_AZIMUTH_UNIT) && 
+								(float(endAzimuth - (m_PandarAT_corrections.l.start_frame[i] + PANDAR_AT128_EDGE_AZIMUTH_OFFSET * LIDAR_AZIMUTH_UNIT)) > 0))
+								return true;
+						}
+						return false;
 					}
 					return false;
 				}
 				else{
-					if((fabs(float(endAzimuth - m_PandarAT_corrections.l.start_frame[0])) <= m_iAngleSize * LIDAR_AZIMUTH_UNIT) || 
-						(beginAzimuth < m_PandarAT_corrections.l.start_frame[0]) && (m_PandarAT_corrections.l.start_frame[0] <= endAzimuth) ||
-						(endAzimuth < beginAzimuth && (endAzimuth + CIRCLE_ANGLE * LIDAR_AZIMUTH_UNIT - beginAzimuth) > PANDAR_AT128_FRAME_ANGLE_INTERVAL_SIZE * LIDAR_AZIMUTH_UNIT)){
-						return true;
+					if((m_bIsSocketTimeout || !m_PacketsBuffer.hasEnoughPackets()) && !m_PacketsBuffer.empty()){
+						if((float(endAzimuth - (m_PandarAT_corrections.l.start_frame[0] + PANDAR_AT128_EDGE_AZIMUTH_OFFSET * LIDAR_AZIMUTH_UNIT)) <= PANDAR_AT128_EDGE_AZIMUTH_SIZE * LIDAR_AZIMUTH_UNIT) && 
+						(float(endAzimuth - (m_PandarAT_corrections.l.start_frame[0] + PANDAR_AT128_EDGE_AZIMUTH_OFFSET * LIDAR_AZIMUTH_UNIT)) > 0))
+							return true;
+						return false;
+
 					}
 					return false;
 				}
@@ -1134,3 +1139,12 @@ void PandarSwiftSDK::SetEnvironmentVariableTZ(){
     printf("set environment fail\n");
   }
 }
+
+void PandarSwiftSDK::setIsSocketTimeout(bool isSocketTimeout){
+  m_bIsSocketTimeout = isSocketTimeout;
+}
+
+bool PandarSwiftSDK::getIsSocketTimeout(){
+  return m_bIsSocketTimeout;
+}
+
