@@ -129,6 +129,8 @@ int PandarSwiftDriver::getPandarScanArraySize(boost::shared_ptr<Input> input_){
           return PANDAR64S_READ_PACKET_SIZE;
         case PANDAR40S_LASER_NUM:
           return PANDAR40S_READ_PACKET_SIZE;
+		case PANDAR90_LASER_NUM:
+		  return PANDAR90_READ_PACKET_SIZE;
         default:
           break;
       }
