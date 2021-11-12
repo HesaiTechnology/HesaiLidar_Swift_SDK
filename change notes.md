@@ -108,3 +108,10 @@ PandarSwiftSDK_1.2.19
 1. Support to parser UDP1.3 packet when connect to lidar
 2. Fix bug that parser gps packet as point cloud packet
 3. Fix bug in calculate taskflow end
+
+Friday, November 12th, 2021 17:30
+##version
+PandarSwiftSDK_1.2.22
+
+##modify
+1. Support BD90 first time

@@ -73,7 +73,7 @@ PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uin
 							boost::function<void(double)> gpscallback, \
 							std::string certFile, std::string privateKeyFile, std::string caFile, \
 							int startangle, int timezone, std::string publishmode, bool coordinateCorrectionFlag, std::string datatype) {
-	m_sSdkVersion = "PandarSwiftSDK_1.2.19";
+	m_sSdkVersion = "PandarSwiftSDK_1.2.22";
 	printf("\n--------PandarSwift SDK version: %s--------\n",m_sSdkVersion.c_str());
 	m_sDeviceIpAddr = deviceipaddr;
 	m_sFrameId = frameid;
