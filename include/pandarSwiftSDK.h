@@ -546,7 +546,7 @@ class PandarSwiftSDK {
 	void moveTaskEndToStartAngle();
   void checkClockwise(int16_t lidarmotorspeed);
   bool isNeedPublish();
-  int calculatePointIndex(uint16_t azimuth, int blockId, int laserId);
+  int calculatePointIndex(uint16_t azimuth, int blockId, int laserId, int field);
   int calculatePointBufferSize();
   void SetEnvironmentVariableTZ();
 
