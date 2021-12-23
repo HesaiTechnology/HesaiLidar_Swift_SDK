@@ -127,3 +127,11 @@ PandarSwiftSDK_1.2.21
 
 ##modify
 1. Optimize the point to switch frame
+
+Thursday,December 23th, 2021 17:30
+##version
+PandarSwiftSDK_1.2.23
+
+##modify
+1. Fix bug in calculate point index
+2, fix bug in play rosbag

@@ -176,10 +176,10 @@
 #define PANDAR_AT128_PACKET_SEQ_NUM_SIZE \
   (PANDAR_AT128_PACKET_SIZE + PANDAR_AT128_SEQ_NUM_SIZE)
 #define PANDAR_AT128_WITHOUT_CONF_UNIT_SIZE (DISTANCE_SIZE + INTENSITY_SIZE)
-#define PANDAR_AT128_FRAME_ANGLE_SIZE (6400)
+#define PANDAR_AT128_FRAME_ANGLE_SIZE (6800)
 #define PANDAR_AT128_FRAME_ANGLE_INTERVAL_SIZE (5600)
 #define PANDAR_AT128_EDGE_AZIMUTH_OFFSET (7500)
-#define PANDAR_AT128_EDGE_AZIMUTH_SIZE (800)
+#define PANDAR_AT128_EDGE_AZIMUTH_SIZE (1600)
 #define PANDAR_AT128_CRC_SIZE (4)  
 #define PANDAR_AT128_FUNCTION_SAFETY_SIZE (17)  
 #define PANDAR_AT128_SIGNATURE_SIZE (32)
@@ -396,12 +396,14 @@ typedef struct PacketsBuffer_s {
     PktArray::iterator m_iterTaskEnd;
     int m_stepSize;
     bool m_startFlag;
+    int m_pcapFlag;
     inline PacketsBuffer_s() {
         m_stepSize = TASKFLOW_STEP_SIZE;
         m_iterPush = m_buffers.begin();
         m_iterTaskBegin = m_buffers.begin();
         m_iterTaskEnd = m_iterTaskBegin + m_stepSize;
         m_startFlag = false;
+        m_pcapFlag = 0;
     }
 
     inline int push_back(PandarPacket pkt) {
@@ -414,32 +416,47 @@ typedef struct PacketsBuffer_s {
           	if(m_buffers.end() == m_iterPush) {
             	m_iterPush = m_buffers.begin();
           	}
-			static bool lastOverflowed = false;
-			if(m_iterPush == m_iterTaskBegin) {
-				static uint32_t tmp = m_iterTaskBegin - m_buffers.begin();
-				if(m_iterTaskBegin - m_buffers.begin() != tmp) {
-					printf("buffer don't have space!,%d\n",m_iterTaskBegin - m_buffers.begin());
-					tmp = m_iterTaskBegin - m_buffers.begin();
-				}
-				lastOverflowed = true;
-				return 0;
-			}
-			if(lastOverflowed) {
-				lastOverflowed = false;
-				printf("buffer recovered\n");
-			}
+			// static bool lastOverflowed = false;
+			// if(m_iterPush == m_iterTaskBegin) {
+			// 	static uint32_t tmp = m_iterTaskBegin - m_buffers.begin();
+			// 	if(m_iterTaskBegin - m_buffers.begin() != tmp) {
+			// 		printf("buffer don't have space!,%d\n",m_iterTaskBegin - m_buffers.begin());
+			// 		tmp = m_iterTaskBegin - m_buffers.begin();
+			// 	}
+			// 	lastOverflowed = true;
+			// 	return 0;
+			// }
+			// if(lastOverflowed) {
+			// 	lastOverflowed = false;
+			// 	printf("buffer recovered\n");
+			// }
 			*(m_iterPush++) = pkt;
 			return 1;
         }
       }
 
-    inline bool hasEnoughPackets() {
-      return ((m_iterPush > m_iterTaskBegin && m_iterPush > m_iterTaskEnd) ||
-              (m_iterPush < m_iterTaskBegin && m_iterPush < m_iterTaskEnd));
+  inline bool hasEnoughPackets() {
+    // ROS_WARN("%d %d %d",m_iterPush - m_buffers.begin(), m_iterTaskBegin - m_buffers.begin(), m_iterTaskEnd - m_buffers.begin());
+    return ((m_iterPush > m_buffers.begin()) && 
+            (((m_iterPush - m_pcapFlag) > m_iterTaskBegin && (m_iterPush - m_pcapFlag) > m_iterTaskEnd) ||
+            ((m_iterPush - m_pcapFlag) < m_iterTaskBegin && (m_iterPush - m_pcapFlag) < m_iterTaskEnd)) && 
+            ((m_iterPush - m_buffers.begin()) > 2));
+  }
+  inline bool empty() {
+    static int count = 0;
+    if((abs(m_iterPush - m_iterTaskBegin) <= 1 || abs(m_iterTaskEnd - m_iterTaskBegin) <= 1)){
+      if(count > 0){
+        count = 0;
+        return true;
+      }
+      else{
+        count++;
+        return false;
+      }
     }
-    inline bool empty() {
-      return (abs(m_iterPush - m_iterTaskBegin) <= 1);
-    }
+    return false;
+    // return (abs(m_iterPush - m_iterTaskBegin) <= 1 || abs(m_iterTaskEnd - m_iterTaskBegin) <= 1);
+  }
 
     inline PktArray::iterator getTaskBegin() { return m_iterTaskBegin; }
     inline PktArray::iterator getTaskEnd() { return m_iterTaskEnd; }
@@ -576,6 +593,8 @@ class PandarSwiftSDK {
   PandarATCorrections m_PandarAT_corrections;
   int m_iViewMode;
   bool m_bIsSocketTimeout;
+  int m_iField;
+  int m_iEdgeAzimuthSize;
 
 };
 

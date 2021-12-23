@@ -57,6 +57,7 @@ class PandarSwiftDriver {
 	PandarSwiftSDK *m_pPandarSwiftSDK;
 	int m_iPandarScanArraySize;
     bool m_bGetScanArraySizeFlag;
+	bool m_bPaserPacp;
 };
 
 #endif  // _PANDAR_DRIVER_H_

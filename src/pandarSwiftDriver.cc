@@ -37,10 +37,12 @@ PandarSwiftDriver::PandarSwiftDriver(std::string deviceipaddr, uint16_t lidarpor
 	if(pcapfile != "") {  // have PCAP file
 		// read data from packet capture file
 		m_spInput.reset(new InputPCAP(deviceipaddr, lidarport, pcapfile));
+		m_bPaserPacp = true; 
 	} 
 	else {
 		// read data from live socket
 		m_spInput.reset(new InputSocket(deviceipaddr, lidarport, gpsport));
+		m_bPaserPacp = false; 
 	}
 }
 
@@ -74,9 +76,25 @@ bool PandarSwiftDriver::poll(void) {
 	timespec time;
 	memset(&time, 0, sizeof(time));
 	for (int i = 0; i < m_iPandarScanArraySize; ++i) {
-		bool isSocketTimeout = false;
+		
+		if (m_bPaserPacp)  // have PCAP file?
+		{
+			int count = 0;
+			while(m_pPandarSwiftSDK->getIsSocketTimeout()&& count < 2000){
+				// printf("timeout %d\n", m_pPandarSwiftSDK->getIsSocketTimeout());
+				usleep(1000);
+				count++;
+			}
+		}
+		
+		bool isSocketTimeout = m_pPandarSwiftSDK->getIsSocketTimeout();
 		int rc = m_spInput->getPacket(&m_arrPandarPackets[m_iPktPushIndex][i], isSocketTimeout);
 		m_pPandarSwiftSDK->setIsSocketTimeout(isSocketTimeout);
+		if(m_arrPandarPackets[m_iPktPushIndex][i].size < 500)
+		{
+			i--;
+			continue;
+		}
 		if(rc == 2) {
 			// gps packet;
 			PandarGPS packet;
@@ -101,8 +119,8 @@ bool PandarSwiftDriver::poll(void) {
 	m_iPktPopIndex = temp;
 	if(m_bNeedPublish == false)
 		m_bNeedPublish = true;
-	else
-		printf("CPU not fast enough, data not published yet, new data comming!!!\n");
+	// else
+	// 	printf("CPU not fast enough, data not published yet, new data comming!!!\n");
 	return true;
 }
 
