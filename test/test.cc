@@ -32,11 +32,9 @@ void lidarCallback(boost::shared_ptr<PPointCloud> cld, double timestamp) {
     //Debug code,save the tenth frame data to the local pcd file to verify the correctness of the data
     if(PCD_FILE_WRITE_FLAG) {
         frameItem++;
-        if(10 == frameItem) {
-            printf("write pcd file\n");
-            pcl::PCDWriter writer;
-            writer.write("PandarAT128Pcd.pcd", *cld);
-        }
+        pcl::PCDWriter writer;
+        std::string name = "PandarAT128Pcd" + std::to_string(frameItem) + ".pcd";
+        writer.write(name, *cld);
     }
 #endif
 }

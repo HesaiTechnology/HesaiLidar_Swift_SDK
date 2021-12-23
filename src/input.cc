@@ -58,7 +58,7 @@ Input::Input(std::string deviceipaddr, uint16_t lidarport){
 }
 
 bool Input::checkPacketSize(PandarPacket *pkt) {
-  if(pkt->size < 100)
+  if(pkt->size < 500)
   return false;
   if (pkt->data[0] != 0xEE || pkt->data[1] != 0xFF) {    
     printf("Packet with invaild delimiter\n");
@@ -278,7 +278,7 @@ int InputSocket::getPacket(PandarPacket *pkt, bool &isTimeout) {
 		fds[0].fd = m_iSockfd;
 		fds[0].events = POLLIN;
 	}
-	static const int POLL_TIMEOUT = 1;  // one second (in msec)
+	static const int POLL_TIMEOUT = 3;  // one second (in msec)
 
 	sockaddr_in sender_address;
 	socklen_t sender_address_len = sizeof(sender_address);
@@ -449,21 +449,22 @@ void InputPCAP::sleep(const uint8_t *packet, bool &isTimeout) {
 	else {
 		int64_t sleep_time = (m_i64PktTimestamp - m_i64LastPktTimestamp) - (m_i64CurrentTime - m_i64LastTime);
 		// printf("pkt time: %u,use time: %u,sleep time: %u",pkt_ts - m_i64LastPktTimestamp,m_i64CurrentTime - m_i64LastTime, sleep_time);
+		if(((m_i64PktTimestamp - m_i64LastPktTimestamp) % 1000000) > 10000 && (sleep_count == 0)){
+			sleep_count += 1;
+			isTimeout  = true;
+			return ;
+		}
+		else{
+			if(sleep_count != 1)
+			isTimeout  = false;
+			sleep_count = 0;
+			
+		}
 		if(sleep_time > 0) {
 			struct timeval waitTime;
 			waitTime.tv_sec = sleep_time / 1000000;
 			waitTime.tv_usec = sleep_time % 1000000;
-			if((sleep_time % 1000000) > 1000 && (sleep_count == 0)){
-				sleep_count += 1;
-				isTimeout  = true;
-				return ;
-			}
-			else{
-				if(sleep_count != 1)
-				isTimeout  = false;
-				sleep_count = 0;
-				
-			}
+			
 			int err;
 			do {
 				err = select(0, NULL, NULL, NULL, &waitTime);
