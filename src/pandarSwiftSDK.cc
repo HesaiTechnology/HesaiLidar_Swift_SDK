@@ -625,9 +625,14 @@ int PandarSwiftSDK::checkLiadaMode() {
   if((m_PacketsBuffer.getTaskBegin() - m_PacketsBuffer.m_buffers.begin()) < 4)
     m_iField = -1;
   if(((m_PacketsBuffer.m_buffers.end() - m_PacketsBuffer.getTaskBegin()) <= 2) ||
-   ((m_PacketsBuffer.m_iterPush - m_PacketsBuffer.getTaskBegin()) <= 2) ||
+   (abs(m_PacketsBuffer.m_iterPush - m_PacketsBuffer.getTaskBegin()) <= 2) ||
    ((m_PacketsBuffer.getTaskBegin() + 1)->data[0] != 0xEE))
-    return 1;
+    {
+		m_iField = -1;
+		// printf("field %d %d`` %d %d\n", m_iField,m_PacketsBuffer.m_iterPush - m_PacketsBuffer.getTaskBegin(), m_PacketsBuffer.getTaskBegin() + 1 - m_PacketsBuffer.m_buffers.begin(), m_PacketsBuffer.m_buffers.end() - m_PacketsBuffer.getTaskBegin());
+		return 1;
+
+	}
   int Azimuth = 0;
   auto header = (PandarAT128Head*)(&((m_PacketsBuffer.getTaskBegin() + 1)->data[0]));
   switch(header->u8VersionMinor){
@@ -667,6 +672,7 @@ int PandarSwiftSDK::checkLiadaMode() {
 								PANDAR_AT128_FINE_AZIMUTH_SIZE * (header->u8BlockNum - 1);
 		Azimuth = *(uint16_t*)(&((m_PacketsBuffer.getTaskBegin() + 1)->data[0]) + m_iFirstAzimuthIndex) * LIDAR_AZIMUTH_UNIT;
 		int field_count = 0;
+		m_iField = 0;
 		while ( field_count < m_PandarAT_corrections.header.frame_number
 		&& (
 		((Azimuth + MAX_AZI_LEN  - m_PandarAT_corrections.l.start_frame[m_iField]) % MAX_AZI_LEN  + (m_PandarAT_corrections.l.end_frame[m_iField] + MAX_AZI_LEN  - Azimuth) % MAX_AZI_LEN )
@@ -679,9 +685,12 @@ int PandarSwiftSDK::checkLiadaMode() {
 			m_iField = -1;
 			return 1;
 		}
+		// printf("field %f %d %d\n", Azimuth/25600.0f, m_iField, m_PacketsBuffer.getTaskBegin() + 1 - m_PacketsBuffer.m_buffers.begin());
 									
 	}
+	break;
 	default:
+	m_iField = -1;
 	break;
   }
   if(abs(abs(lidarmotorspeed) - MOTOR_SPEED_600) < 30) { //ignore the speed gap of 600 rpm
@@ -1037,6 +1046,7 @@ bool PandarSwiftSDK::isNeedPublish(){
 				endAzimuth = *(uint16_t*)(&((m_PacketsBuffer.m_iterPush - 2)->data[0]) + m_iFirstAzimuthIndex) * LIDAR_AZIMUTH_UNIT + *(uint8_t*)(&((m_PacketsBuffer.m_iterPush - 2)->data[0]) + m_iLastAzimuthIndex + 1);
 			else
 				endAzimuth = *(uint16_t*)(&((m_PacketsBuffer.getTaskEnd() - 2)->data[0]) + m_iFirstAzimuthIndex) * LIDAR_AZIMUTH_UNIT + *(uint8_t*)(&((m_PacketsBuffer.getTaskEnd() - 2)->data[0]) + m_iLastAzimuthIndex + 1);	
+			// printf("%f %f %d %d %d\n",beginAzimuth/25600.0f, endAzimuth/25600.0f, m_PacketsBuffer.m_iterPush - m_PacketsBuffer.m_buffers.begin(), m_PacketsBuffer.getTaskEnd() - m_PacketsBuffer.m_buffers.begin(), m_PacketsBuffer.getTaskBegin() - m_PacketsBuffer.m_buffers.begin());	
 			if(m_bClockwise){
 				if(m_iViewMode == 1){
 					if((m_bIsSocketTimeout || !m_PacketsBuffer.hasEnoughPackets()) && !m_PacketsBuffer.empty()){
