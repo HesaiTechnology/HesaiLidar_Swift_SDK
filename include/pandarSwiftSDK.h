@@ -436,26 +436,26 @@ typedef struct PacketsBuffer_s {
       }
 
   inline bool hasEnoughPackets() {
-    // ROS_WARN("%d %d %d",m_iterPush - m_buffers.begin(), m_iterTaskBegin - m_buffers.begin(), m_iterTaskEnd - m_buffers.begin());
+    // printf("%d %d %d\n",m_iterPush - m_buffers.begin(), m_iterTaskBegin - m_buffers.begin(), m_iterTaskEnd - m_buffers.begin());
     return ((m_iterPush > m_buffers.begin()) && 
             (((m_iterPush - m_pcapFlag) > m_iterTaskBegin && (m_iterPush - m_pcapFlag) > m_iterTaskEnd) ||
             ((m_iterPush - m_pcapFlag) < m_iterTaskBegin && (m_iterPush - m_pcapFlag) < m_iterTaskEnd)) && 
             ((m_iterPush - m_buffers.begin()) > 2));
   }
   inline bool empty() {
-    static int count = 0;
-    if((abs(m_iterPush - m_iterTaskBegin) <= 1 || abs(m_iterTaskEnd - m_iterTaskBegin) <= 1)){
-      if(count > 0){
-        count = 0;
-        return true;
-      }
-      else{
-        count++;
-        return false;
-      }
-    }
-    return false;
-    // return (abs(m_iterPush - m_iterTaskBegin) <= 1 || abs(m_iterTaskEnd - m_iterTaskBegin) <= 1);
+    // static int count = 0;
+    // if((abs(m_iterPush - m_iterTaskBegin) <= 1 || abs(m_iterTaskEnd - m_iterTaskBegin) <= 1)){
+    //   if(count > 0){
+    //     count = 0;
+    //     return true;
+    //   }
+    //   else{
+    //     count++;
+    //     return false;
+    //   }
+    // }
+    // return false;
+    return (abs(m_iterPush - m_iterTaskBegin) <= 1 || abs(m_iterTaskEnd - m_iterTaskBegin) <= 1);
   }
 
     inline PktArray::iterator getTaskBegin() { return m_iterTaskBegin; }
