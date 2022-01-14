@@ -135,3 +135,10 @@ PandarSwiftSDK_1.2.23
 ##modify
 1. Fix bug in calculate point index
 2, fix bug in play rosbag
+
+Friday,January 14th, 2022 17:30
+##version
+PandarSwiftSDK_1.2.25
+
+##modify
+1. Support LTS lidar 
