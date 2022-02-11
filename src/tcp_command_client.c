@@ -475,6 +475,39 @@ PTC_ErrCode TcpCommandGetLidarCalibration(const void* handle, char** buffer,
   return cmd.header.ret_code;
 }
 
+PTC_ErrCode TcpCommandSetLidarStandbyMode(const void* handle) {
+  if (!handle) {
+    printf("Bad Parameter!!!\n");
+    return PTC_ERROR_BAD_PARAMETER;
+  }
+  TcpCommandClient* client = (TcpCommandClient*)handle;
+
+  TC_Command cmd;
+  memset(&cmd, 0, sizeof(TC_Command));
+  cmd.header.cmd = PTC_COMMAND_SET_LIDAR_OPERATE_MODE;
+  cmd.header.len = 1;
+  uint8_t buff[] = {1};
+  cmd.data = buff;
+  PTC_ErrCode errorCode = tcpCommandClient_SendCmd(client, &cmd);
+  return tcpCommandClient_SendCmd(client, &cmd);
+}
+
+PTC_ErrCode TcpCommandSetLidarNormalMode(const void* handle) {
+  if (!handle) {
+    printf("Bad Parameter!!!\n");
+    return PTC_ERROR_BAD_PARAMETER;
+  }
+  TcpCommandClient* client = (TcpCommandClient*)handle;
+
+  TC_Command cmd;
+  memset(&cmd, 0, sizeof(TC_Command));
+  cmd.header.cmd = PTC_COMMAND_SET_LIDAR_OPERATE_MODE;
+  cmd.header.len = 1;
+  uint8_t buff[] = {0};
+  cmd.data = buff;
+  return tcpCommandClient_SendCmd(client, &cmd);
+}
+
 PTC_ErrCode TcpCommandResetCalibration(const void* handle) {
   if (!handle) {
     printf("Bad Parameter!!!\n");

@@ -72,7 +72,7 @@ PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uin
 							std::string certFile, std::string privateKeyFile, std::string caFile, \
 							int startangle, int timezone, int viewMode, \ 
 							std::string publishmode, std::string datatype) {
-	m_sSdkVersion = "PandarSwiftSDK_1.2.25";
+	m_sSdkVersion = "PandarSwiftSDK_1.2.26";
 	printf("\n--------PandarSwift SDK version: %s--------\n",m_sSdkVersion.c_str());
 	m_sDeviceIpAddr = deviceipaddr;
 	m_sFrameId = frameid;
@@ -98,6 +98,8 @@ PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uin
 	m_funcGpsCallback = gpscallback;
 	m_iViewMode= viewMode;
 	m_iField = 0;
+	m_sDatatype = datatype;
+	m_pTcpCommandClient =TcpCommandClientNew(m_sDeviceIpAddr.c_str(), PANDARSDK_TCP_COMMAND_PORT);
 	if(!m_sPcapFile.empty()) {
 		m_iEdgeAzimuthSize = 1600;
 		m_PacketsBuffer.m_pcapFlag = 1;
@@ -126,27 +128,12 @@ PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uin
 		m_fCosAllAngle[j] = cosf(degreeToRadian(angle));
 		m_fSinAllAngle[j] = sinf(degreeToRadian(angle));
 	}
-	m_driverReadThread = NULL;
-	m_processLiDARDataThread = NULL;
-	m_publishPointsThread = NULL;
-	m_publishRawDataThread = NULL;
-	if(LIDAR_DATA_TYPE == datatype) {
-		m_driverReadThread = new boost::thread(boost::bind(&PandarSwiftSDK::driverReadThread, this));
-	}
-	if(m_sPublishmodel == "both_point_raw" || m_sPublishmodel == "point" || LIDAR_DATA_TYPE != datatype) {
-		m_processLiDARDataThread = new boost::thread(boost::bind(&PandarSwiftSDK::processLiDARData, this));
-		// m_publishPointsThread = new boost::thread(boost::bind(&PandarSwiftSDK::publishPointsThread, this));
-	}
-	if((m_sPublishmodel == "both_point_raw" || m_sPublishmodel == "raw") && LIDAR_DATA_TYPE == datatype) {
-		m_publishRawDataThread = new boost::thread(boost::bind(&PandarSwiftSDK::publishRawDataThread, this));
-	}
 }
 
 void PandarSwiftSDK::loadCorrectionFile() {
 	bool loadCorrectionFileSuccess = false;
 	int ret;
 	if(m_sPcapFile.empty()) { //connect to lidar,load correction file frome lidar
-		m_pTcpCommandClient =TcpCommandClientNew(m_sDeviceIpAddr.c_str(), PANDARSDK_TCP_COMMAND_PORT);
 		if(NULL != m_pTcpCommandClient) {
 			char *buffer = NULL;
 			uint32_t len = 0;
@@ -347,6 +334,19 @@ void PandarSwiftSDK::stop() {
 	return;
 }
 
+void PandarSwiftSDK::start() {
+	stop();
+	if(LIDAR_DATA_TYPE == m_sDatatype) {
+		m_driverReadThread = new boost::thread(boost::bind(&PandarSwiftSDK::driverReadThread, this));
+	}
+	if(m_sPublishmodel == "both_point_raw" || m_sPublishmodel == "point" || LIDAR_DATA_TYPE != m_sDatatype) {
+		m_processLiDARDataThread = new boost::thread(boost::bind(&PandarSwiftSDK::processLiDARData, this));
+	}
+	if((m_sPublishmodel == "both_point_raw" || m_sPublishmodel == "raw") && LIDAR_DATA_TYPE == m_sDatatype) {
+		m_publishRawDataThread = new boost::thread(boost::bind(&PandarSwiftSDK::publishRawDataThread, this));
+	}
+}
+
 int PandarSwiftSDK::parseData(Pandar128PacketVersion13 &packet, const uint8_t *recvbuf, const int len) {
 	int index = 0;
 	if(recvbuf[0] != 0xEE && recvbuf[1] != 0xFF && recvbuf[2] != 1 ) {    
@@ -498,7 +498,7 @@ void PandarSwiftSDK::publishPoints() {
 
 void PandarSwiftSDK::doTaskFlow(int cursor) {
 	tf::Taskflow taskFlow;
-	taskFlow.parallel_for(m_PacketsBuffer.getTaskBegin(),m_PacketsBuffer.getTaskEnd() - 1,
+	taskFlow.parallel_for(m_PacketsBuffer.getTaskBegin(),m_PacketsBuffer.getTaskEnd(),
 							[this, cursor](auto &taskpkt) {calcPointXYZIT(taskpkt, cursor);});
 	executor.run(taskFlow).wait();
 	m_PacketsBuffer.creatNewTask();
@@ -1240,5 +1240,17 @@ void PandarSwiftSDK::setIsSocketTimeout(bool isSocketTimeout){
 
 bool PandarSwiftSDK::getIsSocketTimeout(){
   return m_bIsSocketTimeout;
+}
+
+bool PandarSwiftSDK::setStandbyLidarMode(){
+	int ret = -1;
+	ret = TcpCommandSetLidarStandbyMode(m_pTcpCommandClient);
+	return ret == 0;
+}
+
+bool PandarSwiftSDK::setNormalLidarMode(){
+	int ret = -1;
+	ret = TcpCommandSetLidarNormalMode(m_pTcpCommandClient);
+	return ret == 0;
 }
 

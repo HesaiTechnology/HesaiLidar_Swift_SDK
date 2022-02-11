@@ -519,7 +519,12 @@ class PandarSwiftSDK {
 								int startangle, int timezone, int viewMode, \
                 std::string publishmode, \
                 std::string datatype=LIDAR_DATA_TYPE);
-	~PandarSwiftSDK() {}
+	~PandarSwiftSDK() {
+    if(m_pTcpCommandClient){
+      delete m_pTcpCommandClient;
+      m_pTcpCommandClient = NULL;
+    }
+  }
 
 	void driverReadThread();
 	void publishRawDataThread();
@@ -527,9 +532,12 @@ class PandarSwiftSDK {
 	void pushLiDARData(PandarPacket packet);
 	int processLiDARData();
 	void publishPoints();
+  void start();
   void stop();
   void setIsSocketTimeout(bool isSocketTimeout);
   bool getIsSocketTimeout();
+  bool setStandbyLidarMode();
+  bool setNormalLidarMode();
 
  private:
 
@@ -595,6 +603,7 @@ class PandarSwiftSDK {
   bool m_bIsSocketTimeout;
   int m_iField;
   int m_iEdgeAzimuthSize;
+  std::string m_sDatatype;
 
 };
 

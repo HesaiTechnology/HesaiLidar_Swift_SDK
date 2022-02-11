@@ -142,3 +142,10 @@ PandarSwiftSDK_1.2.25
 
 ##modify
 1. Support LTS lidar 
+
+Sunday,February 14th, 2022 17:30
+##version
+PandarSwiftSDK_1.2.26
+
+##modify
+1. Support to set lidar operate mode
