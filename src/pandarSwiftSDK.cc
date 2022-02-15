@@ -397,8 +397,6 @@ int PandarSwiftSDK::processLiDARData() {
 	struct timespec ts;
 	int ret = 0;
 	int cursor = 0;
-	// uint32_t startTick = GetTickCount();
-	// uint32_t endTick;
 	init();
 	while (1) {
 		boost::this_thread::interruption_point();
@@ -416,25 +414,12 @@ int PandarSwiftSDK::processLiDARData() {
 			// m_PacketsBuffer.creatNewTask();
 			continue;
 		}
-        // checkClockwise();
-		// printf("begin: %d, end: %d\n",m_PacketsBuffer.getTaskBegin()->blocks[0].fAzimuth, (m_PacketsBuffer.getTaskEnd() - 1)->blocks[1].fAzimuth);
-		// uint32_t ifstart = GetTickCount();
 		if(isNeedPublish()) {   // Judging whether pass the  start angle
-			// uint32_t startTick1 = GetTickCount();
 			moveTaskEndToStartAngle();
 			doTaskFlow(cursor);
-			// uint32_t startTick2 = GetTickCount();
-			// printf("move and taskflow time:%d\n", startTick2 - startTick1);
 			m_iPublishPointsIndex = cursor;
 			cursor = (cursor + 1) % 2;
 			publishPoints();
-				// int totalNum=0;
-				// for(int i =0 ; i<m_OutMsgArray[cursor]->points.size() ;i++){
-				// 	if(m_OutMsgArray[cursor]->points[i].ring != 0){
-				// 		totalNum++;
-				// 	}
-        // } 
-				// printf("total points num = :%d\n",totalNum);		
 			m_OutMsgArray[cursor]->clear();
 			m_OutMsgArray[cursor]->resize(calculatePointBufferSize());
 			if(m_RedundantPointBuffer.size() < 1000){
@@ -447,24 +432,15 @@ int PandarSwiftSDK::processLiDARData() {
 			}
 			m_RedundantPointBuffer.clear();
 			m_bIsSocketTimeout = false;
-			// uint32_t endTick2 = GetTickCount();
-			// if(endTick2 - startTick2 > 2) {
-				// printf("m_OutMsgArray time:%d\n", endTick2 - startTick2);
-			// }
 			m_OutMsgArray[cursor]->header.frame_id = m_sFrameId;
 			m_OutMsgArray[cursor]->height = 1;
-			// endTick = GetTickCount();
-			// printf("total time: %d\n", endTick - startTick);
-			// startTick = endTick;
 			continue;
 		}
 		// uint32_t taskflow1 = GetTickCount();
-			// printf("if compare time: %d\n", ifTick - startTick);
 		if ((m_PacketsBuffer.hasEnoughPackets()))
 			doTaskFlow(cursor);
-
 		// uint32_t taskflow2 = GetTickCount();
-			// printf("taskflow time: %d\n", taskflow2 - taskflow1);
+		// printf("taskflow time: %d\n", taskflow2 - taskflow1);
 
 	}
 }

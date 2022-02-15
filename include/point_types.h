@@ -11,7 +11,7 @@
 
 /** \file
  *
- *  Point Cloud Library point structures for Velodyne data.
+ *  Point Cloud Library point structures for hesai data.
  *
  *  @author Jesse Vera
  *  @author Jack O'Quin

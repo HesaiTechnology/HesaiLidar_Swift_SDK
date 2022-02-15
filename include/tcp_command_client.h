@@ -63,6 +63,7 @@ typedef struct TC_Command_s {
 } TC_Command;
 
 void* TcpCommandClientNew(const char* ip, const unsigned short port);
+void BuildCmd(TC_Command command, PTC_COMMAND cmd, unsigned char* data);
 PTC_ErrCode TcpCommandSetCalibration(const void* handle, const char* buffer,
                                      unsigned int len);
 PTC_ErrCode TcpCommandGetCalibration(const void* handle, char** buffer,

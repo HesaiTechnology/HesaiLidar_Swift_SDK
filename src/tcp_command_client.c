@@ -169,6 +169,14 @@ static int tcpCommandReadCommandBySSL(SSL *ssl, TC_Command* cmd) {
 	return 0;
 }
 
+void BuildCmd(TC_Command command, PTC_COMMAND cmd, unsigned char* data){;
+  // memset(&cmd, 0, sizeof(TC_Command));
+  command.header.cmd = cmd;
+  command.header.len = sizeof(data);
+  command.data = data;
+  return;
+}
+
 static int TcpCommand_buildHeader(char* buffer, TC_Command* cmd) {
   if (!buffer) {
     return -1;
@@ -362,6 +370,26 @@ static PTC_ErrCode tcpCommandClient_SendCmd(TcpCommandClient *client, TC_Command
   }
 }
 
+static PTC_ErrCode tcpCommandClient_RecieveCmd(TcpCommandClient *client, TC_Command *cmd, char** buffer,
+                                          unsigned int* len) {
+  PTC_ErrCode errorCode = tcpCommandClient_SendCmd(client, cmd);
+  if (errorCode != PTC_ERROR_NO_ERROR) {
+    printf("The client failed to send a command by TCP\n");
+    return errorCode;
+  }
+
+  char* ret_str = (char*)malloc(cmd->ret_size + 1);
+  memcpy(ret_str, cmd->ret_data, cmd->ret_size);
+  ret_str[cmd->ret_size] = '\0';
+
+  free(cmd->ret_data);
+
+  *buffer = ret_str;
+  *len = cmd->ret_size + 1;
+
+  return cmd->header.ret_code;
+}
+
 void* TcpCommandClientNew(const char* ip, const unsigned short port) {
   if (!ip) {
     printf("Bad Parameter\n");
@@ -457,22 +485,8 @@ PTC_ErrCode TcpCommandGetLidarCalibration(const void* handle, char** buffer,
   cmd.header.cmd = PTC_COMMAND_GET_LIDAR_CALIBRATION;
   cmd.header.len = 0;
   cmd.data = NULL;
-  PTC_ErrCode errorCode = tcpCommandClient_SendCmd(client, &cmd);
-  if (errorCode != PTC_ERROR_NO_ERROR) {
-    printf("The client failed to send a command by TCP\n");
-    return errorCode;
-  }
-
-  char* ret_str = (char*)malloc(cmd.ret_size + 1);
-  memcpy(ret_str, cmd.ret_data, cmd.ret_size);
-  ret_str[cmd.ret_size] = '\0';
-
-  free(cmd.ret_data);
-
-  *buffer = ret_str;
-  *len = cmd.ret_size + 1;
-
-  return cmd.header.ret_code;
+  PTC_ErrCode errorCode = tcpCommandClient_RecieveCmd(client, &cmd, buffer, len);
+  return errorCode;
 }
 
 PTC_ErrCode TcpCommandSetLidarStandbyMode(const void* handle) {
