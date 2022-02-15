@@ -30,6 +30,7 @@ typedef enum {
   PTC_COMMAND_RESET_CALIBRATION,
   PTC_COMMAND_TEST,
   PTC_COMMAND_GET_LIDAR_CALIBRATION,
+  PTC_COMMAND_SET_LIDAR_OPERATE_MODE = 28,
 } PTC_COMMAND;
 
 typedef enum {
@@ -62,6 +63,7 @@ typedef struct TC_Command_s {
 } TC_Command;
 
 void* TcpCommandClientNew(const char* ip, const unsigned short port);
+void BuildCmd(TC_Command command, PTC_COMMAND cmd, unsigned char* data);
 PTC_ErrCode TcpCommandSetCalibration(const void* handle, const char* buffer,
                                      unsigned int len);
 PTC_ErrCode TcpCommandGetCalibration(const void* handle, char** buffer,
@@ -69,6 +71,8 @@ PTC_ErrCode TcpCommandGetCalibration(const void* handle, char** buffer,
 PTC_ErrCode TcpCommandGetLidarCalibration(const void* handle, char** buffer,
                                           unsigned int* len);
 PTC_ErrCode TcpCommandResetCalibration(const void* handle);
+PTC_ErrCode TcpCommandSetLidarStandbyMode(const void* handle);
+PTC_ErrCode TcpCommandSetLidarNormalMode(const void* handle);
 void TcpCommandClientDestroy(const void* handle);
 SSL_CTX* initial_client_ssl(const char* cert, const char* private_key, const char* ca);
 void TcpCommandSetSsl(const char* cert, const char* private_key, const char* ca);

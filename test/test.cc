@@ -18,6 +18,8 @@
 // #define PRINT_FLAG 
 #define PCD_FILE_WRITE_FLAG (false) //false: don't save point cloud data;
                                     //true : save a frame of point cloud data
+// #define SET_STANDBY_LIDAR_MODE
+// #define SET_NORMAL_LIDAR_MODE                                   
 int frameItem = 0;
 
 void gpsCallback(double timestamp) {
@@ -32,9 +34,12 @@ void lidarCallback(boost::shared_ptr<PPointCloud> cld, double timestamp) {
     //Debug code,save the tenth frame data to the local pcd file to verify the correctness of the data
     if(PCD_FILE_WRITE_FLAG) {
         frameItem++;
+        // uint32_t startTick = GetTickCount();
         pcl::PCDWriter writer;
         std::string name = "PandarAT128Pcd" + std::to_string(frameItem) + ".pcd";
         writer.write(name, *cld);
+        // uint32_t endTick = GetTickCount();
+        // printf("save pcd use time %ums\n", -startTick + endTick);
     }
 #endif
 }
@@ -54,6 +59,14 @@ int main(int argc, char** argv) {
                                 std::string(""), \
                                 0, 0, 1, \
                                 std::string("both_point_raw")));
+#ifdef SET_STANDBY_LIDAR_MODE 
+    spPandarSwiftSDK->setStandbyLidarMode();  
+#endif 
+
+#ifdef SET_NORMAL_LIDAR_MODE 
+    spPandarSwiftSDK->setNormalLidarMode();  
+#endif  
+    spPandarSwiftSDK->start();
     while (true) {
         sleep(100);
     }
