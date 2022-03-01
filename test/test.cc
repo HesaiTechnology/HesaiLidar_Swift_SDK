@@ -23,11 +23,11 @@
 // #define GET_LIDAR_RETURN_MODE
 // #define SET_LIDAR_SPIN_RATE
 // #define GET_LIDAR_SPIN_RATE
-// #define SET_LIDAR_LEN_HEAT_SWITCH
-// #define GET_LIDAR_LEN_HEAT_SWITCH 
+// #define SET_LIDAR_LENS_HEAT_SWITCH
+// #define GET_LIDAR_LENS_HEAT_SWITCH 
 uint16_t lidarSpinRate = 200; // 200 300 400 500
 uint8_t lidarReturnMode = 0;   // 0-last return, 1-strongest return, 2-dual return  
-uint8_t lidarLenHeatSwitch = 0; //0-close, 1-open                            
+uint8_t lidarLensHeatSwitch = 0; //0-close, 1-open                            
 int frameItem = 0;
 
 void gpsCallback(double timestamp) {
@@ -95,14 +95,14 @@ int main(int argc, char** argv) {
     printf("Lidar spin rate is %drpm\n",spinRate);
 #endif 
 
-#ifdef SET_LIDAR_LEN_HEAT_SWITCH 
-    spPandarSwiftSDK->setLidarLenHeatSwitch(lidarLenHeatSwitch);
+#ifdef SET_LIDAR_LENS_HEAT_SWITCH 
+    spPandarSwiftSDK->setLidarLensHeatSwitch(lidarLensHeatSwitch);
 #endif 
 
-#ifdef GET_LIDAR_LEN_HEAT_SWITCH 
-    uint8_t lenHeatSwitch;
-    spPandarSwiftSDK->getLidarLenHeatSwitch(lenHeatSwitch);
-    printf("Lidar len heat switch status is %d\n", lenHeatSwitch);
+#ifdef GET_LIDAR_LENS_HEAT_SWITCH 
+    uint8_t lensHeatSwitch;
+    spPandarSwiftSDK->getLidarLensHeatSwitch(lensHeatSwitch);
+    printf("Lidar len heat switch status is %d\n", lensHeatSwitch);
 #endif
     spPandarSwiftSDK->start();
     while (!spPandarSwiftSDK->GetIsReadPcapOver()) {

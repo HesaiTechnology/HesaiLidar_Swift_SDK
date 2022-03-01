@@ -477,9 +477,9 @@ PTC_ErrCode TcpCommandGetLidarCalibration(const void* handle, char** buffer,
   return TcpCommandGet(handle, PTC_COMMAND_GET_LIDAR_CALIBRATION, buffer, len);
 }
 
-PTC_ErrCode TcpCommandGetLidarLenHeatSwitch(const void* handle, unsigned char** buffer,
+PTC_ErrCode TcpCommandGetLidarLensHeatSwitch(const void* handle, unsigned char** buffer,
                                           unsigned int* len){
-  PTC_ErrCode ret = TcpCommandGet(handle, PTC_COMMAND_GET_LIDAR_LEN_HEAT_SWITCH, buffer, len);
+  PTC_ErrCode ret = TcpCommandGet(handle, PTC_COMMAND_GET_LIDAR_LENS_HEAT_SWITCH, buffer, len);
   return ret;                                         
 }
 
@@ -533,9 +533,9 @@ PTC_ErrCode TcpCommandSetLidarSpinRate(const void* handle, uint16_t spinRate) {
   return TcpCommandSet(handle, PTC_COMMAND_SET_LIDAR_SPIN_RATE, buff, sizeof(buff));
 }
 
-PTC_ErrCode TcpCommandSetLidarLenHeatSwitch(const void* handle, uint8_t heatSwitch) {
+PTC_ErrCode TcpCommandSetLidarLensHeatSwitch(const void* handle, uint8_t heatSwitch) {
   uint8_t buff[] = {heatSwitch};
-  return TcpCommandSet(handle, PTC_COMMAND_SET_LIDAR_LEN_HEAT_SWITCH, buff, sizeof(buff));
+  return TcpCommandSet(handle, PTC_COMMAND_SET_LIDAR_LENS_HEAT_SWITCH, buff, sizeof(buff));
 }
 
 PTC_ErrCode TcpCommandSet(const void* handle, PTC_COMMAND cmd, unsigned char* data, uint32_t len){

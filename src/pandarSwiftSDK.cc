@@ -1272,20 +1272,20 @@ bool PandarSwiftSDK::setLidarSpinRate(uint16_t spinRate){
 	return ret == 0;
 }
 
-bool PandarSwiftSDK::getLidarLenHeatSwitch(uint8_t &heatSwitch){
+bool PandarSwiftSDK::getLidarLensHeatSwitch(uint8_t &heatSwitch){
 	int ret = -1;
 	unsigned char *buffer = NULL;
 	uint32_t len = 0;
-	ret = TcpCommandGetLidarLenHeatSwitch(m_pTcpCommandClient, &buffer, &len);
+	ret = TcpCommandGetLidarLensHeatSwitch(m_pTcpCommandClient, &buffer, &len);
 	if(ret == 0){
 		heatSwitch = buffer[0];
 	}
 	return ret == 0;
 }
 
-bool PandarSwiftSDK::setLidarLenHeatSwitch(uint8_t heatSwitch){
+bool PandarSwiftSDK::setLidarLensHeatSwitch(uint8_t heatSwitch){
 	int ret = -1;
-	ret = TcpCommandSetLidarLenHeatSwitch(m_pTcpCommandClient, heatSwitch);
+	ret = TcpCommandSetLidarLensHeatSwitch(m_pTcpCommandClient, heatSwitch);
 	return ret == 0;
 }
 

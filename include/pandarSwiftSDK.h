@@ -544,8 +544,8 @@ class PandarSwiftSDK {
   bool getLidarReturnMode(uint8_t& mode);
   bool setLidarSpinRate(uint16_t spinRate); // spinRate: 200 300 400 500
   bool getLidarSpinRate(uint16_t &spinRate);
-  bool setLidarLenHeatSwitch(uint8_t heatSwitch); // heatSwitch: 0-close, 1-open
-  bool getLidarLenHeatSwitch(uint8_t &heatSwitch);
+  bool setLidarLensHeatSwitch(uint8_t heatSwitch); // heatSwitch: 0-close, 1-open
+  bool getLidarLensHeatSwitch(uint8_t &heatSwitch);
 
  private:
 
