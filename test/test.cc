@@ -79,7 +79,7 @@ int main(int argc, char** argv) {
     spPandarSwiftSDK->setLidarReturnMode(lidarReturnMode); 
 #endif 
 
-#ifdef SET_LIDAR_RETURN_MODE 
+#ifdef GET_LIDAR_RETURN_MODE 
     uint8_t returnMode = -1;
     spPandarSwiftSDK->getLidarReturnMode(returnMode); 
     printf("Lidar return mode is %d\n", returnMode);
