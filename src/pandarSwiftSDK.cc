@@ -72,7 +72,7 @@ PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uin
 							std::string certFile, std::string privateKeyFile, std::string caFile, \
 							int startangle, int timezone, int viewMode, \ 
 							std::string publishmode, std::string datatype) {
-	m_sSdkVersion = "PandarSwiftSDK_1.2.26";
+	m_sSdkVersion = "PandarSwiftSDK_1.2.27";
 	printf("\n--------PandarSwift SDK version: %s--------\n",m_sSdkVersion.c_str());
 	m_sDeviceIpAddr = deviceipaddr;
 	m_sFrameId = frameid;
@@ -99,6 +99,7 @@ PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uin
 	m_iViewMode= viewMode;
 	m_iField = 0;
 	m_sDatatype = datatype;
+	m_bIsReadPcapOver = false;
 	m_pTcpCommandClient =TcpCommandClientNew(m_sDeviceIpAddr.c_str(), PANDARSDK_TCP_COMMAND_PORT);
 	if(!m_sPcapFile.empty()) {
 		m_iEdgeAzimuthSize = 1600;
@@ -238,10 +239,6 @@ int PandarSwiftSDK::loadCorrectionString(char * data) {
             p += sizeof(uint32_t) * frame_num;
             memcpy((void *)&m_PandarAT_corrections.l.end_frame, p, sizeof(uint32_t) * frame_num);
             p += sizeof(uint32_t) * frame_num;
-            printf( "frame_num: %d\n" ,frame_num);
-            printf( "start_frame, end_frame: \n");
-            for (int i = 0; i < frame_num; ++i) 
-                printf("%lf,   %lf\n", m_PandarAT_corrections.l.start_frame[i] / 25600.f , m_PandarAT_corrections.l.end_frame[i] / 25600.f);
             memcpy((void *)&m_PandarAT_corrections.l.azimuth, p, sizeof(int32_t) * channel_num);
             p += sizeof(int32_t) * channel_num;
             memcpy((void *)&m_PandarAT_corrections.l.elevation, p, sizeof(int32_t) * channel_num);
@@ -253,12 +250,23 @@ int PandarSwiftSDK::loadCorrectionString(char * data) {
             p += sizeof(int8_t) * adjust_length;
             memcpy((void *)&m_PandarAT_corrections.SHA256, p, sizeof(uint8_t) * 32);
             p += sizeof(uint8_t) * 32;
+			printf( "frame_num: %d\n" ,frame_num);
+            printf( "start_frame, end_frame: \n");
+            for (int i = 0; i < frame_num; ++i){
+				m_PandarAT_corrections.l.start_frame[i] = m_PandarAT_corrections.l.start_frame[i] * m_PandarAT_corrections.header.resolution;
+				m_PandarAT_corrections.l.end_frame[i] = m_PandarAT_corrections.l.end_frame[i] * m_PandarAT_corrections.header.resolution;
+				printf("%lf,   %lf\n", m_PandarAT_corrections.l.start_frame[i] / 25600.f , m_PandarAT_corrections.l.end_frame[i] / 25600.f);
+			} 
 
-            // for (int i = 0; i < channel_num; i++) {
-            //     horizatal_azimuth_[i] = m_PandarAT_corrections.azimuth[i] / 25600.f;
-            //     elev_angle_[i] = m_PandarAT_corrections.elevation[i] / 100.f;
+			for(int i = 0; i < PANDAR128_LASER_NUM; i++){
+				m_PandarAT_corrections.l.azimuth[i] = m_PandarAT_corrections.l.azimuth[i] * m_PandarAT_corrections.header.resolution;
+				m_PandarAT_corrections.l.elevation[i] = m_PandarAT_corrections.l.elevation[i] * m_PandarAT_corrections.header.resolution;
+			}
+			for(int i = 0; i < adjust_length; i++){
+				m_PandarAT_corrections.azimuth_offset[i] = m_PandarAT_corrections.azimuth_offset[i] * m_PandarAT_corrections.header.resolution;
+				m_PandarAT_corrections.elevation_offset[i] = m_PandarAT_corrections.elevation_offset[i] * m_PandarAT_corrections.header.resolution;
+			}
                 
-            // }
             return 0;
           }  
           break;  
@@ -935,14 +943,14 @@ void PandarSwiftSDK::calcPointXYZIT(PandarPacket &packet, int cursor) {
 				float distance =
 					static_cast<float>(u16Distance) * PANDAR128_DISTANCE_UNIT;
 				auto elevation = m_iViewMode == 0 ?
-							m_PandarAT_corrections.l.elevation[i] * m_PandarAT_corrections.header.resolution : 
-						(m_PandarAT_corrections.l.elevation[i] + m_PandarAT_corrections.getElevationAdjustV3(i, Azimuth) * 256) * m_PandarAT_corrections.header.resolution;
+							m_PandarAT_corrections.l.elevation[i] : 
+						(m_PandarAT_corrections.l.elevation[i] + m_PandarAT_corrections.getElevationAdjustV3(i, Azimuth) * 256) ;
 				elevation = (MAX_AZI_LEN + elevation) % MAX_AZI_LEN;      
 				auto azimuth = m_iViewMode == 0 ?
-					(Azimuth + MAX_AZI_LEN  - m_PandarAT_corrections.l.azimuth[i] / 2) % MAX_AZI_LEN  * m_PandarAT_corrections.header.resolution : 
+					(Azimuth + MAX_AZI_LEN  - m_PandarAT_corrections.l.azimuth[i] / 2) % MAX_AZI_LEN : 
 					((Azimuth + MAX_AZI_LEN  - m_PandarAT_corrections.l.start_frame[field]) * 2
 					- m_PandarAT_corrections.l.azimuth[i]
-					+ m_PandarAT_corrections.getAzimuthAdjustV3(i, Azimuth) * 256) * m_PandarAT_corrections.header.resolution;
+					+ m_PandarAT_corrections.getAzimuthAdjustV3(i, Azimuth) * 256) ;
 				azimuth = (MAX_AZI_LEN  + azimuth) % MAX_AZI_LEN ;
 				float xyDistance =
 					distance * m_PandarAT_corrections.cos_map[(elevation)];
@@ -1229,4 +1237,63 @@ bool PandarSwiftSDK::setNormalLidarMode(){
 	ret = TcpCommandSetLidarNormalMode(m_pTcpCommandClient);
 	return ret == 0;
 }
+
+bool PandarSwiftSDK::getLidarReturnMode(uint8_t& mode){
+	int ret = -1;
+	unsigned char *buffer = NULL;
+	uint32_t len = 0;
+	ret = TcpCommandGetLidarConfigInfo(m_pTcpCommandClient, &buffer, &len);
+	if(ret == 0){
+		mode = buffer[32];
+	}
+	return ret == 0;
+}
+
+bool PandarSwiftSDK::setLidarReturnMode(uint8_t mode){
+	int ret = -1;
+	ret = TcpCommandSetLidarReturnMode(m_pTcpCommandClient, mode);
+	return ret == 0;
+}
+
+bool PandarSwiftSDK::getLidarSpinRate(uint16_t& spinRate){
+	int ret = -1;
+	unsigned char *buffer = NULL;
+	uint32_t len = 0;
+	ret = TcpCommandGetLidarStatus(m_pTcpCommandClient, &buffer, &len);
+	if(ret == 0){
+		spinRate = (uint16_t)((buffer[4]) << 8) + buffer[5];
+	}
+	return ret == 0;
+}
+
+bool PandarSwiftSDK::setLidarSpinRate(uint16_t spinRate){
+	int ret = -1;
+	ret = TcpCommandSetLidarSpinRate(m_pTcpCommandClient, spinRate);
+	return ret == 0;
+}
+
+bool PandarSwiftSDK::getLidarLenHeatSwitch(uint8_t &heatSwitch){
+	int ret = -1;
+	unsigned char *buffer = NULL;
+	uint32_t len = 0;
+	ret = TcpCommandGetLidarLenHeatSwitch(m_pTcpCommandClient, &buffer, &len);
+	if(ret == 0){
+		heatSwitch = buffer[0];
+	}
+	return ret == 0;
+}
+
+bool PandarSwiftSDK::setLidarLenHeatSwitch(uint8_t heatSwitch){
+	int ret = -1;
+	ret = TcpCommandSetLidarLenHeatSwitch(m_pTcpCommandClient, heatSwitch);
+	return ret == 0;
+}
+
+bool PandarSwiftSDK::GetIsReadPcapOver(){
+	return m_bIsReadPcapOver;
+}
+void PandarSwiftSDK::SetIsReadPcapOver(bool enable){
+	m_bIsReadPcapOver = enable;
+}
+
 

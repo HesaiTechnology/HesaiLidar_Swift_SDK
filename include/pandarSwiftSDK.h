@@ -534,10 +534,18 @@ class PandarSwiftSDK {
 	void publishPoints();
   void start();
   void stop();
+  bool GetIsReadPcapOver();
+  void SetIsReadPcapOver(bool enable);
   void setIsSocketTimeout(bool isSocketTimeout);
   bool getIsSocketTimeout();
   bool setStandbyLidarMode();
   bool setNormalLidarMode();
+  bool setLidarReturnMode(uint8_t mode); // mode: 0-last return, 1-strongest return, 2-dual return
+  bool getLidarReturnMode(uint8_t& mode);
+  bool setLidarSpinRate(uint16_t spinRate); // spinRate: 200 300 400 500
+  bool getLidarSpinRate(uint16_t &spinRate);
+  bool setLidarLenHeatSwitch(uint8_t heatSwitch); // heatSwitch: 0-close, 1-open
+  bool getLidarLenHeatSwitch(uint8_t &heatSwitch);
 
  private:
 
@@ -604,6 +612,7 @@ class PandarSwiftSDK {
   int m_iField;
   int m_iEdgeAzimuthSize;
   std::string m_sDatatype;
+  bool m_bIsReadPcapOver;
 
 };
 
