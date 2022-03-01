@@ -149,3 +149,12 @@ PandarSwiftSDK_1.2.26
 
 ##modify
 1. Support to set lidar operate mode
+
+Sunday,Sunday 27th, 2022 17:30
+##version
+PandarSwiftSDK_1.2.27
+
+##modify
+1. Support to set lidar return mode ,spin rate , heat switch
+2. Support to exit process when read pcap over
+3. Support to change angle resolution

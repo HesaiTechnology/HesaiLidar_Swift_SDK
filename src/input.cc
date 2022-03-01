@@ -411,7 +411,7 @@ int InputPCAP::getPacket(PandarPacket *pkt, bool &isTimeout) {
 			return 2;
 		}
 		else if(!checkPacketSize(pkt)){
-			return 3;  // error packet
+			return 1;  // error packet
 		}
 		if( (m_iPktCount >= m_iTimeGap)) {
 			// printf("count : %d\n",m_iPktCount);
@@ -420,7 +420,7 @@ int InputPCAP::getPacket(PandarPacket *pkt, bool &isTimeout) {
 		pkt->stamp = getNowTimeSec();  // time_offset not considered here, as no synchronization required
 		return 0;  // success
 	}
-	return 1;
+	return 3;
 }
 
 void InputPCAP::sleep(const uint8_t *packet, bool &isTimeout) {
