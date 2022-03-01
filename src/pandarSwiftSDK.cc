@@ -290,7 +290,7 @@ int PandarSwiftSDK::loadCorrectionString(char * data) {
 }
 
 void PandarSwiftSDK::driverReadThread() {
-	SetThreadPriority(SCHED_RR, 99);
+	SetThreadPriority(SCHED_FIFO, 99);
 	while (1) {
 		boost::this_thread::interruption_point();
 		m_spPandarDriver->poll();

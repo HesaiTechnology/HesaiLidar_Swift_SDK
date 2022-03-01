@@ -336,15 +336,15 @@ void InputSocket::calcPacketLoss(PandarPacket *pkt) {
 		else {
 			uint32_t diff = seqnub - m_u32Sequencenum;
 			if(diff > 1) {
-				printf("seq diff: %x \n", diff);
+				printf("seq diff: %x  current seq: %x  last seq: %x\n", diff, seqnub, m_u32Sequencenum);
 				dropped += diff - 1;
 			}
 		}
 		m_u32Sequencenum = seqnub;
 		uint32_t endTick = GetTickCount();
-		if(endTick - startTick >= 1000 && dropped > 0) {
-			printf("dropped: %d, %d, percent, %f\n", dropped, m_u32Sequencenum - u32StartSeq,
-					float(dropped) / float(m_u32Sequencenum - u32StartSeq) * 100.0);
+		if(endTick - startTick >= 1000 && dropped > 0 && (m_u32Sequencenum - u32StartSeq) > 0) {
+			printf("dropped: %u, received: %u, percentage: %f\n", dropped, m_u32Sequencenum - u32StartSeq,
+					float(dropped) / float(m_u32Sequencenum - u32StartSeq) * 100.0);	
 			dropped = 0;
 			u32StartSeq = m_u32Sequencenum;
 			startTick = endTick;
