@@ -176,41 +176,40 @@ double AT128FaultMessageVersion3::ParserTemperature(){
   return temp;
 }
 
-void AT128FaultMessageVersion3::ParserLensDirtyState(LensDirtyState lensDirtyState[LENS_AZIMUTH_AREA_NUM][PANDAR_AT128_LIDAR_NUM]){
+void AT128FaultMessageVersion3::ParserLensDirtyState(LensDirtyState lensDirtyState[LENS_AZIMUTH_AREA_NUM][LENS_ELEVATION_AREA_NUM]){
   for(int i = 0; i < LENS_AZIMUTH_AREA_NUM; i++){
     uint16_t rawdata = (*((uint16_t*)(&u8TimeDivisionMultiplexing[3 + i * 2])));
     for(int j = 0; j < LENS_ELEVATION_AREA_NUM; j++){
       uint16_t lensDirtyStateTemp = (rawdata << ((LENS_ELEVATION_AREA_NUM - j - 1) * 2)) ;
       uint16_t lensDirtyStateTemp1 = (lensDirtyStateTemp >> ((LENS_ELEVATION_AREA_NUM - 1) * 2)) ;
-      for(int k = 0; k < PANDAR_AT128_LIDAR_NUM / LENS_ELEVATION_AREA_NUM; k++){
-        if(u8TimeDivisionMultiplexing[0]  == 1){
-          switch (lensDirtyStateTemp1)
-          {
-          case 0:
-          {
-            lensDirtyState[i][j * PANDAR_AT128_LIDAR_NUM / LENS_ELEVATION_AREA_NUM + k] = LensNormal;
-            break;
-          }
-          case 1:
-          {
-            lensDirtyState[i][j * PANDAR_AT128_LIDAR_NUM / LENS_ELEVATION_AREA_NUM + k] = Passable;
-            break;
-          }
-          case 3:
-          {
-            lensDirtyState[i][j * PANDAR_AT128_LIDAR_NUM / LENS_ELEVATION_AREA_NUM + k] = Unpassable;
-            break;
-          }  
-          default:
-            lensDirtyState[i][j * PANDAR_AT128_LIDAR_NUM / LENS_ELEVATION_AREA_NUM + k] = UndefineData;
-            break;
-          }
-
+      if(u8TimeDivisionMultiplexing[0]  == 1){
+        switch (lensDirtyStateTemp1)
+        {
+        case 0:
+        {
+          lensDirtyState[i][j] = LensNormal;
+          break;
         }
-        else
-        lensDirtyState[i][j * PANDAR_AT128_LIDAR_NUM / LENS_ELEVATION_AREA_NUM + k] = UndefineData;
+        case 1:
+        {
+          lensDirtyState[i][j] = Passable;
+          break;
+        }
+        case 3:
+        {
+          lensDirtyState[i][j] = Unpassable;
+          break;
+        }  
+        default:
+          lensDirtyState[i][j] = UndefineData;
+          break;
+        }
+
       }
+      else
+      lensDirtyState[i][j] = UndefineData;
     }
+    
   }
 }
 

@@ -92,7 +92,7 @@ typedef struct AT128FaultMessageInfo {
   DTCState m_DTCState;
   TDMDataIndicate m_TDMDataIndicate;
   double m_dTemperature;
-  LensDirtyState m_LensDirtyState[LENS_AZIMUTH_AREA_NUM][PANDAR_AT128_LIDAR_NUM];
+  LensDirtyState m_LensDirtyState[LENS_AZIMUTH_AREA_NUM][LENS_ELEVATION_AREA_NUM];
   uint16_t m_u16SoftwareId;
   uint16_t m_u16SoftwareVersion;
   uint16_t m_u16HardwareVersion;
@@ -129,7 +129,7 @@ typedef class AT128FaultMessageVersion3_s {
     LidarFaultState ParserFaultState();
     FaultCodeType ParserFaultCodeType();
     TDMDataIndicate ParserTDMDataIndicate();
-    void ParserLensDirtyState(LensDirtyState lensDirtyState[LENS_AZIMUTH_AREA_NUM][PANDAR_AT128_LIDAR_NUM]);
+    void ParserLensDirtyState(LensDirtyState lensDirtyState[LENS_AZIMUTH_AREA_NUM][LENS_ELEVATION_AREA_NUM]);
     HeatingState ParserHeatingState();
     void ParserAT128FaultMessage(AT128FaultMessageInfo &faultMessageInfo);
     double ParserTemperature();

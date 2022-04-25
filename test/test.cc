@@ -81,7 +81,7 @@ void faultmessagecallback(AT128FaultMessageInfo &faultMessage) {
 
     for(int i = 0; i < 12; i++){
         for(int j = 0; j < 8; j++){
-            zos << "," << int(faultMessage.m_LensDirtyState[i][j * 16 + 1]);
+            zos << "," << int(faultMessage.m_LensDirtyState[i][j]);
         }
     }
     zos << std::endl;
