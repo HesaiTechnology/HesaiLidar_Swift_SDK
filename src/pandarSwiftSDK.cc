@@ -69,10 +69,11 @@ PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uin
 							boost::function<void(boost::shared_ptr<PPointCloud>, double)> pclcallback, \
 							boost::function<void(PandarPacketsArray*)> rawcallback, \
 							boost::function<void(double)> gpscallback, \
+							boost::function<void(AT128FaultMessageInfo&)> faultmessagecallback, \
 							std::string certFile, std::string privateKeyFile, std::string caFile, \
 							int startangle, int timezone, int viewMode, \ 
 							std::string publishmode, std::string datatype) {
-	m_sSdkVersion = "PandarSwiftSDK_1.2.27";
+	m_sSdkVersion = "PandarSwiftSDK_1.2.29";
 	printf("\n--------PandarSwift SDK version: %s--------\n",m_sSdkVersion.c_str());
 	m_sDeviceIpAddr = deviceipaddr;
 	m_sFrameId = frameid;
@@ -96,10 +97,12 @@ PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uin
 	m_bClockwise == true;
 	m_funcPclCallback = pclcallback;
 	m_funcGpsCallback = gpscallback;
+	m_funcFaultMessageCallback = faultmessagecallback;
 	m_iViewMode= viewMode;
 	m_iField = 0;
 	m_sDatatype = datatype;
 	m_bIsReadPcapOver = false;
+	system("echo 562144000 > /proc/sys/net/core/rmem_max");
 	m_pTcpCommandClient =TcpCommandClientNew(m_sDeviceIpAddr.c_str(), PANDARSDK_TCP_COMMAND_PORT);
 	if(!m_sPcapFile.empty()) {
 		m_iEdgeAzimuthSize = 1600;
@@ -492,6 +495,7 @@ void PandarSwiftSDK::init() {
 	int count = 0;
 	int Azimuth = 0;
 	while (1) {
+		boost::this_thread::interruption_point();
 		if(!m_PacketsBuffer.hasEnoughPackets()) {
 			usleep(1000);
 			continue;
@@ -1002,6 +1006,28 @@ void PandarSwiftSDK::processGps(PandarGPS *gpsMsg) {
 		m_funcGpsCallback(static_cast<double>(mktime(&t) + m_iTimeZoneSecond));
 	}
 }
+
+void PandarSwiftSDK::processFaultMessage(PandarPacket &packet) {
+	if(packet.data[0] != 0xCD || packet.data[1] != 0xDC)
+		return;
+	int version = packet.data[2];
+	AT128FaultMessageInfo faultMessageInfo;
+	switch (version)
+	{
+	case 3:
+	{
+		AT128FaultMessageVersion3* faultMessageRawdata = (AT128FaultMessageVersion3*)(&(packet.data[0]));
+		faultMessageRawdata->ParserAT128FaultMessage(faultMessageInfo);
+		break;
+	}
+	default:
+		break;
+	}
+	if(NULL != m_funcFaultMessageCallback) {
+		m_funcFaultMessageCallback(faultMessageInfo);
+	}
+}
+
 
 bool PandarSwiftSDK::isNeedPublish(){
 	switch(m_u8UdpVersionMinor){

@@ -25,6 +25,7 @@
 // #define GET_LIDAR_SPIN_RATE
 // #define SET_LIDAR_LENS_HEAT_SWITCH
 // #define GET_LIDAR_LENS_HEAT_SWITCH 
+// #define SAVE_FAULT_MESSAGE
 uint16_t lidarSpinRate = 200; // 200 300 400 500
 uint8_t lidarReturnMode = 0;   // 0-last return, 1-strongest return, 2-dual return  
 uint8_t lidarLensHeatSwitch = 0; //0-close, 1-open                            
@@ -56,12 +57,45 @@ void rawcallback(PandarPacketsArray *array) {
     // printf("array size: %d\n", array->size());
 }
 
+void faultmessagecallback(AT128FaultMessageInfo &faultMessage) {
+#ifdef SAVE_FAULT_MESSAGE    
+    static int count = 0;
+    if(count == 0){
+        std::ofstream zos("./faultmessage.csv");
+        zos <<  "Version " << "," << "Total time" << "," << "Operate State" << "," << "Fault State" << "," << "Fault code type" << "," << "Rolling Counter" \
+        << "," << "Total fault code number" << "," << "Fault code ID" << "," << "DTC Num" << "," << "DTC State" << "," << "TDM Data indicator" << "," << "Temperature" << "," << "软件ID" \
+        << "," << "软件版本号" << "," << "硬件版本号" << "," << "BT版本号" << "," << "Heating_Sate"  ;
+        for(int i = 0; i < 12; i++){
+            for(int j = 0; j < 8; j++){
+                zos << "," << "水平区域" << std::to_string(i) << " 垂直区域" << std::to_string(j);
+            }
+        }
+        zos << std::endl;
+
+    }
+    count++;
+    std::ofstream zos("./faultmessage.csv", std::ios::app);
+    zos <<  int(faultMessage.m_u8Version) << "," << std::to_string(faultMessage.m_dTotalTime) << "," <<int (faultMessage.m_operateState) << "," << int(faultMessage.m_faultState) << "," << int(faultMessage.m_faultCodeType) << "," <<\
+    int(faultMessage.m_u8RollingCounter) << "," << int(faultMessage.m_u8TotalFaultCodeNum) << "," << int(faultMessage.m_u8FaultCodeId) << "," << int(faultMessage.m_iDTCNum) << "," << int(faultMessage.m_DTCState) << "," << int(faultMessage.m_TDMDataIndicate) << "," <<\
+    faultMessage.m_dTemperature << "," << faultMessage.m_u16SoftwareId << "," << faultMessage.m_u16SoftwareVersion << "," << faultMessage.m_u16HardwareVersion << "," << faultMessage.m_u16BTversion << "," << int(faultMessage.m_HeatingState);
+
+    for(int i = 0; i < 12; i++){
+        for(int j = 0; j < 8; j++){
+            zos << "," << int(faultMessage.m_LensDirtyState[i][j * 16 + 1]);
+        }
+    }
+    zos << std::endl;
+#endif    
+}
+
+
+
 int main(int argc, char** argv) {
     boost::shared_ptr<PandarSwiftSDK> spPandarSwiftSDK;
     spPandarSwiftSDK.reset(new PandarSwiftSDK(std::string("192.168.1.201"), 2368, 10110, std::string("PandarAT128"), \
                                 std::string("../params/corrections1.5.dat"), \
                                 std::string(""), \
-                                std::string(""), lidarCallback, rawcallback, gpsCallback, \
+                                std::string(""), lidarCallback, rawcallback, gpsCallback, faultmessagecallback,\
                                 std::string(""), \
                                 std::string(""), \
                                 std::string(""), \

@@ -150,7 +150,7 @@ PandarSwiftSDK_1.2.26
 ##modify
 1. Support to set lidar operate mode
 
-Sunday,Sunday 27th, 2022 17:30
+Sunday,February 27th, 2022 17:30
 ##version
 PandarSwiftSDK_1.2.27
 
@@ -158,3 +158,19 @@ PandarSwiftSDK_1.2.27
 1. Support to set lidar return mode ,spin rate , heat switch
 2. Support to exit process when read pcap over
 3. Support to change angle resolution
+
+Wednesday,April 6th, 2022 13:30
+##version
+PandarSwiftSDK_1.2.28
+
+##modify
+1. Support to parser fault message 
+2. Support to parser log report
+
+Monday,April 25th, 2022 13:30
+##version
+PandarSwiftSDK_1.2.29
+
+##modify
+1. Set timeout of ptc command to 500ms
+ 

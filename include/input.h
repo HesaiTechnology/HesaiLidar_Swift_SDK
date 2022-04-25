@@ -138,6 +138,8 @@
 #define PANDAR_AT128_PACKET_SEQ_NUM_SIZE \
   (PANDAR_AT128_PACKET_SIZE + PANDAR_AT128_SEQ_NUM_SIZE)
 #define PANDAR_AT128_WITHOUT_CONF_UNIT_SIZE (DISTANCE_SIZE + INTENSITY_SIZE)
+#define FAULT_MESSAGE_PCAKET_SIZE (99)
+#define LOG_REPORT_PCAKET_SIZE (273)
 /************************************* AT 128 *********************************************/
 
 
@@ -162,10 +164,19 @@ static std::map<enumIndex, int> udpVersion14 = {
 	{PACKET_SIZE, 893},
 };
 
+enum PacketType{
+	POINTCLOUD_PACKET,
+	ERROR_PACKET,
+	GPS_PACKET,
+	PCAP_END_PACKET,
+	FAULT_MESSAGE_PACKET,
+	LOG_REPORT_PACKET,
+};
+
 typedef struct PandarPacket_s {
   double stamp;
   uint8_t data[ETHERNET_MTU];
-  uint32_t size;
+  int32_t size;
 } PandarPacket;
 
 static uint16_t DATA_PORT_NUMBER = 2368;     // default data port
@@ -185,7 +196,7 @@ public:
 	 *          -1 if end of file
 	 *          > 0 if incomplete packet (is this possible?)
 	 */
-	virtual int getPacket(PandarPacket *pkt, bool &isTimeout) = 0;
+	virtual PacketType getPacket(PandarPacket *pkt, bool &isTimeout, bool& skipSleep) = 0;
 	bool checkPacketSize(PandarPacket *pkt);
 	void setUdpVersion(uint8_t major, uint8_t minor);
 	std::string getUdpVersion();
@@ -207,7 +218,7 @@ class InputSocket: public Input
 public:
 	InputSocket(std::string deviceipaddr, uint16_t lidarport = DATA_PORT_NUMBER, uint16_t gpsport = GPS_PORT_NUMBER);
 	virtual ~InputSocket();
-	virtual int getPacket(PandarPacket *pkt, bool &isTimeout);
+	virtual PacketType getPacket(PandarPacket *pkt, bool &isTimeout, bool& skipSleep);
 	void calcPacketLoss(PandarPacket *pkt);
 
 private:
@@ -227,7 +238,7 @@ class InputPCAP: public Input
 public:
 	InputPCAP(std::string deviceipaddr, uint16_t lidarport, std::string pcapfile);
 	virtual ~InputPCAP();
-	virtual int getPacket(PandarPacket *pkt, bool &isTimeout);
+	virtual PacketType getPacket(PandarPacket *pkt, bool &isTimeout, bool& skipSleep);
 	void sleep(const uint8_t *packet, bool &isTimeout);
 
 private:

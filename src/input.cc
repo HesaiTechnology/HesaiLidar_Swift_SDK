@@ -61,7 +61,7 @@ bool Input::checkPacketSize(PandarPacket *pkt) {
   if(pkt->size < 500)
   return false;
   if (pkt->data[0] != 0xEE || pkt->data[1] != 0xFF) {    
-    printf("Packet with invaild delimiter\n");
+    // printf("Packet with invaild delimiter\n");
     return false;
   }
   if (pkt->data[2] != 4 || (pkt->data[3] != 1 && pkt->data[3] != 3)) {    
@@ -205,8 +205,15 @@ InputSocket::InputSocket(std::string deviceipaddr, uint16_t lidarport, uint16_t 
 		perror("bind error");  // TODO: ERROR errno
 		return;
 	}
-	int nRecvBuf = 26214400;
+	int nRecvBuf = 400000000;
 	setsockopt(m_iSockfd, SOL_SOCKET, SO_RCVBUF, (const char*)&nRecvBuf, sizeof(int));
+	  int curRcvBufSize = -1;
+     socklen_t optlen = sizeof(curRcvBufSize);
+     if (getsockopt(m_iSockfd, SOL_SOCKET, SO_RCVBUF, &curRcvBufSize, &optlen) < 0)
+     {
+         printf("getsockopt error=%d(%s)!!!\n", errno, strerror(errno));
+     }
+     printf("OS current udp socket recv buff size is: %d\n", curRcvBufSize);
 
 	if(fcntl(m_iSockfd, F_SETFL, O_NONBLOCK | FASYNC) < 0) {
 		perror("non-block");
@@ -257,7 +264,7 @@ InputSocket::~InputSocket(void) {
 //          2 - gps
 //          1 - error
 /** @brief Get one pandar packet. */
-int InputSocket::getPacket(PandarPacket *pkt, bool &isTimeout) {
+PacketType InputSocket::getPacket(PandarPacket *pkt, bool &isTimeout, bool& skipSleep) {
 	// double time1 = ros::Time::now().toSec();
 
 	uint64_t startTime = 0;
@@ -278,45 +285,52 @@ int InputSocket::getPacket(PandarPacket *pkt, bool &isTimeout) {
 		fds[0].fd = m_iSockfd;
 		fds[0].events = POLLIN;
 	}
-	static const int POLL_TIMEOUT = 3;  // one second (in msec)
-
+	static const int POLL_TIMEOUT = 1;  // one second (in msec)
 	sockaddr_in sender_address;
 	socklen_t sender_address_len = sizeof(sender_address);
-	int retval = poll(fds, m_iSocktNumber, POLL_TIMEOUT);
-	if(retval < 0) { // poll() error?
-		if(errno != EINTR) printf("poll() error: %s\n", strerror(errno));
-		return 1;
-	}
-	if(retval == 0) { // poll() timeout?
-		isTimeout = true;
-		// printf("Pandar poll() timeout\n");
-		return 1;
-	}
-	if((fds[0].revents & POLLERR) || (fds[0].revents & POLLHUP) ||(fds[0].revents & POLLNVAL)) { // device error?
-		printf("poll() reports Pandar error\n");
-		return 1;
+	if(skipSleep){
+		int retval = poll(fds, m_iSocktNumber, POLL_TIMEOUT);
+		if(retval < 0) { // poll() error?
+			if(errno != EINTR) printf("poll() error: %s\n", strerror(errno));
+			return ERROR_PACKET;
+		}
+		if(retval == 0) { // poll() timeout?
+			isTimeout = true;
+			// printf("Pandar poll() timeout\n");
+			return ERROR_PACKET;
+		}
+		if((fds[0].revents & POLLERR) || (fds[0].revents & POLLHUP) ||(fds[0].revents & POLLNVAL)) { // device error?
+			printf("poll() reports Pandar error\n");
+			return ERROR_PACKET;
+		}
 	}
 	isTimeout = false;
 	ssize_t nbytes;
-  	for (int i = 0; i != m_iSocktNumber; ++i) {
-    	if (fds[i].revents & POLLIN) {
-      		nbytes = recvfrom(fds[i].fd, &pkt->data[0], 10000, 0, (sockaddr *)&sender_address, &sender_address_len);
-			pkt->size = nbytes;
-			// printf("fds[%d] size: %d\n",i, nbytes);
-      		break;
-    	}
-  	}
-	if(!m_bGetUdpVersion) 
-		return 0;
+	nbytes = recvfrom(m_iSockfd, &pkt->data[0], 10000, 0, (sockaddr *)&sender_address, &sender_address_len);
+	pkt->size = nbytes;
+	skipSleep = false;
+	if(nbytes == -1){
+		skipSleep = true;
+		return ERROR_PACKET;
+	}
 	if (pkt->size == 512) {
 		// ROS_ERROR("GPS");
-		return 2;
+		return GPS_PACKET;
+	}
+	if (pkt->size == FAULT_MESSAGE_PCAKET_SIZE) {
+		return FAULT_MESSAGE_PACKET;
+	}
+	if (pkt->size == LOG_REPORT_PCAKET_SIZE) {
+		return LOG_REPORT_PACKET;
+	}
+	if(!m_bGetUdpVersion) {
+		return POINTCLOUD_PACKET;
 	}
 	else if(!checkPacketSize(pkt)){
-		return 1;  // Packet size not match
+		return ERROR_PACKET;  // Packet size not match
 	}
 	calcPacketLoss(pkt);
-	return 0;
+	return POINTCLOUD_PACKET;
 }
 
 void InputSocket::calcPacketLoss(PandarPacket *pkt) {
@@ -396,7 +410,8 @@ InputPCAP::~InputPCAP(void) { pcap_close(m_pcapt); }
 //          2 - gps
 //          1 - error
 /** @brief Get one pandar packet. */
-int InputPCAP::getPacket(PandarPacket *pkt, bool &isTimeout) {
+PacketType InputPCAP::getPacket(PandarPacket *pkt, bool &isTimeout, bool& skipSleep) {
+	skipSleep = false;
 	pcap_pkthdr *pktHeader;
 	const unsigned char *packetBuf;
 
@@ -405,22 +420,26 @@ int InputPCAP::getPacket(PandarPacket *pkt, bool &isTimeout) {
 		memcpy(&pkt->data[0], packetBuf + 42, packet_size);
 		pkt->size = pktHeader->caplen - 42;
 		m_iPktCount++;
-		if(!m_bGetUdpVersion) 
-			return 0;
+		
 		if (pktHeader->caplen == (512 + 42)) {
-			return 2;
+			return GPS_PACKET;
 		}
+		else if (pktHeader->caplen == (FAULT_MESSAGE_PCAKET_SIZE + 42)) {
+			return FAULT_MESSAGE_PACKET;
+		}
+		else if (pktHeader->caplen == (LOG_REPORT_PCAKET_SIZE + 42)) {
+			return LOG_REPORT_PACKET;
+		}	
 		else if(!checkPacketSize(pkt)){
-			return 1;  // error packet
+			return ERROR_PACKET;  // error packet
 		}
 		if( (m_iPktCount >= m_iTimeGap)) {
-			// printf("count : %d\n",m_iPktCount);
 			sleep(packet, isTimeout);
 		}
 		pkt->stamp = getNowTimeSec();  // time_offset not considered here, as no synchronization required
-		return 0;  // success
+		return POINTCLOUD_PACKET;  // success
 	}
-	return 3;
+	return PCAP_END_PACKET;
 }
 
 void InputPCAP::sleep(const uint8_t *packet, bool &isTimeout) {

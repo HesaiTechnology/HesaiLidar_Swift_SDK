@@ -28,6 +28,7 @@ add_library( ${PROJECT_NAME} SHARED
     src/tcp_command_client.c
     src/util.c
     src/wrapper.cc
+    src/fault_message.cc
 
 )
 

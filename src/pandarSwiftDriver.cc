@@ -75,8 +75,11 @@ bool PandarSwiftDriver::poll(void) {
 	uint64_t endTime = 0;
 	timespec time;
 	memset(&time, 0, sizeof(time));
+	bool skipSleep = true;
 	for (int i = 0; i < m_iPandarScanArraySize; ++i) {
-		
+		if(skipSleep){
+			usleep(3000);
+		}
 		if (m_bPaserPacp)  // have PCAP file?
 		{
 			int count = 0;
@@ -88,14 +91,9 @@ bool PandarSwiftDriver::poll(void) {
 		}
 		
 		bool isSocketTimeout = m_pPandarSwiftSDK->getIsSocketTimeout();
-		int rc = m_spInput->getPacket(&m_arrPandarPackets[m_iPktPushIndex][i], isSocketTimeout);
+		int rc = m_spInput->getPacket(&m_arrPandarPackets[m_iPktPushIndex][i], isSocketTimeout, skipSleep);
 		m_pPandarSwiftSDK->setIsSocketTimeout(isSocketTimeout);
-		if(m_arrPandarPackets[m_iPktPushIndex][i].size < 500)
-		{
-			i--;
-			continue;
-		}
-		if(rc == 2) {
+		if(rc == GPS_PACKET) {
 			// gps packet;
 			PandarGPS packet;
 			if(parseGPS(&packet, &m_arrPandarPackets[m_iPktPushIndex][i].data[0], GPS_PACKET_SIZE) == 0) {
@@ -104,12 +102,28 @@ bool PandarSwiftDriver::poll(void) {
 			i--;
 			continue;
 		}
-		if(rc == 1){    // error packet
+		if(rc == FAULT_MESSAGE_PACKET) {
+			m_pPandarSwiftSDK->processFaultMessage(m_arrPandarPackets[m_iPktPushIndex][i]);
+			i--;
+			continue;
+		}
+		if(rc == LOG_REPORT_PACKET) {
+			i--;
+			continue;
+		}
+		if(rc == ERROR_PACKET){    // error packet
 			i--;
 			continue;
 		} 
-		if(rc == 3)
+		if(rc == PCAP_END_PACKET){
 			m_pPandarSwiftSDK->SetIsReadPcapOver(true);
+			return true;
+		}
+			
+		if(m_arrPandarPackets[m_iPktPushIndex][i].size < 500){
+			i--;
+			continue;
+		}	
 		if(m_sPublishmodel == "both_point_raw" || m_sPublishmodel == "point") {
 			m_pPandarSwiftSDK->pushLiDARData(m_arrPandarPackets[m_iPktPushIndex][i]);
 		}
@@ -142,7 +156,8 @@ int PandarSwiftDriver::getPandarScanArraySize(boost::shared_ptr<Input> input_){
   for (int i = 0; i < 256; ++i) {
     PandarPacket packet;
     bool isTimeout = false;
-    int rc = input_->getPacket(&packet, isTimeout);
+	bool isSkipSleep = true;
+    int rc = input_->getPacket(&packet, isTimeout, isSkipSleep);
     switch (packet.data[PANDAR_LASER_NUMBER_INDEX]){
     case PANDAR128_LASER_NUM:
       return PANDAR128_READ_PACKET_SIZE;

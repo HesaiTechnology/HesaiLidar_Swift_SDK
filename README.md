@@ -65,7 +65,7 @@ PandarSwiftSDK(std::string("192.168.1.201"), 2368, 10110, std::string("PandarAT1
                                 std::string("../params/correction.csv"), \
                                 std::string(""), \
                                 std::string(""), \
-                                lidarCallback, rawcallback, gpsCallback, \
+                                lidarCallback, rawcallback, gpsCallback, faultMessageCallback, LogReportCallback\
                                 std::string(""), \
                                 std::string(""), \
                                 std::string(""), \
@@ -74,24 +74,26 @@ PandarSwiftSDK(std::string("192.168.1.201"), 2368, 10110, std::string("PandarAT1
 ```
 Parameter description
 ```
-        deviceIpaddr  	  The ip of the device
-        lidarPort 	      The port number of lidar data
-        gpsPort           The port number of gps data
-        frameId           The id of the point cloud data published to ROS
-        correctionFile    The correction file path
-        firtimeFlie       The firtime flie path
-        pcapFile          The pcap flie path
-        pclCallback       The callback of PCL data structure
-        rawCallback       The callback of raw data structure
-        gpsCallback       The callback of GPS structure
-        certFile          The path of the user's certificate
-        privateKeyFile    The path of the user's private key
-        caFile            The path of the root certificate
-        startAngle        The start angle of every point cloud should be <real angle> * 100.
-        timeZone          The timezone of local
-        viewMode          The different way to parser and  show the point cloud
-        publishMode       The mode of publish
-        dataType          The model of input data
+        deviceIpaddr  	     The ip of the device
+        lidarPort 	         The port number of lidar data
+        gpsPort              The port number of gps data
+        frameId              The id of the point cloud data published to ROS
+        correctionFile       The correction file path
+        firtimeFlie          The firtime flie path
+        pcapFile             The pcap flie path
+        pclCallback          The callback of PCL data structure
+        rawCallback          The callback of raw data structure
+        gpsCallback          The callback of GPS structure
+        faultMessageCallback The callback 0f fault message structure
+        logReportCallback    The callback of log report structure
+        certFile             The path of the user's certificate
+        privateKeyFile       The path of the user's private key
+        caFile               The path of the root certificate
+        startAngle           The start angle of every point cloud should be <real angle> * 100.
+        timeZone             The timezone of local
+        viewMode             The different way to parser and  show the point cloud
+        publishMode          The mode of publish
+        dataType             The model of input data
 
 ```
 Set the pcap flie path only when you what to read a pcap

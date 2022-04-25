@@ -30,6 +30,7 @@
 #include "tcp_command_client.h"
 #include "point_types.h"
 #include <boost/thread.hpp>
+#include "fault_message.h"
 
 #ifndef CIRCLE
 #define CIRCLE (36000)
@@ -515,6 +516,7 @@ class PandarSwiftSDK {
 								boost::function<void(boost::shared_ptr<PPointCloud>, double)> pclcallback, \
 								boost::function<void(PandarPacketsArray*)> rawcallback, \
 								boost::function<void(double)> gpscallback, \
+                boost::function<void(AT128FaultMessageInfo&)> faultmessagecallback, \
 								std::string certFile, std::string privateKeyFile, std::string caFile, \
 								int startangle, int timezone, int viewMode, \
                 std::string publishmode, \
@@ -530,6 +532,7 @@ class PandarSwiftSDK {
 	void publishRawDataThread();
 	void processGps(PandarGPS *gpsMsg);
 	void pushLiDARData(PandarPacket packet);
+  void processFaultMessage(PandarPacket &packet);
 	int processLiDARData();
 	void publishPoints();
   void start();
@@ -571,6 +574,7 @@ class PandarSwiftSDK {
   	LasersTSOffset m_objLaserOffset;
 	boost::function<void(boost::shared_ptr<PPointCloud> cld, double timestamp)> m_funcPclCallback;
 	boost::function<void(double timestamp)> m_funcGpsCallback;
+  boost::function<void(AT128FaultMessageInfo &faultMessage)> m_funcFaultMessageCallback;
 	std::array<boost::shared_ptr<PPointCloud>, 2> m_OutMsgArray;
   std::vector<RedundantPoint> m_RedundantPointBuffer;
 	PacketsBuffer m_PacketsBuffer;
