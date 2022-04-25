@@ -456,7 +456,7 @@ typedef struct PacketsBuffer_s {
     //   }
     // }
     // return false;
-    return (abs(m_iterPush - m_iterTaskBegin) <= 1 || abs(m_iterTaskEnd - m_iterTaskBegin) <= 1);
+    return (abs(m_iterPush - m_iterTaskBegin) <= m_pcapFlag || abs(m_iterTaskEnd - m_iterTaskBegin) <= 1);
   }
 
     inline PktArray::iterator getTaskBegin() { return m_iterTaskBegin; }

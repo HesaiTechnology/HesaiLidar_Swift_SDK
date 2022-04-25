@@ -1065,7 +1065,7 @@ bool PandarSwiftSDK::isNeedPublish(){
 			if((m_PacketsBuffer.m_iterPush - m_PacketsBuffer.m_buffers.begin()) > 2)
 				endAzimuth = *(uint16_t*)(&((m_PacketsBuffer.m_iterPush - 2)->data[0]) + m_iFirstAzimuthIndex) * LIDAR_AZIMUTH_UNIT + *(uint8_t*)(&((m_PacketsBuffer.m_iterPush - 2)->data[0]) + m_iLastAzimuthIndex + 1);
 			else
-				endAzimuth = *(uint16_t*)(&((m_PacketsBuffer.getTaskEnd() - 2)->data[0]) + m_iFirstAzimuthIndex) * LIDAR_AZIMUTH_UNIT + *(uint8_t*)(&((m_PacketsBuffer.getTaskEnd() - 2)->data[0]) + m_iLastAzimuthIndex + 1);	
+				endAzimuth = beginAzimuth;	
 			// printf("%f %f %d %d %d\n",beginAzimuth/25600.0f, endAzimuth/25600.0f, m_PacketsBuffer.m_iterPush - m_PacketsBuffer.m_buffers.begin(), m_PacketsBuffer.getTaskEnd() - m_PacketsBuffer.m_buffers.begin(), m_PacketsBuffer.getTaskBegin() - m_PacketsBuffer.m_buffers.begin());	
 			if(m_bClockwise){
 				if(m_iViewMode == 1){
