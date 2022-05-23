@@ -67,19 +67,21 @@ PandarSwiftSDK(std::string("192.168.1.201"), 2368, 10110, std::string("Pandar128
                                 std::string(""), \
                                 std::string(""), \
                                 std::string(""), \
-                                0, 0, std::string("both_point_raw"), false);
+                                0, 0, std::string("both_point_raw"), false, \
+                                std::string("../params/QT128C2X_Channel_Cofig.csv"));
 
 
 // for PandarQT128
 PandarSwiftSDK(std::string("192.168.1.201"), 2368, 10110, std::string("PandarQT128"), \
-                                std::string("../params/PandarQT128_Correction.csv"), \
-                                std::string("../params/PandarQT128_Firetimes.csv"), \
+                                std::string("../params/QT128C2X_Correction.csv"), \
+                                std::string("../params/QT128C2X_Firetimes.csv"), \
                                 std::string(""), \
                                 lidarCallback, rawcallback, gpsCallback, \
                                 std::string(""), \
                                 std::string(""), \
                                 std::string(""), \
-                                0, 0, std::string("both_point_raw"), false);
+                                0, 0, std::string("both_point_raw"), false, \
+                                std::string("../params/QT128C2X_Channel_Cofig.csv"));
 
 ```
 Parameter description
@@ -102,6 +104,7 @@ Parameter description
         publishmode       The mode of publish
         datatype          The model of input data
 coordinateCorrectionFlag  The flag to control whether to do coordinate Correction
+    channel_config_file   The channel config file path
 
 ```
 Set the pcap flie path only when you what to read a pcap
