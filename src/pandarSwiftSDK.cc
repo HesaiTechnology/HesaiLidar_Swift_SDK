@@ -72,13 +72,15 @@ PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uin
 							boost::function<void(PandarPacketsArray*)> rawcallback, \
 							boost::function<void(double)> gpscallback, \
 							std::string certFile, std::string privateKeyFile, std::string caFile, \
-							int startangle, int timezone, std::string publishmode, bool coordinateCorrectionFlag, std::string datatype) {
-	m_sSdkVersion = "PandarSwiftSDK_1.2.22";
+							int startangle, int timezone, std::string publishmode, bool coordinateCorrectionFlag, \
+							std::string channelconfigflie, std::string datatype) {
+	m_sSdkVersion = "PandarSwiftSDK_1.2.30";
 	printf("\n--------PandarSwift SDK version: %s--------\n",m_sSdkVersion.c_str());
 	m_sDeviceIpAddr = deviceipaddr;
 	m_sFrameId = frameid;
 	m_sLidarFiretimeFile = firtimeflie;
 	m_sLidarCorrectionFile = correctionfile;
+	m_sLidarChannelConfigFile = channelconfigflie;
 	m_sPublishmodel = publishmode;
 	m_iLidarRotationStartAngle = int(startangle * 100);
 	m_sPcapFile = pcapfile;
@@ -147,7 +149,7 @@ void PandarSwiftSDK::loadCorrectionFile() {
 			if(ret == 0 && buffer) {
 				printf("Load correction file from lidar now!\n");
 				correntionString = std::string(buffer);
-				ret = loadCorrectionString(correntionString);
+				ret = loadCorrectionFile(correntionString);
 				if(ret != 0) {
 					printf("Parse Lidar Correction Error\n");
 				} 
@@ -176,7 +178,7 @@ void PandarSwiftSDK::loadCorrectionFile() {
 			fin.read(buffer, length);
 			fin.close();
 			strlidarCalibration = buffer;
-			ret = loadCorrectionString(strlidarCalibration);
+			ret = loadCorrectionFile(strlidarCalibration);
 			if(ret != 0) {
 				printf("Parse local Correction file Error\n");
 			} 
@@ -192,22 +194,29 @@ void PandarSwiftSDK::loadCorrectionFile() {
 	}
 }
 
-int PandarSwiftSDK::loadCorrectionString(std::string correction_content) {
-    std::istringstream ifs(correction_content);
+int PandarSwiftSDK::loadCorrectionFile(std::string correction_content) {
+	std::istringstream ifs(correction_content);
+
 	std::string line;
-	if(std::getline(ifs, line)) {  // first line "Laser id,Elevation,Azimuth"
+	if (std::getline(ifs, line)) {  // first line "Laser id,Elevation,Azimuth"
 		printf("Parse Lidar Correction...\n");
 	}
+
 	float pitchList[PANDAR128_LASER_NUM];
 	float azimuthList[PANDAR128_LASER_NUM];
 	int lineCounter = 0;
-	while (std::getline(ifs, line)) {
-		if(line.length() < strlen("1,1,1")) {
+	std::vector<std::string>  firstLine;
+	boost::split(firstLine, line, boost::is_any_of(","));
+	if(firstLine[0] == "EEFF" || firstLine[0] == "eeff"){
+		std::getline(ifs, line);
+		for (int i = 0; i < PANDAR128_LASER_NUM; i++) {
+		std::getline(ifs, line);
+		if (line.length() < strlen("1,1,1")) {
 			return -1;
-		} 
-		else {
+		} else {
 			lineCounter++;
 		}
+
 		float elev, azimuth;
 		int lineId = 0;
 		std::stringstream ss(line);
@@ -218,18 +227,217 @@ int PandarSwiftSDK::loadCorrectionString(std::string correction_content) {
 		std::stringstream(subline) >> elev;
 		std::getline(ss, subline, ',');
 		std::stringstream(subline) >> azimuth;
-		if(lineId != lineCounter) {
+
+		if (lineId != lineCounter) {
 			printf("laser id error %d %d\n", lineId, lineCounter);
 			return -1;
 		}
 		pitchList[lineId - 1] = elev;
 		azimuthList[lineId - 1] = azimuth;
+		}
+	}
+	else{
+		while (std::getline(ifs, line)) {
+		if (line.length() < strlen("1,1,1")) {
+			return -1;
+		} else {
+			lineCounter++;
+		}
+
+		float elev, azimuth;
+		int lineId = 0;
+
+		std::stringstream ss(line);
+		std::string subline;
+		std::getline(ss, subline, ',');
+		std::stringstream(subline) >> lineId;
+		std::getline(ss, subline, ',');
+		std::stringstream(subline) >> elev;
+		std::getline(ss, subline, ',');
+		std::stringstream(subline) >> azimuth;
+
+		if (lineId != lineCounter) {
+			printf("laser id error %d %d\n", lineId, lineCounter);
+			return -1;
+		}
+
+		pitchList[lineId - 1] = elev;
+		azimuthList[lineId - 1] = azimuth;
+		}
 	}
 	for (int i = 0; i < lineCounter; ++i) {
 		m_fElevAngle[i] = pitchList[i];
 		m_fHorizatalAzimuth[i] = azimuthList[i];
 	}
+
 	return 0;
+}
+
+int PandarSwiftSDK::loadChannelConfigFile(std::string channel_config_content){
+  m_PandarQTChannelConfig.m_bIsChannelConfigObtained = false;
+  std::istringstream ifs(channel_config_content);
+  std::string line;
+  
+  std::getline(ifs, line);
+  std::vector<std::string>  versionLine;
+  boost::split(versionLine, line, boost::is_any_of(","));
+  if(versionLine[0] == "EEFF" || versionLine[0] == "eeff"){
+      m_PandarQTChannelConfig.m_u8MajorVersion = std::stoi(versionLine[1].c_str());
+      m_PandarQTChannelConfig.m_u8MinVersion = std::stoi(versionLine[2].c_str());
+  }
+  else{
+      std::cout << "channel config file delimiter is wrong" << versionLine[0];
+      return -1;
+  }
+  std::getline(ifs, line);
+  std::vector<std::string>  channelNumLine;
+  boost::split(channelNumLine, line, boost::is_any_of(","));
+  m_PandarQTChannelConfig.m_u8LaserNum = std::stoi(channelNumLine[1].c_str());
+  m_PandarQTChannelConfig.m_u8BlockNum = std::stoi(channelNumLine[3].c_str());
+
+  std::getline(ifs, line);
+  std::vector<std::string> firstChannelLine;
+  boost::split(firstChannelLine, line, boost::is_any_of(","));
+  int loop_num = firstChannelLine.size();
+  m_PandarQTChannelConfig.m_vChannelConfigTable.resize(loop_num);
+
+  for(int i = 0; i < loop_num; i++){
+      m_PandarQTChannelConfig.m_vChannelConfigTable[i].resize(m_PandarQTChannelConfig.m_u8LaserNum);
+  }
+  for(int i = 0; i < m_PandarQTChannelConfig.m_u8LaserNum; i++){
+    std::getline(ifs, line);
+    std::vector<std::string> ChannelLine;
+    boost::split(ChannelLine, line, boost::is_any_of(","));
+    for(int j = 0; j < loop_num; j++){
+      if(ChannelLine.size() == loop_num){
+        m_PandarQTChannelConfig.m_vChannelConfigTable[j][i] = std::stoi(ChannelLine[j].c_str());
+        // printf("%d  %d  \n",i, m_PandarQTChannelConfig.m_vChannelConfigTable[j][i]);
+      }
+      else{
+        std::cout << "loop num is not equal to the first channel line";
+        return -1;
+      }
+        
+    }
+  }
+  std::getline(ifs, line);
+  m_PandarQTChannelConfig.m_sHashValue = line;
+  m_PandarQTChannelConfig.m_bIsChannelConfigObtained = true;
+  return 0;
+}
+
+void PandarSwiftSDK::loadChannelConfigFile(){
+  bool loadChannelConfigFileSuccess = false;
+  int ret;
+  if(m_sPcapFile.empty()) {
+    if(NULL != m_pTcpCommandClient) {
+      char *buffer = NULL;
+      uint32_t len = 0;
+      std::string correntionString;
+      ret = TcpCommandGetLidarChannelConfig(m_pTcpCommandClient, &buffer, &len);
+      if (ret == 0 && buffer) {
+        printf("Load channel config file from lidar now!\n");
+        correntionString = std::string(buffer);
+        ret = loadChannelConfigFile(correntionString);
+          if (ret != 0) {
+            printf("Parse lidar channel config Error\n");
+          } 
+          else {
+            loadChannelConfigFileSuccess = true;
+            printf("Parse lidar channel config success!!!\n");
+          }
+        free(buffer);
+      }
+      else{
+        printf("Get lidar calibration filed\n");
+      }
+    }
+  }
+  if(!loadChannelConfigFileSuccess) {
+    printf("load channel config file from local channelConfig.csv now!\n");
+    std::ifstream fin(m_sLidarChannelConfigFile);
+    if (fin.is_open()) {
+      printf("Open channel config file success\n");
+      int length = 0;
+      std::string strlidarCalibration;
+      fin.seekg(0, std::ios::end);
+      length = fin.tellg();
+      fin.seekg(0, std::ios::beg);
+      char *buffer = new char[length];
+      fin.read(buffer, length);
+      fin.close();
+      strlidarCalibration = buffer;
+      ret = loadChannelConfigFile(strlidarCalibration);
+      if (ret != 0) {
+        printf("Parse local channel config file Error\n");
+      } 
+      else {
+        printf("Parse local channel config file Success!!!\n");
+      }
+    }
+    else{
+      printf("Open channel config file failed\n");
+    }
+  }
+
+}
+
+
+
+void PandarSwiftSDK::loadFireTimeFile(){
+  bool loadFireTimeFileSuccess = false;
+  int ret;
+  if(m_sPcapFile.empty()) {
+    if(NULL != m_pTcpCommandClient) {
+      char *buffer = NULL;
+      uint32_t len = 0;
+      std::string correntionString;
+      ret = TcpCommandGetLidarFiretime(m_pTcpCommandClient, &buffer, &len);
+      if (ret == 0 && buffer) {
+        printf("Load firetime file from lidar now!\n");
+        correntionString = std::string(buffer);
+        ret = m_objLaserOffset.ParserFiretimeData(correntionString);
+          if (ret != 0) {
+            printf("Parse lidar firetime error\n");
+          } 
+          else {
+            loadFireTimeFileSuccess = true;
+            printf("Parse lidar firetime success!!!\n");
+          }
+        free(buffer);
+      }
+      else{
+        printf("Get lidar firetime filed\n");
+      }
+    }
+  }
+	if(!loadFireTimeFileSuccess) {
+		printf("load firetime file from local firetime.csv now!\n");
+		std::ifstream fin(m_sLidarFiretimeFile);
+		if (fin.is_open()) {
+		printf("Open firetime file success\n");
+		int length = 0;
+		std::string strlidarCalibration;
+		fin.seekg(0, std::ios::end);
+		length = fin.tellg();
+		fin.seekg(0, std::ios::beg);
+		char *buffer = new char[length];
+		fin.read(buffer, length);
+		fin.close();
+		strlidarCalibration = buffer;
+		ret = m_objLaserOffset.ParserFiretimeData(strlidarCalibration);
+		if (ret != 0) {
+			printf("Parse local firetime file Error\n");
+		} 
+		else {
+			printf("Parse local firetime file Success!!!\n");
+		}
+		}
+		else{
+			printf("Open firetime file failed\n");
+		}
+	}
+
 }
 
 void PandarSwiftSDK::driverReadThread() {
@@ -507,7 +715,7 @@ void PandarSwiftSDK::init() {
 			{
 				auto header = (Pandar128HeadVersion14*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]));
 				auto tail = (Pandar128TailVersion14*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]) + PANDAR128_HEAD_SIZE +
-					(header->hasConfidence() ? PANDAR128_UNIT_WITH_CONFIDENCE_SIZE * header->u8LaserNum * header->u8BlockNum : PANDAR128_UNIT_WITHOUT_CONFIDENCE_SIZE * header->u8LaserNum * header->u8BlockNum) + 
+					header->unitSize() * header->u8LaserNum * header->u8BlockNum +
 					PANDAR128_AZIMUTH_SIZE * header->u8BlockNum + 
 					PANDAR128_CRC_SIZE + 
 					(header->hasFunctionSafety()? PANDAR128_FUNCTION_SAFETY_SIZE : 0));
@@ -530,8 +738,8 @@ void PandarSwiftSDK::init() {
 			{
 			case 2:
 			{
-				auto header = (Pandar128HeadVersion14*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]));
-				auto tail = (Pandar128TailVersion14*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]) + PANDAR128_HEAD_SIZE +
+				auto header = (PandarQT128Head*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]));
+				auto tail = (PandarQT128Tail*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]) + PANDAR128_HEAD_SIZE +
 					(header->hasConfidence() ? PANDAR128_UNIT_WITH_CONFIDENCE_SIZE * header->u8LaserNum * header->u8BlockNum : PANDAR128_UNIT_WITHOUT_CONFIDENCE_SIZE * header->u8LaserNum * header->u8BlockNum) + 
 					PANDAR128_AZIMUTH_SIZE * header->u8BlockNum + 
 					PANDAR128_CRC_SIZE + 
@@ -545,7 +753,11 @@ void PandarSwiftSDK::init() {
 				m_iLastAzimuthIndex = PANDAR128_HEAD_SIZE + 
 							(header->hasConfidence() ? PANDAR128_UNIT_WITH_CONFIDENCE_SIZE * header->u8LaserNum * (header->u8BlockNum - 1) : PANDAR128_UNIT_WITHOUT_CONFIDENCE_SIZE * header->u8LaserNum * (header->u8BlockNum - 1)) + 
 							PANDAR128_AZIMUTH_SIZE * (header->u8BlockNum - 1);
-				m_PacketsBuffer.m_stepSize = PANDARQT128_TASKFLOW_STEP_SIZE;             
+				m_PacketsBuffer.m_stepSize = PANDARQT128_TASKFLOW_STEP_SIZE;    
+				if(header->isSelfDefine()){
+				loadChannelConfigFile();
+				}
+				loadFireTimeFile();          
 			}
 			break;
 			default:
@@ -620,9 +832,9 @@ int PandarSwiftSDK::checkLiadaMode() {
 			break;
 			case 4:
 			{
-			auto header = (PandarQT128Head*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]));
-			auto tail = (PandarQT128Tail*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]) + PANDAR128_HEAD_SIZE +
-					(header->hasConfidence() ? PANDAR128_UNIT_WITH_CONFIDENCE_SIZE * header->u8LaserNum * header->u8BlockNum : PANDAR128_UNIT_WITHOUT_CONFIDENCE_SIZE * header->u8LaserNum * header->u8BlockNum) + 
+			auto header = (Pandar128HeadVersion14*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]));
+			auto tail = (Pandar128TailVersion14*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]) + PANDAR128_HEAD_SIZE +
+					header->unitSize() * header->u8LaserNum * header->u8BlockNum +
 					PANDAR128_AZIMUTH_SIZE * header->u8BlockNum + 
 					PANDAR128_CRC_SIZE + 
 					(header->hasFunctionSafety()? PANDAR128_FUNCTION_SAFETY_SIZE : 0));
@@ -658,6 +870,11 @@ int PandarSwiftSDK::checkLiadaMode() {
 					m_iLastAzimuthIndex = PANDAR128_HEAD_SIZE + 
 										(header->hasConfidence() ? PANDAR128_UNIT_WITH_CONFIDENCE_SIZE * header->u8LaserNum * (header->u8BlockNum - 1) : PANDAR128_UNIT_WITHOUT_CONFIDENCE_SIZE * header->u8LaserNum * (header->u8BlockNum - 1)) + 
 										PANDAR128_AZIMUTH_SIZE * (header->u8BlockNum - 1);
+			if(header->isSelfDefine() && header->u8LaserNum != m_PandarQTChannelConfig.m_u8LaserNum && m_sPcapFile.empty()){
+				printf("Laser num is changed\n");
+				loadChannelConfigFile();
+			}   							
+
 			}
 			break;
 			default:
@@ -865,7 +1082,7 @@ void PandarSwiftSDK::calcPointXYZIT(PandarPacket &pkt, int cursor) {
 	else if(pkt.data[3] == 4){
 		auto header = (Pandar128HeadVersion14*)(&pkt.data[0]);
 		auto tail = (Pandar128TailVersion14*)(&pkt.data[0] + PANDAR128_HEAD_SIZE + 
-					(header->hasConfidence() ? PANDAR128_UNIT_WITH_CONFIDENCE_SIZE * header->u8LaserNum * header->u8BlockNum : PANDAR128_UNIT_WITHOUT_CONFIDENCE_SIZE * header->u8LaserNum * header->u8BlockNum) + 
+					header->unitSize() * header->u8LaserNum * header->u8BlockNum + 
 					PANDAR128_AZIMUTH_SIZE * header->u8BlockNum + 
 					PANDAR128_CRC_SIZE + 
 					(header->hasFunctionSafety()? PANDAR128_FUNCTION_SAFETY_SIZE : 0));
@@ -896,6 +1113,8 @@ void PandarSwiftSDK::calcPointXYZIT(PandarPacket &pkt, int cursor) {
 				uint8_t u8Intensity = *(uint8_t*)(&pkt.data[0] + index);
 				index += INTENSITY_SIZE;
 				index += header->hasConfidence() ? CONFIDENCE_SIZE : 0;
+				index += header->hasWeightFactor() ? WEIGHT_FACTOR_SIZE : 0;
+				index += header->hasEnvLight() ? ENVLIGHT_SIZE : 0;
 				PPoint point;
 				float distance =static_cast<float>(u16Distance) * PANDAR128_DISTANCE_UNIT;
 				/* filter distance */
@@ -973,9 +1192,10 @@ void PandarSwiftSDK::calcQT128PointXYZIT(PandarPacket &pkt, int cursor) {
 				PANDAR128_AZIMUTH_SIZE * header->u8BlockNum + 
 				PANDAR128_CRC_SIZE + 
 				(header->hasFunctionSafety()? PANDAR128_FUNCTION_SAFETY_SIZE : 0));
-  if (pkt.data[0] != 0xEE && pkt.data[1] != 0xFF) {    
-    return ;
-  }
+	if (pkt.data[0] != 0xEE && pkt.data[1] != 0xFF) {    
+		return ;
+	}
+	bool isSelfDefine = header->isSelfDefine();
 
 	struct tm t = {0};
 	t.tm_year = tail->nUTCTime[0];
@@ -989,6 +1209,10 @@ void PandarSwiftSDK::calcQT128PointXYZIT(PandarPacket &pkt, int cursor) {
 	int index = 0;
 	index += PANDAR128_HEAD_SIZE;
 	for (int blockid = 0; blockid < header->u8BlockNum; blockid++) {
+		int loopIndex = blockid;
+		if((isSelfDefine && m_PandarQTChannelConfig.m_bIsChannelConfigObtained)){
+			loopIndex = (tail->nModeFlag + (blockid / ((tail->nReturnMode < 0x39) ? 1 : 2)) + 1) % m_PandarQTChannelConfig.m_vChannelConfigTable.size();
+		}
 		bool firetimeCorrectionMode = (blockid % 2 == 0) ? (tail->nReserved2[2] & 1) : (tail->nReserved2[2] & 2);
 		uint16_t u16Azimuth = *(uint16_t*)(&pkt.data[0] + index);
 		index += PANDAR128_AZIMUTH_SIZE;
@@ -1006,19 +1230,20 @@ void PandarSwiftSDK::calcQT128PointXYZIT(PandarPacket &pkt, int cursor) {
 			index += INTENSITY_SIZE;
 			index += header->hasConfidence() ? CONFIDENCE_SIZE : 0;
 			PPoint point;
-			float distance =static_cast<float>(u16Distance) * PANDAR128_DISTANCE_UNIT;
+			float distance = static_cast<float>(u16Distance) * (header->u8DistUnit / 1000.0f);
+			int laserId = (isSelfDefine && m_PandarQTChannelConfig.m_bIsChannelConfigObtained && i < m_PandarQTChannelConfig.m_vChannelConfigTable[loopIndex].size()) ? m_PandarQTChannelConfig.m_vChannelConfigTable[loopIndex][i] - 1 : i;
 			/* filter distance */
 			// if(distance < 0.1) {
 			// 	continue;
 			// }
-			float azimuth = m_fHorizatalAzimuth[i] + (u16Azimuth / 100.0f);
+			float azimuth = m_fHorizatalAzimuth[laserId] + (u16Azimuth / 100.0f);
 			float originAzimuth = azimuth;
-			float pitch = m_fElevAngle[i];
+			float pitch = m_fElevAngle[laserId];
 			float originPitch = pitch;
-			float offset = m_bClockwise ? m_objLaserOffset.getTSOffset(i, firetimeCorrectionMode, state, distance, m_u8UdpVersionMajor) : - m_objLaserOffset.getTSOffset(i, firetimeCorrectionMode, state, distance, m_u8UdpVersionMajor);
+			float offset = m_bClockwise ? m_objLaserOffset.getTSOffset(laserId, loopIndex, state, distance, m_u8UdpVersionMajor) : -m_objLaserOffset.getTSOffset(i, loopIndex, state, distance, m_u8UdpVersionMajor);
 			azimuth += m_objLaserOffset.getAngleOffset(offset, tail->nMotorSpeed, m_u8UdpVersionMajor);
 #ifdef FIRETIME_CORRECTION_CHECK 
-        printf("Laser ID = %d, speed = %d, correction mode = %d, block id = %d, origin azimuth = %f, azimuth = %f, delt = %f\n", i + 1, tail->nMotorSpeed, firetimeCorrectionMode, blockid, originAzimuth, azimuth, azimuth - originAzimuth);   
+        printf("Laser ID = %d, speed = %d, correction mode = %d, block id = %d, origin azimuth = %f, azimuth = %f, delt = %f\n", laserId + 1, tail->nMotorSpeed, loopIndex, blockid, originAzimuth, azimuth, azimuth - originAzimuth);     
 #endif
 			int pitchIdx = static_cast<int>(pitch * 100 + 0.5);
 			if (pitchIdx  >= CIRCLE) {
@@ -1108,7 +1333,7 @@ void PandarSwiftSDK::calcQT128PointXYZIT(PandarPacket &pkt, int cursor) {
 			else if(m_dTimestamp > point.timestamp) {
 				m_dTimestamp = point.timestamp;
 			}
-			point.ring = i + 1;
+			point.ring = laserId + 1;
 			int point_index;
 			if(LIDAR_RETURN_BLOCK_SIZE_2 == m_iReturnBlockSize) {
 				point_index = (u16Azimuth) / m_iAngleSize * m_iLaserNum * m_iReturnBlockSize + m_iLaserNum * (blockid % 2) + i;

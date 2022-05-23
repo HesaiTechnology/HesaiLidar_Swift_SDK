@@ -115,3 +115,10 @@ PandarSwiftSDK_1.2.22
 
 ##modify
 1. Support BD90 first time
+
+Sunday, May 22th, 2022 17:30
+##version
+PandarSwiftSDK_1.0.30
+
+##modify
+1. Support self-define QT128 
