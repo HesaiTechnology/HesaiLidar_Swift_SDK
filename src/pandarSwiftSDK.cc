@@ -72,8 +72,8 @@ PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uin
 							boost::function<void(AT128FaultMessageInfo&)> faultmessagecallback, \
 							std::string certFile, std::string privateKeyFile, std::string caFile, \
 							int startangle, int timezone, int viewMode, \ 
-							std::string publishmode, std::string datatype) {
-	m_sSdkVersion = "PandarSwiftSDK_1.2.29";
+							std::string publishmode, std::map<std::string, int32_t> threadPriority, std::string datatype) {
+	m_sSdkVersion = "PandarSwiftSDK_1.2.30";
 	printf("\n--------PandarSwift SDK version: %s--------\n",m_sSdkVersion.c_str());
 	m_sDeviceIpAddr = deviceipaddr;
 	m_sFrameId = frameid;
@@ -102,6 +102,7 @@ PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uin
 	m_iField = 0;
 	m_sDatatype = datatype;
 	m_bIsReadPcapOver = false;
+	m_threadPriority = threadPriority;
 	system("echo 562144000 > /proc/sys/net/core/rmem_max");
 	m_pTcpCommandClient =TcpCommandClientNew(m_sDeviceIpAddr.c_str(), PANDARSDK_TCP_COMMAND_PORT);
 	if(!m_sPcapFile.empty()) {
@@ -293,7 +294,11 @@ int PandarSwiftSDK::loadCorrectionString(char * data) {
 }
 
 void PandarSwiftSDK::driverReadThread() {
-	SetThreadPriority(SCHED_FIFO, 99);
+	int32_t priority = m_threadPriority["read_thread"];
+    if (priority > 0) {
+    	SetThreadPriority(SCHED_FIFO, priority);
+    }
+    pthread_setname_np(pthread_self(), "lidar_sdk_read");
 	while (1) {
 		boost::this_thread::interruption_point();
 		m_spPandarDriver->poll();
@@ -301,7 +306,11 @@ void PandarSwiftSDK::driverReadThread() {
 }
 
 void PandarSwiftSDK::publishRawDataThread() {
-	SetThreadPriority(SCHED_FIFO, 90);
+	int32_t priority = m_threadPriority["publish_thread"];
+    if (priority > 0) {
+    	SetThreadPriority(SCHED_FIFO, priority);
+    }
+    pthread_setname_np(pthread_self(), "lidar_sdk_pub");
 	while (1) {
 		boost::this_thread::interruption_point();
 		m_spPandarDriver->publishRawData();
@@ -403,7 +412,11 @@ int PandarSwiftSDK::parseData(Pandar128PacketVersion13 &packet, const uint8_t *r
 }
 
 int PandarSwiftSDK::processLiDARData() {
-	SetThreadPriority(SCHED_FIFO, 91);
+	int32_t priority = m_threadPriority["process_thread"];
+    if (priority > 0) {
+    	SetThreadPriority(SCHED_FIFO, priority);
+    }
+    pthread_setname_np(pthread_self(), "lidar_sdk_proc");
 	double lastTimestamp = 0.0;
 	struct timespec ts;
 	int ret = 0;

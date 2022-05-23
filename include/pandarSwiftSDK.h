@@ -520,6 +520,7 @@ class PandarSwiftSDK {
 								std::string certFile, std::string privateKeyFile, std::string caFile, \
 								int startangle, int timezone, int viewMode, \
                 std::string publishmode, \
+                std::map<std::string, int32_t> threadPriority={}, \
                 std::string datatype=LIDAR_DATA_TYPE);
 	~PandarSwiftSDK() {
     if(m_pTcpCommandClient){
@@ -617,6 +618,7 @@ class PandarSwiftSDK {
   int m_iEdgeAzimuthSize;
   std::string m_sDatatype;
   bool m_bIsReadPcapOver;
+  std::map<std::string, int32_t> m_threadPriority;
 
 };
 

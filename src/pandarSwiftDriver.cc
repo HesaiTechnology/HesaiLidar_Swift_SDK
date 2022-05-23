@@ -77,9 +77,6 @@ bool PandarSwiftDriver::poll(void) {
 	memset(&time, 0, sizeof(time));
 	bool skipSleep = true;
 	for (int i = 0; i < m_iPandarScanArraySize; ++i) {
-		if(skipSleep){
-			usleep(3000);
-		}
 		if (m_bPaserPacp)  // have PCAP file?
 		{
 			int count = 0;
@@ -126,6 +123,9 @@ bool PandarSwiftDriver::poll(void) {
 		}	
 		if(m_sPublishmodel == "both_point_raw" || m_sPublishmodel == "point") {
 			m_pPandarSwiftSDK->pushLiDARData(m_arrPandarPackets[m_iPktPushIndex][i]);
+		}
+		if(skipSleep || isSocketTimeout){
+			usleep(3000);
 		}
 	}
 	int temp;

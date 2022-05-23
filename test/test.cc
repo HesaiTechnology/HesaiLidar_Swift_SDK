@@ -92,6 +92,10 @@ void faultmessagecallback(AT128FaultMessageInfo &faultMessage) {
 
 int main(int argc, char** argv) {
     boost::shared_ptr<PandarSwiftSDK> spPandarSwiftSDK;
+    std::map<std::string, int32_t> threadPriority;
+    threadPriority["process_thread"] = 91;
+    threadPriority["publish_thread"] = 90;
+    threadPriority["read_thread"] = 99;
     spPandarSwiftSDK.reset(new PandarSwiftSDK(std::string("192.168.1.201"), 2368, 10110, std::string("PandarAT128"), \
                                 std::string("../params/corrections1.5.dat"), \
                                 std::string(""), \
@@ -100,7 +104,7 @@ int main(int argc, char** argv) {
                                 std::string(""), \
                                 std::string(""), \
                                 0, 0, 1, \
-                                std::string("both_point_raw")));
+                                std::string("both_point_raw"), threadPriority));
 #ifdef SET_LIDAR_STANDBY_MODE 
     spPandarSwiftSDK->setStandbyLidarMode();  
 #endif 

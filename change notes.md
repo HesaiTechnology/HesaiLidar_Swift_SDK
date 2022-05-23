@@ -174,3 +174,10 @@ PandarSwiftSDK_1.2.29
 ##modify
 1. Set timeout of ptc command to 500ms
  
+Monday,May 23th, 2022 13:30
+##version
+PandarSwiftSDK_1.2.30
+
+##modify
+1. Support to set thread priority
+2. Add sleep when disconnect lidar
