@@ -181,3 +181,10 @@ PandarSwiftSDK_1.2.30
 ##modify
 1. Support to set thread priority
 2. Add sleep when disconnect lidar
+
+Wednesday,May 25th, 2022 17:30
+##version
+PandarSwiftSDK_1.2.31
+
+##modify
+1. Fix bug when disconnect lidar

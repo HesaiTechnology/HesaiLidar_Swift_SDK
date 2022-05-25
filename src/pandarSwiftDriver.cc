@@ -90,6 +90,10 @@ bool PandarSwiftDriver::poll(void) {
 		bool isSocketTimeout = m_pPandarSwiftSDK->getIsSocketTimeout();
 		int rc = m_spInput->getPacket(&m_arrPandarPackets[m_iPktPushIndex][i], isSocketTimeout, skipSleep);
 		m_pPandarSwiftSDK->setIsSocketTimeout(isSocketTimeout);
+		if(skipSleep || (isSocketTimeout && !m_bPaserPacp)){
+			// printf("sleep 3ms\n");
+			usleep(3000);
+		}
 		if(rc == GPS_PACKET) {
 			// gps packet;
 			PandarGPS packet;
@@ -124,9 +128,7 @@ bool PandarSwiftDriver::poll(void) {
 		if(m_sPublishmodel == "both_point_raw" || m_sPublishmodel == "point") {
 			m_pPandarSwiftSDK->pushLiDARData(m_arrPandarPackets[m_iPktPushIndex][i]);
 		}
-		if(skipSleep || isSocketTimeout){
-			usleep(3000);
-		}
+		
 	}
 	int temp;
 	temp = m_iPktPushIndex;
