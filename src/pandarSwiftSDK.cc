@@ -74,7 +74,7 @@ PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uin
 							std::string certFile, std::string privateKeyFile, std::string caFile, \
 							int startangle, int timezone, std::string publishmode, bool coordinateCorrectionFlag, \
 							std::string channelconfigflie, std::string datatype) {
-	m_sSdkVersion = "PandarSwiftSDK_1.2.30";
+	m_sSdkVersion = "PandarSwiftSDK_1.2.32";
 	printf("\n--------PandarSwift SDK version: %s--------\n",m_sSdkVersion.c_str());
 	m_sDeviceIpAddr = deviceipaddr;
 	m_sFrameId = frameid;
@@ -127,7 +127,7 @@ PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uin
 	if(LIDAR_DATA_TYPE == datatype) {
 		m_driverReadThread = new boost::thread(boost::bind(&PandarSwiftSDK::driverReadThread, this));
 	}
-	if(m_sPublishmodel == "both_point_raw" || m_sPublishmodel == "point" || LIDAR_DATA_TYPE != datatype) {
+	if(m_sPublishmodel == "both_point_raw" || m_sPublishmodel == "points" || LIDAR_DATA_TYPE != datatype) {
 		m_processLiDARDataThread = new boost::thread(boost::bind(&PandarSwiftSDK::processLiDARData, this));
 		m_publishPointsThread = new boost::thread(boost::bind(&PandarSwiftSDK::publishPointsThread, this));
 	}
@@ -981,7 +981,7 @@ void PandarSwiftSDK::changeAngleSize() {
 }
 
 void PandarSwiftSDK::changeReturnBlockSize() {
-	if(0x39 == m_iReturnMode || 0x3b == m_iReturnMode || 0x3c == m_iReturnMode) {
+	if(0x39 == m_iReturnMode || 0x3b == m_iReturnMode || 0x3c == m_iReturnMode || 0x3a == m_iReturnMode || 0x3e == m_iReturnMode) {
 		m_iReturnBlockSize = LIDAR_RETURN_BLOCK_SIZE_2;
 	} else {
 		m_iReturnBlockSize = LIDAR_RETURN_BLOCK_SIZE_1;

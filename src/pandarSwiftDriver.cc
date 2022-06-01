@@ -85,18 +85,20 @@ bool PandarSwiftDriver::poll(void) {
 			continue;
 		}
 		if(rc > 0) return false;  // end of file reached?
-		if(m_sPublishmodel == "both_point_raw" || m_sPublishmodel == "point") {
+		if(m_sPublishmodel == "both_point_raw" || m_sPublishmodel == "points") {
 			m_pPandarSwiftSDK->pushLiDARData(m_arrPandarPackets[m_iPktPushIndex][i]);
 		}
 	}
-	int temp;
-	temp = m_iPktPushIndex;
-	m_iPktPushIndex = m_iPktPopIndex;
-	m_iPktPopIndex = temp;
-	if(m_bNeedPublish == false)
-		m_bNeedPublish = true;
-	else
-		printf("CPU not fast enough, data not published yet, new data comming!!!\n");
+	if (m_sPublishmodel == "both_point_raw" || m_sPublishmodel == "raw") {
+    int temp;
+    temp = m_iPktPushIndex;
+    m_iPktPushIndex = m_iPktPopIndex;
+    m_iPktPopIndex = temp;
+    if (m_bNeedPublish == false)
+      m_bNeedPublish = true;
+    else
+      printf("CPU not fast enough, data not published yet, new data comming!!!\n");
+  }
 	return true;
 }
 
