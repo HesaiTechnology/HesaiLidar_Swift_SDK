@@ -51,7 +51,7 @@ void RunPandarSwiftSDK(char* deviceipaddr, int lidarport, int gpsport, char* cor
                                 certFile, \
                                 privateKeyFile, \
                                 caFile, \
-                                0, 0, std::string("both_point_raw"), false,""));  
+                                0, 0, std::string("both_point_raw"), false, ""));  
   
     sleep(runTime);
     spPandarSwiftSDK->stop();

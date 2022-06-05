@@ -22,7 +22,6 @@
 #define PANDARQT128_READ_PACKET_SIZE (200)
 #define PANDAR80_READ_PACKET_SIZE (1800)
 #define PANDAR64S_READ_PACKET_SIZE (450)
-#define PANDAR90_READ_PACKET_SIZE (200)
 #define PANDAR40S_READ_PACKET_SIZE (225)
 #define PANDAR_LASER_NUMBER_INDEX (6)
 #define PANDAR_MAJOR_VERSION_INDEX (2)
@@ -34,7 +33,7 @@ class PandarSwiftDriver {
  public:
 	PandarSwiftDriver(std::string deviceipaddr, uint16_t lidarport, uint16_t gpsport, std::string frameid, std::string pcapfile,
                 	boost::function<void(PandarPacketsArray*)> rawcallback, \
-					PandarSwiftSDK *pandarSwiftSDK, std::string publishmode, std::string datatype);
+					PandarSwiftSDK *pandarSwiftSDK, std::string publishmode, std::string multicast_ip, std::string datatype);
 	~PandarSwiftDriver() {}
 
 /** poll the device

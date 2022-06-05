@@ -36,7 +36,7 @@ void lidarCallback(boost::shared_ptr<PPointCloud> cld, double timestamp) {
         if(10 == frameItem) {
             printf("write pcd file\n");
             pcl::PCDWriter writer;
-            writer.write("P128Pcd.pcd", *cld);
+            writer.write("PandarFTPcd.pcd", *cld);
         }
     }   
 }
@@ -48,14 +48,13 @@ void rawcallback(PandarPacketsArray *array) {
 int main(int argc, char** argv) {
     boost::shared_ptr<PandarSwiftSDK> spPandarSwiftSDK;
     spPandarSwiftSDK.reset(new PandarSwiftSDK(std::string("192.168.1.201"), 2368, 10110, std::string("Pandar128"), \
-                                std::string("../params/Pandar128_Correction.csv"), \
-                                std::string("../params/Pandar128_Firetimes.csv"), \
+                                std::string("../params/PandarFT_Correction.csv"), \
+                                std::string(""), \
                                 std::string(""), lidarCallback, rawcallback, gpsCallback, \
                                 std::string(""), \
                                 std::string(""), \
                                 std::string(""), \
-                                0, 0, std::string("both_point_raw"), false, \
-                                std::string("../params/QT128C2X_Channel_Cofig.csv")));
+                                0, 0, std::string("both_point_raw"), false, ""));
     while (true) {
         sleep(100);
     }

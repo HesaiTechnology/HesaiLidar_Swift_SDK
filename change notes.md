@@ -131,3 +131,10 @@ PandarSwiftSDK_1.2.32
 ##modify
 1. Fix bug in publish points mode
 2. Support 0x3a and 0x3e return mode of QT128
+
+Thursday, July 6th, 2021 17:30
+##version
+PandarSwiftSDK_1.2.33
+
+##modify
+1. Support FT

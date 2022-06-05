@@ -2,7 +2,8 @@
 ## About the project
 This repository includes the software development kit for Pandar LiDAR sensor manufactured by Hesai Technology. Branches are included for different systems and UDP protocol versions:
 * master: The software development kit for Ubuntu 18.04 and Ubuntu 20.04 supports Hesai lidar with UDP protocol v1.3, v1.4, v3.2 
-* ubuntu16.04: The software development kit for Ubuntu 16.04 supports Hesai lidar with UDP protocol v1.3, v1.4, v3.2  
+* ubuntu16.04: The software development kit for Ubuntu 16.04 supports Hesai lidar with UDP protocol v1.3, v1.4, v3.2
+* UDP7.1: The software development kit for ubuntu16.04,ubuntu 18.04 and Ubuntu 20.04 supports UDP protocol v7.1   
 
 LiDAR sensor manufactured by Hesai Technology.
 ## Environment and Dependencies
@@ -67,21 +68,30 @@ PandarSwiftSDK(std::string("192.168.1.201"), 2368, 10110, std::string("Pandar128
                                 std::string(""), \
                                 std::string(""), \
                                 std::string(""), \
-                                0, 0, std::string("both_point_raw"), false, \
-                                std::string("../params/QT128C2X_Channel_Cofig.csv"));
+                                0, 0, std::string("both_point_raw"), false, "");
 
 
 // for PandarQT128
 PandarSwiftSDK(std::string("192.168.1.201"), 2368, 10110, std::string("PandarQT128"), \
-                                std::string("../params/QT128C2X_Correction.csv"), \
-                                std::string("../params/QT128C2X_Firetimes.csv"), \
+                                std::string("../params/PandarQT128_Correction.csv"), \
+                                std::string("../params/PandarQT128_Firetimes.csv"), \
                                 std::string(""), \
                                 lidarCallback, rawcallback, gpsCallback, \
                                 std::string(""), \
                                 std::string(""), \
                                 std::string(""), \
-                                0, 0, std::string("both_point_raw"), false, \
-                                std::string("../params/QT128C2X_Channel_Cofig.csv"));
+                                0, 0, std::string("both_point_raw"), false, "");
+
+// for PandarFT
+PandarSwiftSDK(std::string("192.168.1.201"), 2368, 10110, std::string("PandarFT"), \
+                                std::string("../params/PandarFT_Correction.csv"), \
+                                std::string(""), \
+                                std::string(""), \
+                                lidarCallback, rawcallback, gpsCallback, \
+                                std::string(""), \
+                                std::string(""), \
+                                std::string(""), \
+                                0, 0, std::string("both_point_raw"), false， "");
 
 ```
 Parameter description
@@ -104,7 +114,7 @@ Parameter description
         publishmode       The mode of publish
         datatype          The model of input data
 coordinateCorrectionFlag  The flag to control whether to do coordinate Correction
-    channel_config_file   The channel config file path
+        multicast_ip      The multicast IP address of connected Lidar, will be used to get udp packets from multicast ip address|
 
 ```
 Set the pcap flie path only when you what to read a pcap

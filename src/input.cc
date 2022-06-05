@@ -76,39 +76,85 @@ bool Input::checkPacketSize(PandarPacket *pkt) {
   uint8_t laserNum = pkt->data[6];
   uint8_t blockNum = pkt->data[7];
   uint8_t flags = pkt->data[11];
+  uint8_t majorVersion = pkt->data[2];
 
   bool hasSeqNum = (flags & 1); 
   bool hasImu = (flags & 2);
   bool hasFunctionSafety = (flags & 4);
   bool hasSignature = (flags & 8);
   bool hasConfidence = (flags & 0x10);
-
-  m_iUtcIindex = PANDAR128_HEAD_SIZE +
+  uint32_t calc_size = 0;
+  int channelNum = 0;
+  switch(majorVersion){
+    case 1:
+    case 3:
+      m_iUtcIindex = PANDAR128_HEAD_SIZE +
+              (hasConfidence ? PANDAR128_UNIT_WITH_CONFIDENCE_SIZE * laserNum * blockNum : PANDAR128_UNIT_WITHOUT_CONFIDENCE_SIZE * laserNum * blockNum) + 
             (hasConfidence ? PANDAR128_UNIT_WITH_CONFIDENCE_SIZE * laserNum * blockNum : PANDAR128_UNIT_WITHOUT_CONFIDENCE_SIZE * laserNum * blockNum) + 
-            PANDAR128_AZIMUTH_SIZE * blockNum + PANDAR128_CRC_SIZE +
+              (hasConfidence ? PANDAR128_UNIT_WITH_CONFIDENCE_SIZE * laserNum * blockNum : PANDAR128_UNIT_WITHOUT_CONFIDENCE_SIZE * laserNum * blockNum) + 
+            (hasConfidence ? PANDAR128_UNIT_WITH_CONFIDENCE_SIZE * laserNum * blockNum : PANDAR128_UNIT_WITHOUT_CONFIDENCE_SIZE * laserNum * blockNum) + 
+              (hasConfidence ? PANDAR128_UNIT_WITH_CONFIDENCE_SIZE * laserNum * blockNum : PANDAR128_UNIT_WITHOUT_CONFIDENCE_SIZE * laserNum * blockNum) + 
+              PANDAR128_AZIMUTH_SIZE * blockNum + PANDAR128_CRC_SIZE +
+              (hasFunctionSafety ? PANDAR128_FUNCTION_SAFETY_SIZE : 0) + 
             (hasFunctionSafety ? PANDAR128_FUNCTION_SAFETY_SIZE : 0) + 
+              (hasFunctionSafety ? PANDAR128_FUNCTION_SAFETY_SIZE : 0) + 
+            (hasFunctionSafety ? PANDAR128_FUNCTION_SAFETY_SIZE : 0) + 
+              (hasFunctionSafety ? PANDAR128_FUNCTION_SAFETY_SIZE : 0) + 
+              PANDAR128_TAIL_RESERVED1_SIZE + 
             PANDAR128_TAIL_RESERVED1_SIZE + 
-            PANDAR128_TAIL_RESERVED2_SIZE +
-            PANDAR128_TAIL_RESERVED3_SIZE +
-            PANDAR128_AZIMUTH_FLAG_SIZE +
-            PANDAR128_SHUTDOWN_FLAG_SIZE +
-            PANDAR128_RETURN_MODE_SIZE +
-            PANDAR128_MOTOR_SPEED_SIZE;
-  m_iTimestampIndex = m_iUtcIindex + PANDAR128_UTC_SIZE;
-  m_iSequenceNumberIndex = m_iTimestampIndex +
-						   PANDAR128_TS_SIZE +
-						   PANDAR128_FACTORY_INFO;
+              PANDAR128_TAIL_RESERVED1_SIZE + 
+            PANDAR128_TAIL_RESERVED1_SIZE + 
+              PANDAR128_TAIL_RESERVED1_SIZE + 
+              PANDAR128_TAIL_RESERVED2_SIZE +
+              PANDAR128_TAIL_RESERVED3_SIZE +
+              PANDAR128_AZIMUTH_FLAG_SIZE +
+              PANDAR128_SHUTDOWN_FLAG_SIZE +
+              PANDAR128_RETURN_MODE_SIZE +
+              PANDAR128_MOTOR_SPEED_SIZE;
+      m_iTimestampIndex = m_iUtcIindex + PANDAR128_UTC_SIZE;
+      m_iSequenceNumberIndex = m_iTimestampIndex +
+                  PANDAR128_TS_SIZE +
+                PANDAR128_FACTORY_INFO;
 
-  uint32_t size = m_iSequenceNumberIndex + 
+      calc_size = m_iSequenceNumberIndex + 
+                      (hasImu ? PANDAR128_IMU_SIZE : 0) + 
                   (hasImu ? PANDAR128_IMU_SIZE : 0) + 
-                  (hasSeqNum ? PANDAR128_SEQ_NUM_SIZE  : 0) +
-                  PANDAR128_CRC_SIZE +
-                  (hasSignature ? PANDAR128_SIGNATURE_SIZE : 0);
-  if(pkt->size == size){
+                      (hasImu ? PANDAR128_IMU_SIZE : 0) + 
+                  (hasImu ? PANDAR128_IMU_SIZE : 0) + 
+                      (hasImu ? PANDAR128_IMU_SIZE : 0) + 
+                      PANDAR128_CRC_SIZE +
+                      (hasSignature ? PANDAR128_SIGNATURE_SIZE : 0);
+    break;
+    case 7:
+	  channelNum = pkt->data[PANDARFT_SOB_SIZE + PANDARFT_VERSION_MAJOR_SIZE + \
+							PANDARFT_VERSION_MINOR_SIZE + PANDARFT_VERSION_TDM_SIZE + \
+							PANDARFT_HEAD_RESERVED1_SIZE + PANDARFT_TOTAL_COLUMN_NUM_SIZE];
+      m_iUtcIindex = PANDARFT_HEAD_SIZE + channelNum * PANDARFT_UNIT_SIZE + 
+              PANDARFT_TAIL_RESERVED1_SIZE + 
+              PANDARFT_TAIL_RESERVED2_SIZE +
+              PANDARFT_TAIL_CLOUMN_ID_SIZE +
+              PANDARFT_FRAME_FLAG_SIZE +
+              PANDARFT_SHUTDOWN_FLAG_SIZE +
+              PANDARFT_MOTOR_SPEED_SIZE +
+              PANDARFT_RETURN_MODE_SIZE;
+      m_iTimestampIndex = m_iUtcIindex + PANDARFT_UTC_SIZE;
+      m_iSequenceNumberIndex = m_iTimestampIndex +
+                PANDARFT_TS_SIZE +
+                 PANDARFT_FACTORY_INFO;
+
+      calc_size = m_iSequenceNumberIndex + PANDARFT_SEQ_NUM_SIZE;
+  
+    break;
+    default:
+    break;                                              
+  }
+
+  if(pkt->size == calc_size){
+    // ROS_WARN("Packet size match.caculated size:%d, packet size:%d", cac_size, pkt->size);
     return true;
   }
   else{
-    printf("Packet size mismatch.caculated size:%d, packet size:%d", size, pkt->size);
+    printf("Packet size mismatch.caculated size:%d, packet size:%d", calc_size, pkt->size);
     return false;
   }
 }
@@ -161,8 +207,27 @@ void Input::setUdpVersion(uint8_t major, uint8_t minor) {
         printf("error udp version minor: %d\n", minor);
         break;
       }  
-	  }
+	}
     break;
+	case UDP_VERSION_MAJOR_7:
+    {
+      switch (minor)
+      {
+      case UDP_VERSION_MINOR_1:
+        m_sUdpVresion = UDP_VERSION_7_1;
+        m_iTimestampIndex = udpVersion71[TIMESTAMP_INDEX];
+        m_iUtcIindex = udpVersion71[UTC_INDEX];
+        m_iSequenceNumberIndex = udpVersion71[SEQUENCE_NUMBER_INDEX];
+        m_iPacketSize = udpVersion71[PACKET_SIZE];
+        m_bGetUdpVersion = true;
+        break;
+
+      default:
+        printf("error udp version minor: %d\n", minor);
+        break;
+      }  
+	}
+	break;
     default:
     printf("error udp version minor: %d\n", minor);
     break;
@@ -182,7 +247,7 @@ std::string Input::getUdpVersion() {
  *  @param deviceipaddr device ip address
  *  @param port UDP port number
  */
-InputSocket::InputSocket(std::string deviceipaddr, uint16_t lidarport, uint16_t gpsport)
+InputSocket::InputSocket(std::string deviceipaddr, uint16_t lidarport, uint16_t gpsport, std::string multicast_ip)
 	: Input(deviceipaddr, lidarport) {
 	m_iSockfd = -1;
 	m_iSockGpsfd = -1;
@@ -245,6 +310,22 @@ InputSocket::InputSocket(std::string deviceipaddr, uint16_t lidarport, uint16_t 
 	int set_error = setsockopt(m_iSockfd, SOL_SOCKET, SO_NO_CHECK, &nochecksum, sizeof(nochecksum));
 	int nRecvBuf = 26214400;
 	setsockopt(m_iSockfd, SOL_SOCKET, SO_RCVBUF, (const char*)&nRecvBuf, sizeof(int));
+	if(multicast_ip != ""){
+      struct ipv6_mreq mreq6;
+      if(!inet_pton(AF_INET6, multicast_ip.c_str(), &(mreq6.ipv6mr_multiaddr))) {
+          perror("udp_server input multicast ip error! \n");
+          return ;
+      }
+      mreq6.ipv6mr_interface = htonl(INADDR_ANY);
+  
+      int err = setsockopt(m_iSockfd, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP, (const char *)&mreq6, sizeof(mreq6));
+      setsockopt(m_iSockGpsfd, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP, (const char *)&mreq6, sizeof(mreq6));
+      if (err)
+      {
+          printf("udp_server setsockopt IPPROTO_IPV6 IP_ADD_MEMBERSHIP failed: %d \n", err);
+          return ;
+      }
+    }
 	printf("Pandar socket fd is %d\n", m_iSockfd);
 }
 
@@ -305,8 +386,6 @@ int InputSocket::getPacket(PandarPacket *pkt) {
       		break;
     	}
   	}
-	if(!m_bGetUdpVersion)
-			return 0;
 	if (pkt->size == 512) {
 		// ROS_ERROR("GPS");
 		return 2;
@@ -424,7 +503,10 @@ int InputPCAP::getPacket(PandarPacket *pkt) {
 void InputPCAP::sleep(const uint8_t *packet) {
 	struct tm t;
 	m_iPktCount = 0;
-	t.tm_year  = packet[m_iUtcIindex];
+	t.tm_year  = packet[m_iUtcIindex] + 100;
+	if (t.tm_year >= 200) {
+		t.tm_year -= 100;
+	}
 	t.tm_mon   = packet[m_iUtcIindex+1] - 1;
 	t.tm_mday  = packet[m_iUtcIindex+2];
 	t.tm_hour  = packet[m_iUtcIindex+3];

@@ -22,7 +22,7 @@
 
 PandarSwiftDriver::PandarSwiftDriver(std::string deviceipaddr, uint16_t lidarport, uint16_t gpsport, std::string frameid, std::string pcapfile,
                         	boost::function<void(PandarPacketsArray*)> rawcallback, \
-						    PandarSwiftSDK *pandarSwiftSDK, std::string publishmode, std::string datatype) {
+						    PandarSwiftSDK *pandarSwiftSDK, std::string publishmode, std::string multicast_ip, std::string datatype) {
 	m_sFrameId = frameid;
 	m_funcRawCallback = rawcallback;
 	m_pPandarSwiftSDK = pandarSwiftSDK;
@@ -40,7 +40,7 @@ PandarSwiftDriver::PandarSwiftDriver(std::string deviceipaddr, uint16_t lidarpor
 	} 
 	else {
 		// read data from live socket
-		m_spInput.reset(new InputSocket(deviceipaddr, lidarport, gpsport));
+		m_spInput.reset(new InputSocket(deviceipaddr, lidarport, gpsport, multicast_ip));
 	}
 }
 
@@ -82,23 +82,23 @@ bool PandarSwiftDriver::poll(void) {
 				m_pPandarSwiftSDK->processGps(&packet);// gps callback
 			}
 			i--;
-			continue;
 		}
 		if(rc > 0) return false;  // end of file reached?
 		if(m_sPublishmodel == "both_point_raw" || m_sPublishmodel == "points") {
 			m_pPandarSwiftSDK->pushLiDARData(m_arrPandarPackets[m_iPktPushIndex][i]);
 		}
 	}
-	if (m_sPublishmodel == "both_point_raw" || m_sPublishmodel == "raw") {
-    int temp;
-    temp = m_iPktPushIndex;
-    m_iPktPushIndex = m_iPktPopIndex;
-    m_iPktPopIndex = temp;
-    if (m_bNeedPublish == false)
-      m_bNeedPublish = true;
-    else
-      printf("CPU not fast enough, data not published yet, new data comming!!!\n");
-  }
+	if(m_sPublishmodel == "both_point_raw" || m_sPublishmodel == "raw") {
+		int temp;
+		temp = m_iPktPushIndex;
+		m_iPktPushIndex = m_iPktPopIndex;
+		m_iPktPopIndex = temp;
+		if(m_bNeedPublish == false)
+			m_bNeedPublish = true;
+		else
+			printf("CPU not fast enough, data not published yet, new data comming!!!\n");
+
+	}
 	return true;
 }
 
@@ -131,8 +131,6 @@ int PandarSwiftDriver::getPandarScanArraySize(boost::shared_ptr<Input> input_){
           return PANDAR64S_READ_PACKET_SIZE;
         case PANDAR40S_LASER_NUM:
           return PANDAR40S_READ_PACKET_SIZE;
-		case PANDAR90_LASER_NUM:
-		  return PANDAR90_READ_PACKET_SIZE;
         default:
           break;
       }

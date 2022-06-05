@@ -44,6 +44,7 @@
 #define LIDAR_ANGLE_SIZE_80 (80)
 #define LIDAR_RETURN_BLOCK_SIZE_1 (1)
 #define LIDAR_RETURN_BLOCK_SIZE_2 (2)
+#define LIDAR_RETURN_BLOCK_SIZE_3 (3)
 
 #define GPS_PACKET_SIZE (512)
 #define GPS_PACKET_FLAG_SIZE (2)
@@ -59,7 +60,6 @@
 #define PANDAR64S_LASER_NUM (64)
 #define PANDAR40S_LASER_NUM (40)
 #define PANDAR80_LASER_NUM (80)
-#define PANDAR90_LASER_NUM (90)
 #define PANDAR128_BLOCK_NUM (2)
 #define MAX_BLOCK_NUM (8)
 #define PANDAR128_DISTANCE_UNIT (0.004)
@@ -82,8 +82,6 @@
 #define DISTANCE_SIZE (2)
 #define INTENSITY_SIZE (1)
 #define CONFIDENCE_SIZE (1)
-#define WEIGHT_FACTOR_SIZE (1)
-#define ENVLIGHT_SIZE (1)
 #define PANDAR128_UNIT_WITHOUT_CONFIDENCE_SIZE (DISTANCE_SIZE + INTENSITY_SIZE)
 #define PANDAR128_UNIT_WITH_CONFIDENCE_SIZE (DISTANCE_SIZE + INTENSITY_SIZE + CONFIDENCE_SIZE)
 #define PANDAR128_BLOCK_SIZE \
@@ -115,13 +113,57 @@
 #define PANDAR128_CRC_SIZE (4)
 #define PANDAR128_FUNCTION_SAFETY_SIZE (17)
 
-#define HS_LIDAR_QT128_COORDINATE_CORRECTION_ODOG (0.0354)
-#define HS_LIDAR_QT128_COORDINATE_CORRECTION_OGOT (-0.0072)
-
 #define CIRCLE_ANGLE (36000)
 #define MOTOR_SPEED_600 (600)
+#define MOTOR_SPEED_150 (150)
 #define MOTOR_SPEED_900 (900)
 #define MOTOR_SPEED_1200 (1200)
+
+#define PANDARFT_DISTANCE_UNIT (0.001)
+#define PANDARFT_SOB_SIZE (2)
+#define PANDARFT_VERSION_MAJOR_SIZE (1)
+#define PANDARFT_VERSION_MINOR_SIZE (1)
+#define PANDARFT_VERSION_TDM_SIZE (1)
+#define PANDARFT_HEAD_RESERVED1_SIZE (1)
+#define PANDARFT_TOTAL_COLUMN_NUM_SIZE (2)
+#define PANDARFT_TOTAL_ROW_NUM_SIZE (2)
+#define PANDARFT_COLUMN_RESOLUTION_SIZE (1)
+#define PANDARFT_ROW_RESOLUTION_SIZE (1)
+#define PANDARFT_ECHO_COUNT_SIZE (1)
+#define PANDARFT_DISTANCE_UNIT_SIZE (1)
+#define PANDARFT_BLOCK_INDEX_SIZE (1)
+#define PANDARFT_CHANNEL_NUM_SIZE (2)
+#define PANDARFT_HEAD_RESERVED2_SIZE (8)
+#define PANDARFT_HEAD_SIZE     \
+  (PANDARFT_SOB_SIZE + PANDARFT_VERSION_MAJOR_SIZE + \
+   PANDARFT_VERSION_MINOR_SIZE + PANDARFT_VERSION_TDM_SIZE + \
+   PANDARFT_HEAD_RESERVED1_SIZE + PANDARFT_TOTAL_COLUMN_NUM_SIZE + \
+   PANDARFT_TOTAL_ROW_NUM_SIZE + PANDARFT_COLUMN_RESOLUTION_SIZE + \
+   PANDARFT_ROW_RESOLUTION_SIZE + PANDARFT_ECHO_COUNT_SIZE + \
+   PANDARFT_DISTANCE_UNIT_SIZE + PANDARFT_BLOCK_INDEX_SIZE + \
+   PANDARFT_CHANNEL_NUM_SIZE + PANDARFT_HEAD_RESERVED2_SIZE)
+#define DISTANCE_SIZE (2)
+#define INTENSITY_SIZE (1)
+#define ENV_LIGHT_SIZE (2)
+#define CONFIDENCE_SIZE (1)
+#define PANDARFT_UNIT_SIZE \
+        (CONFIDENCE_SIZE + \
+        ENV_LIGHT_SIZE + \
+        DISTANCE_SIZE + \
+        INTENSITY_SIZE)
+#define PANDARFT_TAIL_RESERVED1_SIZE (3)
+#define PANDARFT_TAIL_RESERVED2_SIZE (4)
+#define PANDARFT_TAIL_CLOUMN_ID_SIZE (2)
+#define PANDARFT_FRAME_FLAG_SIZE (1)
+#define PANDARFT_SHUTDOWN_FLAG_SIZE (1)
+#define PANDARFT_TAIL_RESERVED3_SIZE (3)
+#define PANDARFT_MOTOR_SPEED_SIZE (2)
+#define PANDARFT_AZIMUTH_FLAG_SIZE (2)
+#define PANDARFT_TS_SIZE (4)
+#define PANDARFT_RETURN_MODE_SIZE (1)
+#define PANDARFT_FACTORY_INFO (1)
+#define PANDARFT_UTC_SIZE (6)
+#define PANDARFT_SEQ_NUM_SIZE (4)
 
 typedef struct __attribute__((__packed__)) Pandar128Unit_s {
   uint16_t u16Distance;
@@ -158,17 +200,11 @@ typedef struct __attribute__((__packed__)) Pandar128HeadVersion14_s {
   uint8_t u8DistUnit;
   uint8_t u8EchoNum;
   uint8_t u8Flags;
-  inline int unitSize() const { return PANDAR128_UNIT_WITHOUT_CONFIDENCE_SIZE + \
-                                (hasConfidence() ? CONFIDENCE_SIZE : 0) + \
-                                (hasWeightFactor() ? WEIGHT_FACTOR_SIZE: 0) + \
-                                (hasWeightFactor() ? ENVLIGHT_SIZE : 0);};
   inline bool hasSeqNum() const { return u8Flags & 1; }
   inline bool hasImu() const { return u8Flags & 2; }
   inline bool hasFunctionSafety() const { return u8Flags & 4; }
   inline bool hasSignature() const { return u8Flags & 8; }
   inline bool hasConfidence() const { return u8Flags & 0x10; }
-  inline bool hasWeightFactor() const { return u8Flags & 0x20; }
-  inline bool hasEnvLight() const { return u8Flags & 0x40; }
 
 } Pandar128HeadVersion14;
 
@@ -188,10 +224,26 @@ typedef struct __attribute__((__packed__)) PandarQT128Head_s {
   inline bool hasFunctionSafety() const { return u8Flags & 4; }
   inline bool hasSignature() const { return u8Flags & 8; }
   inline bool hasConfidence() const { return u8Flags & 0x10; }
-  inline bool hasWeightFactor() const { return u8Flags & 0x20; }
-  inline bool isSelfDefine() const { return u8Flags & 0x40; }
 
 } PandarQT128Head;
+
+typedef struct __attribute__((__packed__)) PandarFTHead_s {
+  uint16_t u16Sob;
+  uint8_t u8VersionMajor;
+  uint8_t u8VersionMinor;
+  uint8_t u8VersionTDM;
+  uint8_t u8Reserve1;
+  uint16_t u16TotalColumnNum;
+  uint16_t u16TotalRowNum;
+  uint8_t u8CloumnResolution;
+  uint8_t u8RowResolution;
+  uint8_t u8EchoCount;
+  uint8_t u8DistUnit;
+  uint8_t u8BlockIndex;
+  uint8_t u8ChannelNum;
+  uint8_t u8Reserve2[8];
+} PandarFTHead;
+
 
 typedef struct __attribute__((__packed__)) Pandar128TailVersion13_s {
   uint8_t nReserved1[3];
@@ -222,8 +274,7 @@ typedef struct __attribute__((__packed__)) Pandar128TailVersion14_s {
 
 typedef struct __attribute__((__packed__)) PandarQT128Tail_s {
   uint8_t nReserved1[3];
-  uint8_t nReserved2[2];
-  uint8_t nModeFlag;
+  uint8_t nReserved2[3];
   uint8_t nReserved3[3];
   uint16_t nAzimuthFlag;
   uint8_t nShutdownFlag;
@@ -234,6 +285,21 @@ typedef struct __attribute__((__packed__)) PandarQT128Tail_s {
   uint8_t nFactoryInfo;
   uint32_t nSeqNum;
 } PandarQT128Tail;
+
+typedef struct __attribute__((__packed__)) PandarFTTail_s {
+  uint8_t nReserved1[3];
+  uint8_t nReserved2[4];
+  uint16_t nCloumnIndex;
+  uint8_t nFrameFlag;
+  uint8_t nShutdownFlag;
+  uint8_t nReturnMode;
+  uint16_t nMotorSpeed;
+  uint8_t nUTCTime[6];
+  uint32_t nTimestamp;
+  uint8_t nFactoryInfo;
+  uint32_t nSeqNum;
+} PandarFTTail;
+
 
 typedef struct __attribute__((__packed__)) Pandar128PacketVersion13_t {
   Pandar128HeadVersion13 head;
@@ -252,22 +318,10 @@ struct PandarGPS_s {
   uint32_t fineTime;
 };
 
-struct PandarQTChannelConfig {
-public:
-    uint16_t m_u16Sob;
-    uint8_t m_u8MajorVersion;
-    uint8_t m_u8MinVersion;
-    uint8_t m_u8LaserNum;
-    uint8_t m_u8BlockNum;
-    std::vector<std::vector<int>> m_vChannelConfigTable;
-    std::string m_sHashValue;
-    bool m_bIsChannelConfigObtained;
-};
-
 typedef std::array<PandarPacket, 36000> PktArray;
 
 typedef struct PacketsBuffer_s {
-    PktArray m_buffers;
+    PktArray m_buffers{};
     PktArray::iterator m_iterPush;
     PktArray::iterator m_iterTaskBegin;
     PktArray::iterator m_iterTaskEnd;
@@ -374,7 +428,7 @@ class PandarSwiftSDK {
 								boost::function<void(double)> gpscallback, \
 								std::string certFile, std::string privateKeyFile, std::string caFile, \
 								int startangle, int timezone, std::string publishmode, bool coordinateCorrectionFlag, \
-                std::string channelconfigflie, std::string datatype=LIDAR_DATA_TYPE);
+                std::string multicast_ip, std::string datatype=LIDAR_DATA_TYPE);
 	~PandarSwiftSDK() {}
 
 	void driverReadThread();
@@ -390,14 +444,11 @@ class PandarSwiftSDK {
 	int parseData(Pandar128PacketVersion13 &pkt, const uint8_t *buf, const int len);
   void calcPointXYZIT(PandarPacket &pkt, int cursor);
   void calcQT128PointXYZIT(PandarPacket &pkt, int cursor);
+  void calcFTPointXYZIT(PandarPacket &pkt, int cursor);
   void doTaskFlow(int cursor);
 	void loadOffsetFile(std::string file);
 	void loadCorrectionFile();
-	int loadCorrectionFile(std::string correctionstring);
-  int loadChannelConfigFile(std::string channel_config_content);
-  int loadFireTimeFile(std::string channel_config_content);
-  void loadChannelConfigFile();
-  void loadFireTimeFile();
+	int loadCorrectionString(std::string correctionstring);
 	int checkLiadaMode();
 	void init();
 	void changeAngleSize();
@@ -420,12 +471,13 @@ class PandarSwiftSDK {
     int m_iTimeZoneSecond;
 	float m_fCosAllAngle[CIRCLE];
 	float m_fSinAllAngle[CIRCLE];
-	float m_fElevAngle[PANDAR128_LASER_NUM];
-	float m_fHorizatalAzimuth[PANDAR128_LASER_NUM];
+	float m_fElevAngle[PANDAR128_LASER_NUM * 4];
+  float m_fHorizatalAzimuth[PANDAR128_LASER_NUM * 4];
+  float m_fPandarFTElevAngle[120][162];
+  float m_fPandarFTAzimuth[120][162];
 	std::string m_sFrameId;
 	std::string m_sLidarFiretimeFile;
-  std::string m_sLidarCorrectionFile;
-  std::string m_sLidarChannelConfigFile;
+	std::string m_sLidarCorrectionFile;
 	std::string m_sPublishmodel;
   boost::thread *m_driverReadThread;
   boost::thread *m_processLiDARDataThread;
@@ -435,10 +487,13 @@ class PandarSwiftSDK {
 	int m_iReturnMode;
 	int m_iMotorSpeed;
   int m_iLaserNum;
+  int m_iEchoNum;
 	int m_iAngleSize;  // 10->0.1degree,20->0.2degree
 	int m_iReturnBlockSize;
 	bool m_bPublishPointsFlag;
 	int m_iPublishPointsIndex;
+  int m_iLastFrameIndex;
+  int m_iFrameIndexIndex;
 	void *m_pTcpCommandClient;
 	std::string m_sDeviceIpAddr;
 	std::string m_sPcapFile;
@@ -447,9 +502,11 @@ class PandarSwiftSDK {
 	uint8_t m_u8UdpVersionMinor;
   int m_iFirstAzimuthIndex;
   int m_iLastAzimuthIndex;
+  int m_iCloumnIdIndex;
   bool m_bClockwise;
   bool m_bCoordinateCorrectionFlag;
-  PandarQTChannelConfig m_PandarQTChannelConfig;
+  int m_iPandarFTCloumnNum;
+  int m_iPandarFTRowNum;
 };
 
 #endif  // _PANDAR_POINTCLOUD_Pandar128SDK_H_
