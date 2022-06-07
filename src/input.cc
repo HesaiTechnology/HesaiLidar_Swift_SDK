@@ -311,19 +311,15 @@ InputSocket::InputSocket(std::string deviceipaddr, uint16_t lidarport, uint16_t 
 	int nRecvBuf = 26214400;
 	setsockopt(m_iSockfd, SOL_SOCKET, SO_RCVBUF, (const char*)&nRecvBuf, sizeof(int));
 	if(multicast_ip != ""){
-      struct ipv6_mreq mreq6;
-      if(!inet_pton(AF_INET6, multicast_ip.c_str(), &(mreq6.ipv6mr_multiaddr))) {
-          perror("udp_server input multicast ip error! \n");
-          return ;
-      }
-      mreq6.ipv6mr_interface = htonl(INADDR_ANY);
-  
-      int err = setsockopt(m_iSockfd, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP, (const char *)&mreq6, sizeof(mreq6));
-      setsockopt(m_iSockGpsfd, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP, (const char *)&mreq6, sizeof(mreq6));
-      if (err)
-      {
-          printf("udp_server setsockopt IPPROTO_IPV6 IP_ADD_MEMBERSHIP failed: %d \n", err);
-          return ;
+      struct ip_mreq mreq;                    
+      mreq.imr_multiaddr.s_addr=inet_addr(multicast_ip.c_str());
+      mreq.imr_interface.s_addr = htonl(INADDR_ANY); 
+      int ret = setsockopt(m_iSockfd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (const char *)&mreq, sizeof(mreq));
+      if (ret < 0) {
+        perror("Multicast IP error,set correct multicast ip address or keep it empty\n");
+      } 
+      else {
+        printf("Recive data from multicast ip address %s\n", multicast_ip.c_str());
       }
     }
 	printf("Pandar socket fd is %d\n", m_iSockfd);

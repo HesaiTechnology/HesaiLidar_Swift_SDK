@@ -102,7 +102,7 @@ PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uin
 	m_funcPclCallback = pclcallback;
 	m_funcGpsCallback = gpscallback;
 	m_bCoordinateCorrectionFlag = coordinateCorrectionFlag;
-	m_spPandarDriver.reset(new PandarSwiftDriver(deviceipaddr, lidarport, gpsport, frameid, pcapfile, rawcallback, this, publishmode, datatype, multicast_ip));
+	m_spPandarDriver.reset(new PandarSwiftDriver(deviceipaddr, lidarport, gpsport, frameid, pcapfile, rawcallback, this, publishmode, multicast_ip, datatype));
 	TcpCommandSetSsl(certFile.c_str(), privateKeyFile.c_str(), caFile.c_str());
 	printf("frame id: %s\n", m_sFrameId.c_str());
 	printf("lidar firetime file: %s\n", m_sLidarFiretimeFile.c_str());
