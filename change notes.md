@@ -188,3 +188,10 @@ PandarSwiftSDK_1.2.31
 
 ##modify
 1. Fix bug when disconnect lidar
+
+Saturday,June 25th, 2022 16:00
+##version
+PandarSwiftSDK_1.2.34
+
+##modify
+1. Support Faultmessage V2.1

@@ -20,19 +20,31 @@
 void AT128FaultMessageVersion3::ParserAT128FaultMessage(AT128FaultMessageInfo &faultMessageInfo){
   faultMessageInfo.m_u8Version = u8Version;
   memcpy(faultMessageInfo.m_u8UTCTime,u8UTCTime,sizeof(u8UTCTime));
-  struct tm t = {0};
-  t.tm_year  = u8UTCTime[0];
-  if (t.tm_year >= 200) {
-    t.tm_year -= 100;
-  }
-  t.tm_mon = u8UTCTime[1] - 1;
-  t.tm_mday = u8UTCTime[2];
-  t.tm_hour = u8UTCTime[3];
-  t.tm_min = u8UTCTime[4];
-  t.tm_sec = u8UTCTime[5];
-  t.tm_isdst = 0;
+  double unix_second = 0;
+  if(u8UTCTime[0] != 0){
+		struct tm t = {0};
+		t.tm_year = u8UTCTime[0];
+		if (t.tm_year >= 200) {
+			t.tm_year -= 100;
+		}
+		t.tm_mon = u8UTCTime[1] - 1;
+		t.tm_mday = u8UTCTime[2];
+		t.tm_hour = u8UTCTime[3];
+		t.tm_min = u8UTCTime[4];
+		t.tm_sec = u8UTCTime[5];
+		t.tm_isdst = 0;
+
+		unix_second = static_cast<double>(mktime(&t));
+		}
+	else{
+		uint32_t utc_time_big = *(uint32_t*)(&u8UTCTime[0] + 2);
+		unix_second = ((utc_time_big >> 24) & 0xff) |
+						((utc_time_big >> 8) & 0xff00) |
+						((utc_time_big << 8) & 0xff0000) |
+						((utc_time_big << 24));
+	}
   faultMessageInfo.m_u32Timestamp = u32Timestamp;          
-  faultMessageInfo.m_dTotalTime =  mktime(&t) + (static_cast<double>(u32Timestamp)) / 1000000.0;
+  faultMessageInfo.m_dTotalTime =  unix_second + (static_cast<double>(u32Timestamp)) / 1000000.0;
   faultMessageInfo.m_operateState = ParserOperateState();
   faultMessageInfo.m_faultState = ParserFaultState();
   faultMessageInfo.m_faultCodeType = ParserFaultCodeType();
@@ -50,6 +62,7 @@ void AT128FaultMessageVersion3::ParserAT128FaultMessage(AT128FaultMessageInfo &f
   faultMessageInfo.m_u16HardwareVersion = *((uint16_t*)(&u8SoftwareVersion[4]));
   faultMessageInfo.m_u16BTversion = *((uint16_t*)(&u8SoftwareVersion[6]));
   faultMessageInfo.m_HeatingState = ParserHeatingState();
+  faultMessageInfo.m_HighTempertureShutdownState = ParserHighTempertureShutdownState();
   memcpy(faultMessageInfo.m_Reversed, u8Reversed, sizeof(u8Reversed));
   faultMessageInfo.m_u32CRC = u32CRC;
   memcpy(faultMessageInfo.m_CycberSecurity, u8CycberSecurity, sizeof(u8CycberSecurity));
@@ -169,6 +182,28 @@ HeatingState AT128FaultMessageVersion3::ParserHeatingState(){
     break;
   }
   return UndefineHeatingState;
+}
+
+HighTempertureShutdownState AT128FaultMessageVersion3::ParserHighTempertureShutdownState(){
+  switch (u8LidarHighTempStat)
+  {
+  case 1:
+    return PreShutdown;
+    break;
+  case 2:
+    return ShutdownMode1;
+    break;  
+  case 6:
+    return ShutdownMode2;
+    break; 
+  case 10:
+    return ShutdownMode2Fail;
+    break;
+  default:
+    break;
+  }
+  return UndefineShutdownData;
+
 }
 
 double AT128FaultMessageVersion3::ParserTemperature(){

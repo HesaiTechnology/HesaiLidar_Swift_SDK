@@ -76,6 +76,14 @@ enum HeatingState{
   UndefineHeatingState = -1,
 };
 
+enum HighTempertureShutdownState{
+  PreShutdown = 1,
+  ShutdownMode1 = 2,
+  ShutdownMode2 = 6,
+  ShutdownMode2Fail = 10,
+  UndefineShutdownData = -1,
+};
+
 typedef struct AT128FaultMessageInfo {
   uint8_t m_u8Version;
   uint8_t m_u8UTCTime[6];
@@ -98,7 +106,8 @@ typedef struct AT128FaultMessageInfo {
   uint16_t m_u16HardwareVersion;
   uint16_t m_u16BTversion;
   HeatingState m_HeatingState;
-  uint8_t m_Reversed[4];
+  HighTempertureShutdownState m_HighTempertureShutdownState;
+  uint8_t m_Reversed[3];
   uint32_t m_u32CRC;
   uint8_t m_CycberSecurity[32];
 } AT128FaultMessageInfo;
@@ -121,7 +130,8 @@ typedef class AT128FaultMessageVersion3_s {
     uint8_t u8TimeDivisionMultiplexing[27];
     uint8_t u8SoftwareVersion[8];
     uint8_t u8HeatingState;
-    uint8_t u8Reversed[4];
+    uint8_t u8LidarHighTempStat;
+    uint8_t u8Reversed[3];
     uint32_t u32CRC;
     uint8_t u8CycberSecurity[32];
     DTCState ParserDTCState();
@@ -131,6 +141,7 @@ typedef class AT128FaultMessageVersion3_s {
     TDMDataIndicate ParserTDMDataIndicate();
     void ParserLensDirtyState(LensDirtyState lensDirtyState[LENS_AZIMUTH_AREA_NUM][LENS_ELEVATION_AREA_NUM]);
     HeatingState ParserHeatingState();
+    HighTempertureShutdownState ParserHighTempertureShutdownState();
     void ParserAT128FaultMessage(AT128FaultMessageInfo &faultMessageInfo);
     double ParserTemperature();
 } AT128FaultMessageVersion3;

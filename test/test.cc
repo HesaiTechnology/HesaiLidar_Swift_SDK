@@ -62,9 +62,9 @@ void faultmessagecallback(AT128FaultMessageInfo &faultMessage) {
     static int count = 0;
     if(count == 0){
         std::ofstream zos("./faultmessage.csv");
-        zos <<  "Version " << "," << "Total time" << "," << "Operate State" << "," << "Fault State" << "," << "Fault code type" << "," << "Rolling Counter" \
-        << "," << "Total fault code number" << "," << "Fault code ID" << "," << "DTC Num" << "," << "DTC State" << "," << "TDM Data indicator" << "," << "Temperature" << "," << "软件ID" \
-        << "," << "软件版本号" << "," << "硬件版本号" << "," << "BT版本号" << "," << "Heating_Sate"  ;
+        zos <<  "Version " << "," << "Total_time" << "," << "Operate_State" << "," << "Fault_State" << "," << "Fault_code_type" << "," << "Rolling_Counter" \
+        << "," << "Total_fault_code_number" << "," << "Fault_code_ID" << "," << "DTC_Num" << "," << "DTC_State" << "," << "TDM_Data_indicator" << "," << "Temperature" << "," << "软件ID" \
+        << "," << "软件版本号" << "," << "硬件版本号" << "," << "BT版本号" << "," << "Heating_Sate"  << "," << "High_Temperture_Shutdown_State";
         for(int i = 0; i < 12; i++){
             for(int j = 0; j < 8; j++){
                 zos << "," << "水平区域" << std::to_string(i) << " 垂直区域" << std::to_string(j);
@@ -77,7 +77,7 @@ void faultmessagecallback(AT128FaultMessageInfo &faultMessage) {
     std::ofstream zos("./faultmessage.csv", std::ios::app);
     zos <<  int(faultMessage.m_u8Version) << "," << std::to_string(faultMessage.m_dTotalTime) << "," <<int (faultMessage.m_operateState) << "," << int(faultMessage.m_faultState) << "," << int(faultMessage.m_faultCodeType) << "," <<\
     int(faultMessage.m_u8RollingCounter) << "," << int(faultMessage.m_u8TotalFaultCodeNum) << "," << int(faultMessage.m_u8FaultCodeId) << "," << int(faultMessage.m_iDTCNum) << "," << int(faultMessage.m_DTCState) << "," << int(faultMessage.m_TDMDataIndicate) << "," <<\
-    faultMessage.m_dTemperature << "," << faultMessage.m_u16SoftwareId << "," << faultMessage.m_u16SoftwareVersion << "," << faultMessage.m_u16HardwareVersion << "," << faultMessage.m_u16BTversion << "," << int(faultMessage.m_HeatingState);
+    faultMessage.m_dTemperature << "," << faultMessage.m_u16SoftwareId << "," << faultMessage.m_u16SoftwareVersion << "," << faultMessage.m_u16HardwareVersion << "," << faultMessage.m_u16BTversion << "," << int(faultMessage.m_HeatingState) << "," << int(faultMessage.m_HighTempertureShutdownState);
 
     for(int i = 0; i < 12; i++){
         for(int j = 0; j < 8; j++){
