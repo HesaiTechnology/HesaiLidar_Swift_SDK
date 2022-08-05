@@ -195,3 +195,11 @@ PandarSwiftSDK_1.2.34
 
 ##modify
 1. Support Faultmessage V2.1
+Friday,August 5th, 2022 14:30
+##version
+PandarSwiftSDK_1.2.35
+
+##modify
+1. Support firetime correction
+2. Support to set the number of timestamp
+3. Sort the point clouds by timestamp

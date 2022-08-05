@@ -114,7 +114,7 @@
 //   (PANDAR128_PACKET_SIZE + PANDAR128_SEQ_NUM_SIZE)
 #define PANDAR128_WITHOUT_CONF_UNIT_SIZE (DISTANCE_SIZE + INTENSITY_SIZE)
 
-#define TASKFLOW_STEP_SIZE (45)
+#define TASKFLOW_STEP_SIZE (200)
 #define PANDAR128_CRC_SIZE (4)
 #define PANDAR128_FUNCTION_SAFETY_SIZE (17)
 
@@ -177,13 +177,15 @@
 #define PANDAR_AT128_PACKET_SEQ_NUM_SIZE \
   (PANDAR_AT128_PACKET_SIZE + PANDAR_AT128_SEQ_NUM_SIZE)
 #define PANDAR_AT128_WITHOUT_CONF_UNIT_SIZE (DISTANCE_SIZE + INTENSITY_SIZE)
-#define PANDAR_AT128_FRAME_ANGLE_SIZE (6800)
+#define PANDAR_AT128_FRAME_ANGLE_SIZE (6250)
 #define PANDAR_AT128_FRAME_ANGLE_INTERVAL_SIZE (5600)
-#define PANDAR_AT128_EDGE_AZIMUTH_OFFSET (7500)
+#define PANDAR_AT128_EDGE_AZIMUTH_OFFSET (4500)
 #define PANDAR_AT128_EDGE_AZIMUTH_SIZE (1600)
 #define PANDAR_AT128_CRC_SIZE (4)  
 #define PANDAR_AT128_FUNCTION_SAFETY_SIZE (17)  
 #define PANDAR_AT128_SIGNATURE_SIZE (32)
+#define MIN_POINT_NUM (30000)
+#define MAX_POINT_NUM (360000)
 /************************************* AT 128 *********************************************/
 
 typedef struct __attribute__((__packed__)) Pandar128Unit_s {
@@ -543,6 +545,7 @@ class PandarSwiftSDK {
   void setIsSocketTimeout(bool isSocketTimeout);
   bool getIsSocketTimeout();
   bool setStandbyLidarMode();
+  void setTimeStampNum(int num);
   bool setNormalLidarMode();
   bool setLidarReturnMode(uint8_t mode); // mode: 0-last return, 1-strongest return, 2-dual return
   bool getLidarReturnMode(uint8_t& mode);
@@ -577,6 +580,7 @@ class PandarSwiftSDK {
 	boost::function<void(double timestamp)> m_funcGpsCallback;
   boost::function<void(AT128FaultMessageInfo &faultMessage)> m_funcFaultMessageCallback;
 	std::array<boost::shared_ptr<PPointCloud>, 2> m_OutMsgArray;
+  boost::shared_ptr<PPointCloud> m_PublishMsgArray;
   std::vector<RedundantPoint> m_RedundantPointBuffer;
 	PacketsBuffer m_PacketsBuffer;
 	double m_dTimestamp;
@@ -619,6 +623,8 @@ class PandarSwiftSDK {
   std::string m_sDatatype;
   bool m_bIsReadPcapOver;
   std::map<std::string, int32_t> m_threadPriority;
+  double m_dAzimuthInterval;
+  double m_dAzimuthRange;
 
 };
 
