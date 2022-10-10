@@ -203,3 +203,20 @@ PandarSwiftSDK_1.2.35
 1. Support firetime correction
 2. Support to set the number of timestamp
 3. Sort the point clouds by timestamp
+
+
+Friday,August 23th, 2022 17:30
+##version
+PandarSwiftSDK_1.2.36
+
+##modify
+1. Support PTCS
+2. Remove the pcl library dependency
+
+
+Friday,September 23th, 2022 17:30
+##version
+PandarSwiftSDK_1.2.37
+
+##modify
+1. Support Parser TX/RX/PB/MB temperature

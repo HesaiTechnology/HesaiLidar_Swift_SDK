@@ -14,15 +14,14 @@
  * limitations under the License.
  *****************************************************************************/
 
-
 #include <map>
 #include <vector>
 
 #define PANDAR_AT128_LIDAR_NUM (128)
 #define LENS_AZIMUTH_AREA_NUM (12)
 #define LENS_ELEVATION_AREA_NUM (8)
- 
-enum LidarOperateState{
+
+enum LidarOperateState {
   Boot,
   Init,
   FullPerformance,
@@ -33,7 +32,7 @@ enum LidarOperateState{
   UndefineOperateState = -1,
 };
 
-enum LidarFaultState{
+enum LidarFaultState {
   Normal,
   Warning,
   PrePerformanceDegradation,
@@ -45,38 +44,38 @@ enum LidarFaultState{
   UndefineFaultState = -1,
 };
 
-enum FaultCodeType{
+enum FaultCodeType {
   UndefineFaultCode = -1,
   CurrentFaultCode = 1,
   HistoryFaultCode = 2,
 };
 
-enum DTCState{
+enum DTCState {
   NoFault,
   Fault,
 };
 
-enum TDMDataIndicate{
+enum TDMDataIndicate {
   Invaild = 0,
   LensDirtyInfo = 1,
   UndefineIndicate = -1,
 };
 
-enum LensDirtyState{
+enum LensDirtyState {
   UndefineData = -1,
   LensNormal = 0,
   Passable = 1,
   Unpassable = 3,
 };
 
-enum HeatingState{
+enum HeatingState {
   Off = 0,
   Heating = 1,
   HeatingProhibit = 2,
   UndefineHeatingState = -1,
 };
 
-enum HighTempertureShutdownState{
+enum HighTempertureShutdownState {
   PreShutdown = 1,
   ShutdownMode1 = 2,
   ShutdownMode2 = 6,
@@ -100,7 +99,8 @@ typedef struct AT128FaultMessageInfo {
   DTCState m_DTCState;
   TDMDataIndicate m_TDMDataIndicate;
   double m_dTemperature;
-  LensDirtyState m_LensDirtyState[LENS_AZIMUTH_AREA_NUM][LENS_ELEVATION_AREA_NUM];
+  LensDirtyState m_LensDirtyState[LENS_AZIMUTH_AREA_NUM]
+                                 [LENS_ELEVATION_AREA_NUM];
   uint16_t m_u16SoftwareId;
   uint16_t m_u16SoftwareVersion;
   uint16_t m_u16HardwareVersion;
@@ -112,39 +112,38 @@ typedef struct AT128FaultMessageInfo {
   uint8_t m_CycberSecurity[32];
 } AT128FaultMessageInfo;
 
-
-#pragma  pack(1) 
+#pragma pack(1)
 typedef class AT128FaultMessageVersion3_s {
-  public:
-    uint16_t u16Sob;
-    uint8_t u8Version;
-    uint8_t u8UTCTime[6];
-    uint32_t u32Timestamp;
-    uint8_t u8OperateState;
-    uint8_t u8FaultState;
-    uint8_t u8FaultCodeType;
-    uint8_t u8RollingCounter;
-    uint8_t u8TotalFaultCodeNum;
-    uint8_t u8FaultCodeId;
-    uint32_t u32FaultCode;
-    uint8_t u8TimeDivisionMultiplexing[27];
-    uint8_t u8SoftwareVersion[8];
-    uint8_t u8HeatingState;
-    uint8_t u8LidarHighTempStat;
-    uint8_t u8Reversed[3];
-    uint32_t u32CRC;
-    uint8_t u8CycberSecurity[32];
-    DTCState ParserDTCState();
-    LidarOperateState ParserOperateState();
-    LidarFaultState ParserFaultState();
-    FaultCodeType ParserFaultCodeType();
-    TDMDataIndicate ParserTDMDataIndicate();
-    void ParserLensDirtyState(LensDirtyState lensDirtyState[LENS_AZIMUTH_AREA_NUM][LENS_ELEVATION_AREA_NUM]);
-    HeatingState ParserHeatingState();
-    HighTempertureShutdownState ParserHighTempertureShutdownState();
-    void ParserAT128FaultMessage(AT128FaultMessageInfo &faultMessageInfo);
-    double ParserTemperature();
+ public:
+  uint16_t u16Sob;
+  uint8_t u8Version;
+  uint8_t u8UTCTime[6];
+  uint32_t u32Timestamp;
+  uint8_t u8OperateState;
+  uint8_t u8FaultState;
+  uint8_t u8FaultCodeType;
+  uint8_t u8RollingCounter;
+  uint8_t u8TotalFaultCodeNum;
+  uint8_t u8FaultCodeId;
+  uint32_t u32FaultCode;
+  uint8_t u8TimeDivisionMultiplexing[27];
+  uint8_t u8SoftwareVersion[8];
+  uint8_t u8HeatingState;
+  uint8_t u8LidarHighTempStat;
+  uint8_t u8Reversed[3];
+  uint32_t u32CRC;
+  uint8_t u8CycberSecurity[32];
+  DTCState ParserDTCState();
+  LidarOperateState ParserOperateState();
+  LidarFaultState ParserFaultState();
+  FaultCodeType ParserFaultCodeType();
+  TDMDataIndicate ParserTDMDataIndicate();
+  void ParserLensDirtyState(
+      LensDirtyState lensDirtyState[LENS_AZIMUTH_AREA_NUM]
+                                   [LENS_ELEVATION_AREA_NUM]);
+  HeatingState ParserHeatingState();
+  HighTempertureShutdownState ParserHighTempertureShutdownState();
+  void ParserAT128FaultMessage(AT128FaultMessageInfo &faultMessageInfo);
+  double ParserTemperature();
 } AT128FaultMessageVersion3;
 #pragma pack()
-
-

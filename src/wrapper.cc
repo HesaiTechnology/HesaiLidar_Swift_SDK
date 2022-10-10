@@ -1,7 +1,7 @@
 #include "wrapper.h"
 #include "pandarSwiftSDK.h"
-#include <pcl/io/pcd_io.h>
-#include <pcl/point_types.h>
+// #include <pcl/io/pcd_io.h>
+// #include <pcl/point_types.h>
 #include <iostream>
 #ifdef __cplusplus
 extern "C" {
@@ -55,7 +55,7 @@ void RunPandarSwiftSDK(char* deviceipaddr, int lidarport, int gpsport, char* cor
                                 certFile, \
                                 privateKeyFile, \
                                 caFile, \
-                                0, 0, viewMode, std::string("both_point_raw")));  
+                                0, 0, viewMode, std::string("both_point_raw"), ""));  
   
     sleep(runTime);
     spPandarSwiftSDK->stop();

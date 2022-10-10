@@ -35,39 +35,41 @@
 #define PANDAR128_LIDAR_NUM (128)
 
 class LasersTSOffset {
-  public:
-    LasersTSOffset();
-    ~LasersTSOffset();
+ public:
+  LasersTSOffset();
+  ~LasersTSOffset();
 
-    void  setFilePath(std::string sFile);
-    int ParserFiretimeData(std::string firetimeContent);
-    float getTSOffset(int nLaser, int nMode, int nState, float fDistance, int nMajorVersion);
-    float   getBlockTS(int nBlock, int nRetMode, int nMode, int nLaserNum, int nMajorVersion);
-    float getAngleOffset(float nTSOffset, int speed, int nMajorVersion);
-    float getAzimuthOffset(std::string type, float azimuth, float originAzimuth, float distance);
-    float getPitchOffset(std::string type, float pitch, float distance);
+  void setFilePath(std::string sFile);
+  int ParserFiretimeData(std::string firetimeContent);
+  float getTSOffset(int nLaser, int nMode, int nState, float fDistance,
+                    int nMajorVersion);
+  float getBlockTS(int nBlock, int nRetMode, int nMode, int nLaserNum,
+                   int nMajorVersion);
+  float getAngleOffset(float nTSOffset, int speed, int nMajorVersion);
+  float getAzimuthOffset(std::string type, float azimuth, float originAzimuth,
+                         float distance);
+  float getPitchOffset(std::string type, float pitch, float distance);
 
-  private:
-    float mFDist;
-    bool mBInitFlag;
-    std::vector<std::vector<int>> mVLasers;
-    int mNLaserNum;
-    std::vector<int> mShortOffsetIndex;
-    std::vector<int> mLongOffsetIndex;
-    float mCosAllAngle[CIRCLE];
-    float mSinAllAngleHB[CIRCLE];
-    float mSinAllAngleH[CIRCLE];
-    float mArcSin[PAI_ANGLE];
-    float m_fAzimuthOffset[PANDAR128_LIDAR_NUM];
-    float m_fCDAAzimuthOffset[PANDAR128_LIDAR_NUM];
-    float m_fCDBAzimuthOffset[PANDAR128_LIDAR_NUM];
-    float m_fArctanHB;
-    std::array<std::array<float, PANDAR128_LIDAR_NUM>, 4> m_vQT128Firetime;
+ private:
+  float mFDist;
+  bool mBInitFlag;
+  std::vector<std::vector<int>> mVLasers;
+  int mNLaserNum;
+  std::vector<int> mShortOffsetIndex;
+  std::vector<int> mLongOffsetIndex;
+  float mCosAllAngle[CIRCLE];
+  float mSinAllAngleHB[CIRCLE];
+  float mSinAllAngleH[CIRCLE];
+  float mArcSin[PAI_ANGLE];
+  float m_fAzimuthOffset[PANDAR128_LIDAR_NUM];
+  float m_fCDAAzimuthOffset[PANDAR128_LIDAR_NUM];
+  float m_fCDBAzimuthOffset[PANDAR128_LIDAR_NUM];
+  float m_fArctanHB;
+  std::array<std::array<float, PANDAR128_LIDAR_NUM>, 4> m_vQT128Firetime;
 
-    void fillVector(char *pContent, int nLen, std::vector<int> &vec);
-    float atanAngle(float value);
-    float asinAngle(float value);
+  void fillVector(char *pContent, int nLen, std::vector<int> &vec);
+  float atanAngle(float value);
+  float asinAngle(float value);
 };
 
 #endif  // ASER_TS_H_
-

@@ -15,36 +15,37 @@
  *****************************************************************************/
 
 #include "fault_message.h"
-#include   <stdlib.h>
-#include<string.h>           
-void AT128FaultMessageVersion3::ParserAT128FaultMessage(AT128FaultMessageInfo &faultMessageInfo){
-  faultMessageInfo.m_u8Version = u8Version;
-  memcpy(faultMessageInfo.m_u8UTCTime,u8UTCTime,sizeof(u8UTCTime));
-  double unix_second = 0;
-  if(u8UTCTime[0] != 0){
-		struct tm t = {0};
-		t.tm_year = u8UTCTime[0];
-		if (t.tm_year >= 200) {
-			t.tm_year -= 100;
-		}
-		t.tm_mon = u8UTCTime[1] - 1;
-		t.tm_mday = u8UTCTime[2];
-		t.tm_hour = u8UTCTime[3];
-		t.tm_min = u8UTCTime[4];
-		t.tm_sec = u8UTCTime[5];
-		t.tm_isdst = 0;
 
-		unix_second = static_cast<double>(mktime(&t));
-		}
-	else{
-		uint32_t utc_time_big = *(uint32_t*)(&u8UTCTime[0] + 2);
-		unix_second = ((utc_time_big >> 24) & 0xff) |
-						((utc_time_big >> 8) & 0xff00) |
-						((utc_time_big << 8) & 0xff0000) |
-						((utc_time_big << 24));
-	}
-  faultMessageInfo.m_u32Timestamp = u32Timestamp;          
-  faultMessageInfo.m_dTotalTime =  unix_second + (static_cast<double>(u32Timestamp)) / 1000000.0;
+#include <stdlib.h>
+#include <string.h>
+void AT128FaultMessageVersion3::ParserAT128FaultMessage(
+    AT128FaultMessageInfo &faultMessageInfo) {
+  faultMessageInfo.m_u8Version = u8Version;
+  memcpy(faultMessageInfo.m_u8UTCTime, u8UTCTime, sizeof(u8UTCTime));
+  double unix_second = 0;
+  if (u8UTCTime[0] != 0) {
+    struct tm t = {0};
+    t.tm_year = u8UTCTime[0];
+    if (t.tm_year >= 200) {
+      t.tm_year -= 100;
+    }
+    t.tm_mon = u8UTCTime[1] - 1;
+    t.tm_mday = u8UTCTime[2];
+    t.tm_hour = u8UTCTime[3];
+    t.tm_min = u8UTCTime[4];
+    t.tm_sec = u8UTCTime[5];
+    t.tm_isdst = 0;
+
+    unix_second = static_cast<double>(mktime(&t));
+  } else {
+    uint32_t utc_time_big = *(uint32_t *)(&u8UTCTime[0] + 2);
+    unix_second = ((utc_time_big >> 24) & 0xff) |
+                  ((utc_time_big >> 8) & 0xff00) |
+                  ((utc_time_big << 8) & 0xff0000) | ((utc_time_big << 24));
+  }
+  faultMessageInfo.m_u32Timestamp = u32Timestamp;
+  faultMessageInfo.m_dTotalTime =
+      unix_second + (static_cast<double>(u32Timestamp)) / 1000000.0;
   faultMessageInfo.m_operateState = ParserOperateState();
   faultMessageInfo.m_faultState = ParserFaultState();
   faultMessageInfo.m_faultCodeType = ParserFaultCodeType();
@@ -57,213 +58,205 @@ void AT128FaultMessageVersion3::ParserAT128FaultMessage(AT128FaultMessageInfo &f
   faultMessageInfo.m_TDMDataIndicate = ParserTDMDataIndicate();
   faultMessageInfo.m_dTemperature = ParserTemperature();
   ParserLensDirtyState(faultMessageInfo.m_LensDirtyState);
-  faultMessageInfo.m_u16SoftwareId = *((uint16_t*)(&u8SoftwareVersion[0]));
-  faultMessageInfo.m_u16SoftwareVersion = *((uint16_t*)(&u8SoftwareVersion[2]));
-  faultMessageInfo.m_u16HardwareVersion = *((uint16_t*)(&u8SoftwareVersion[4]));
-  faultMessageInfo.m_u16BTversion = *((uint16_t*)(&u8SoftwareVersion[6]));
+  faultMessageInfo.m_u16SoftwareId = *((uint16_t *)(&u8SoftwareVersion[0]));
+  faultMessageInfo.m_u16SoftwareVersion =
+      *((uint16_t *)(&u8SoftwareVersion[2]));
+  faultMessageInfo.m_u16HardwareVersion =
+      *((uint16_t *)(&u8SoftwareVersion[4]));
+  faultMessageInfo.m_u16BTversion = *((uint16_t *)(&u8SoftwareVersion[6]));
   faultMessageInfo.m_HeatingState = ParserHeatingState();
-  faultMessageInfo.m_HighTempertureShutdownState = ParserHighTempertureShutdownState();
+  faultMessageInfo.m_HighTempertureShutdownState =
+      ParserHighTempertureShutdownState();
   memcpy(faultMessageInfo.m_Reversed, u8Reversed, sizeof(u8Reversed));
   faultMessageInfo.m_u32CRC = u32CRC;
-  memcpy(faultMessageInfo.m_CycberSecurity, u8CycberSecurity, sizeof(u8CycberSecurity));
+  memcpy(faultMessageInfo.m_CycberSecurity, u8CycberSecurity,
+         sizeof(u8CycberSecurity));
 }
 
-LidarOperateState AT128FaultMessageVersion3::ParserOperateState(){
-  switch (u8OperateState)
-  {
-  case 0:
-    return Boot;
-    break;
-  case 1:
-    return Init;
-    break;  
-  case 2:
-    return FullPerformance;
-    break;
-  case 3:
-    return HalfPower;
-    break;
-  case 4:
-    return SleepMode;
-    break;
-  case 5:
-    return HighTempertureShutdown;
-    break;  
-  case 6:
-    return FaultShutdown;
-    break;           
-  
-  default:
-    return UndefineOperateState;
-    break;
+LidarOperateState AT128FaultMessageVersion3::ParserOperateState() {
+  switch (u8OperateState) {
+    case 0:
+      return Boot;
+      break;
+    case 1:
+      return Init;
+      break;
+    case 2:
+      return FullPerformance;
+      break;
+    case 3:
+      return HalfPower;
+      break;
+    case 4:
+      return SleepMode;
+      break;
+    case 5:
+      return HighTempertureShutdown;
+      break;
+    case 6:
+      return FaultShutdown;
+      break;
+
+    default:
+      return UndefineOperateState;
+      break;
   }
 }
 
-LidarFaultState AT128FaultMessageVersion3::ParserFaultState(){
-  switch (u8FaultState)
-  {
-  case 0:
-    return Normal;
-    break;
-  case 1:
-    return Warning;
-    break;  
-  case 2:
-    return PrePerformanceDegradation;
-    break;
-  case 3:
-    return PerformanceDegradation;
-    break;
-  case 4:
-    return PreShutDown;
-    break;
-  case 5:
-    return ShutDown;
-    break;  
-  case 6:
-    return PreReset;
-    break;    
-  case 7:
-    return Reset;
-    break;           
-  
-  default:
-    return UndefineFaultState;
-    break;
-  }
+LidarFaultState AT128FaultMessageVersion3::ParserFaultState() {
+  switch (u8FaultState) {
+    case 0:
+      return Normal;
+      break;
+    case 1:
+      return Warning;
+      break;
+    case 2:
+      return PrePerformanceDegradation;
+      break;
+    case 3:
+      return PerformanceDegradation;
+      break;
+    case 4:
+      return PreShutDown;
+      break;
+    case 5:
+      return ShutDown;
+      break;
+    case 6:
+      return PreReset;
+      break;
+    case 7:
+      return Reset;
+      break;
 
-}
-FaultCodeType AT128FaultMessageVersion3::ParserFaultCodeType(){
-  switch (u8FaultCodeType)
-  {
-  case 1:
-    return CurrentFaultCode;
-    break;
-  case 2:
-    return HistoryFaultCode;
-    break;           
-  
-  default:
-    return UndefineFaultCode;
-    break;
+    default:
+      return UndefineFaultState;
+      break;
   }
-
 }
-TDMDataIndicate AT128FaultMessageVersion3::ParserTDMDataIndicate(){
-  switch (u8TimeDivisionMultiplexing[0])
-  {
-  case 0:
-    return Invaild;
-    break;
-  case 1:
-    return LensDirtyInfo;
-    break;           
-  
-  default:
-    return UndefineIndicate;
-    break;
+FaultCodeType AT128FaultMessageVersion3::ParserFaultCodeType() {
+  switch (u8FaultCodeType) {
+    case 1:
+      return CurrentFaultCode;
+      break;
+    case 2:
+      return HistoryFaultCode;
+      break;
+
+    default:
+      return UndefineFaultCode;
+      break;
   }
-
 }
-HeatingState AT128FaultMessageVersion3::ParserHeatingState(){
-  switch (u8HeatingState)
-  {
-  case 0:
-    return Off;
-    break;
-  case 1:
-    return Heating;
-    break;  
-  case 2:
-    return HeatingProhibit;
-    break;           
-  
-  default:
-    break;
+TDMDataIndicate AT128FaultMessageVersion3::ParserTDMDataIndicate() {
+  switch (u8TimeDivisionMultiplexing[0]) {
+    case 0:
+      return Invaild;
+      break;
+    case 1:
+      return LensDirtyInfo;
+      break;
+
+    default:
+      return UndefineIndicate;
+      break;
+  }
+}
+HeatingState AT128FaultMessageVersion3::ParserHeatingState() {
+  switch (u8HeatingState) {
+    case 0:
+      return Off;
+      break;
+    case 1:
+      return Heating;
+      break;
+    case 2:
+      return HeatingProhibit;
+      break;
+
+    default:
+      break;
   }
   return UndefineHeatingState;
 }
 
-HighTempertureShutdownState AT128FaultMessageVersion3::ParserHighTempertureShutdownState(){
-  switch (u8LidarHighTempStat)
-  {
-  case 1:
-    return PreShutdown;
-    break;
-  case 2:
-    return ShutdownMode1;
-    break;  
-  case 6:
-    return ShutdownMode2;
-    break; 
-  case 10:
-    return ShutdownMode2Fail;
-    break;
-  default:
-    break;
+HighTempertureShutdownState
+AT128FaultMessageVersion3::ParserHighTempertureShutdownState() {
+  switch (u8LidarHighTempStat) {
+    case 1:
+      return PreShutdown;
+      break;
+    case 2:
+      return ShutdownMode1;
+      break;
+    case 6:
+      return ShutdownMode2;
+      break;
+    case 10:
+      return ShutdownMode2Fail;
+      break;
+    default:
+      break;
   }
   return UndefineShutdownData;
-
 }
 
-double AT128FaultMessageVersion3::ParserTemperature(){
-  double temp = ((double)(*((uint16_t*)(&u8TimeDivisionMultiplexing[1])))) * 0.1f;
+double AT128FaultMessageVersion3::ParserTemperature() {
+  double temp =
+      ((double)(*((uint16_t *)(&u8TimeDivisionMultiplexing[1])))) * 0.1f;
   return temp;
 }
 
-void AT128FaultMessageVersion3::ParserLensDirtyState(LensDirtyState lensDirtyState[LENS_AZIMUTH_AREA_NUM][LENS_ELEVATION_AREA_NUM]){
-  for(int i = 0; i < LENS_AZIMUTH_AREA_NUM; i++){
-    uint16_t rawdata = (*((uint16_t*)(&u8TimeDivisionMultiplexing[3 + i * 2])));
-    for(int j = 0; j < LENS_ELEVATION_AREA_NUM; j++){
-      uint16_t lensDirtyStateTemp = (rawdata << ((LENS_ELEVATION_AREA_NUM - j - 1) * 2)) ;
-      uint16_t lensDirtyStateTemp1 = (lensDirtyStateTemp >> ((LENS_ELEVATION_AREA_NUM - 1) * 2)) ;
-      if(u8TimeDivisionMultiplexing[0]  == 1){
-        switch (lensDirtyStateTemp1)
-        {
-        case 0:
-        {
-          lensDirtyState[i][j] = LensNormal;
-          break;
-        }
-        case 1:
-        {
-          lensDirtyState[i][j] = Passable;
-          break;
-        }
-        case 3:
-        {
-          lensDirtyState[i][j] = Unpassable;
-          break;
-        }  
-        default:
-          lensDirtyState[i][j] = UndefineData;
-          break;
+void AT128FaultMessageVersion3::ParserLensDirtyState(
+    LensDirtyState lensDirtyState[LENS_AZIMUTH_AREA_NUM]
+                                 [LENS_ELEVATION_AREA_NUM]) {
+  for (int i = 0; i < LENS_AZIMUTH_AREA_NUM; i++) {
+    uint16_t rawdata =
+        (*((uint16_t *)(&u8TimeDivisionMultiplexing[3 + i * 2])));
+    for (int j = 0; j < LENS_ELEVATION_AREA_NUM; j++) {
+      uint16_t lensDirtyStateTemp =
+          (rawdata << ((LENS_ELEVATION_AREA_NUM - j - 1) * 2));
+      uint16_t lensDirtyStateTemp1 =
+          (lensDirtyStateTemp >> ((LENS_ELEVATION_AREA_NUM - 1) * 2));
+      if (u8TimeDivisionMultiplexing[0] == 1) {
+        switch (lensDirtyStateTemp1) {
+          case 0: {
+            lensDirtyState[i][j] = LensNormal;
+            break;
+          }
+          case 1: {
+            lensDirtyState[i][j] = Passable;
+            break;
+          }
+          case 3: {
+            lensDirtyState[i][j] = Unpassable;
+            break;
+          }
+          default:
+            lensDirtyState[i][j] = UndefineData;
+            break;
         }
 
-      }
-      else
-      lensDirtyState[i][j] = UndefineData;
+      } else
+        lensDirtyState[i][j] = UndefineData;
     }
-    
   }
 }
 
-DTCState AT128FaultMessageVersion3::ParserDTCState(){
-  switch (u32FaultCode & 0x01)
-  {
-  case 1:
-  {
-    return Fault;
-    break;
-  }
-  case 0:
-  {
-    return NoFault;
-    break;
-  }  
-  
-  default:
-    break;
+DTCState AT128FaultMessageVersion3::ParserDTCState() {
+  switch (u32FaultCode & 0x01) {
+    case 1: {
+      return Fault;
+      break;
+    }
+    case 0: {
+      return NoFault;
+      break;
+    }
+
+    default:
+      break;
   }
   return NoFault;
 }

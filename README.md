@@ -65,7 +65,7 @@ PandarSwiftSDK(std::string("192.168.1.201"), 2368, 10110, std::string("PandarAT1
                                 std::string("../params/correction.csv"), \
                                 std::string(""), \
                                 std::string(""), \
-                                lidarCallback, rawcallback, gpsCallback, faultMessageCallback, LogReportCallback\
+                                lidarCallback, rawcallback, gpsCallback, faultMessageCallback\
                                 std::string(""), \
                                 std::string(""), \
                                 std::string(""), \
@@ -85,7 +85,6 @@ Parameter description
         rawCallback          The callback of raw data structure
         gpsCallback          The callback of GPS structure
         faultMessageCallback The callback 0f fault message structure
-        logReportCallback    The callback of log report structure
         certFile             The path of the user's certificate
         privateKeyFile       The path of the user's private key
         caFile               The path of the root certificate

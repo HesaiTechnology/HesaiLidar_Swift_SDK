@@ -89,3 +89,43 @@ POINT_CLOUD_REGISTER_POINT_STRUCT(PointXYZRGBd,
                                   (double, x, x)(double, y, y)(double, z, z)(float, rgb, rgb))
 #endif // __PANDAR_POINTCLOUD_POINT_TYPES_H
 
+// struct PointXYZIT {
+//     double x;
+//     double y;
+//     double z;
+//     float intensity;
+//     double timestamp;
+//     uint16_t ring;                      ///< laser ring number
+// } ;
+// struct PointCloudHeader {
+//   double stamp;
+//   uint32_t seq;
+//   std::string frame_id;
+// };
+
+// struct PointCloud {
+//   PointCloudHeader header;
+//   std::vector<PointXYZIT> points;
+//   uint32_t width;
+//   uint32_t height;
+//   bool is_dense;
+
+//   inline void resize(int size) {
+//     points.resize(size);
+//     height = 1;
+//     width = size;
+//   };
+
+//   inline void clear() {
+//     points.clear();
+//     height = 0;
+//     width = 0;
+//   };
+
+//   PointCloud (uint32_t Width, uint32_t Height) {
+//     height = Height;
+//     width = Width;
+//     points.resize(Width * Height);
+//   };
+// };
+

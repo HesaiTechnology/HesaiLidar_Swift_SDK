@@ -26,6 +26,9 @@
 // #define SET_LIDAR_LENS_HEAT_SWITCH
 // #define GET_LIDAR_LENS_HEAT_SWITCH 
 // #define SAVE_FAULT_MESSAGE
+// #define SET_PTCS_MODE
+// #define SET_PTC_MODE
+// #define GET_PTCS_STATE // -1:get fail; 0:ptc mode; 1:ptcs mode
 uint16_t lidarSpinRate = 200; // 200 300 400 500
 uint8_t lidarReturnMode = 0;   // 0-last return, 1-strongest return, 2-dual return  
 uint8_t lidarLensHeatSwitch = 0; //0-close, 1-open                            
@@ -92,19 +95,23 @@ void faultmessagecallback(AT128FaultMessageInfo &faultMessage) {
 
 int main(int argc, char** argv) {
     boost::shared_ptr<PandarSwiftSDK> spPandarSwiftSDK;
-    std::map<std::string, int32_t> threadPriority;
-    threadPriority["process_thread"] = 91;
-    threadPriority["publish_thread"] = 90;
-    threadPriority["read_thread"] = 99;
+    std::map<std::string, int32_t> configMap;
+    configMap["process_thread"] = 91;
+    configMap["publish_thread"] = 90;
+    configMap["read_thread"] = 99;
+    configMap["timestamp_num"] = 0;
+    configMap["without_pointcloud_udp_warning_time"] = 10000; // ms
+    configMap["without_faultmessage_udp_warning_time"] = 10000; // ms
+    configMap["untragger_pclcallback_warning_time"] = 10000; // ms
     spPandarSwiftSDK.reset(new PandarSwiftSDK(std::string("192.168.1.201"), 2368, 10110, std::string("PandarAT128"), \
                                 std::string("../params/corrections1.5.dat"), \
-                                std::string(""), \
+                                std::string("../params/AT128E2X_Firetime Correction File.csv"), \
                                 std::string(""), lidarCallback, rawcallback, gpsCallback, faultmessagecallback,\
                                 std::string(""), \
                                 std::string(""), \
-                                std::string(""), \
+                                std::string("../params/ca-chain.cert.pem"), \
                                 0, 0, 1, \
-                                std::string("both_point_raw"), threadPriority));
+                                std::string("both_point_raw"), "", configMap));
 #ifdef SET_LIDAR_STANDBY_MODE 
     spPandarSwiftSDK->setStandbyLidarMode();  
 #endif 
@@ -142,6 +149,19 @@ int main(int argc, char** argv) {
     spPandarSwiftSDK->getLidarLensHeatSwitch(lensHeatSwitch);
     printf("Lidar len heat switch status is %d\n", lensHeatSwitch);
 #endif
+
+#ifdef SET_PTCS_MODE 
+    spPandarSwiftSDK->setPtcsLidarMode();
+#endif 
+
+#ifdef SET_PTC_MODE 
+    spPandarSwiftSDK->setPtcLidarMode();
+#endif 
+
+#ifdef GET_PTCS_STATE 
+    int result = spPandarSwiftSDK->getPtcsLidarMode();
+    printf("Get ptcs state result = %d\n",result);
+#endif 
     spPandarSwiftSDK->start();
     while (!spPandarSwiftSDK->GetIsReadPcapOver()) {
         usleep(100);

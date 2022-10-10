@@ -15,8 +15,12 @@
 #ifndef _PANDAR_DRIVER_H_
 #define _PANDAR_DRIVER_H_ 1
 
-#include <string>
 #include <input.h>
+
+#include <boost/shared_ptr.hpp>
+#include <string>
+
+#include "boost/function.hpp"
 
 #define PANDAR128_READ_PACKET_SIZE (1800)
 #define PANDAR80_READ_PACKET_SIZE (1800)
@@ -29,35 +33,36 @@ class PandarSwiftSDK;
 
 class PandarSwiftDriver {
  public:
-	PandarSwiftDriver(std::string deviceipaddr, uint16_t lidarport, uint16_t gpsport, std::string frameid, std::string pcapfile,
-                	boost::function<void(PandarPacketsArray*)> rawcallback, \
-					PandarSwiftSDK *pandarSwiftSDK, std::string publishmode, std::string datatype);
-	~PandarSwiftDriver() {}
+  PandarSwiftDriver(std::string deviceipaddr, uint16_t lidarport,
+                    uint16_t gpsport, std::string frameid, std::string pcapfile,
+                    boost::function<void(PandarPacketsArray *)> rawcallback,
+                    PandarSwiftSDK *pandarSwiftSDK, std::string multicast_ip, std::string publishmode,
+                    std::string datatype);
+  ~PandarSwiftDriver() {}
 
-/** poll the device
- *
- *  @returns true unless end of file reached
- */
-	bool poll(void);
-	void publishRawData();
-	void setUdpVersion(uint8_t major, uint8_t minor);
-	int getPandarScanArraySize(boost::shared_ptr<Input>);
+  /** poll the device
+   *
+   *  @returns true unless end of file reached
+   */
+  bool poll(void);
+  void publishRawData();
+  void setUdpVersion(uint8_t major, uint8_t minor);
+  int getPandarScanArraySize(boost::shared_ptr<Input>);
 
  private:
-
-	boost::shared_ptr<Input> m_spInput;
-	boost::function<void(PandarPacketsArray*)> m_funcRawCallback;
-	std::string m_sFrameId;
-	std::array<PandarPacketsArray, 2> m_arrPandarPackets;
-	bool m_bNeedPublish;
-	int m_iPktPushIndex;
-	int m_iPktPopIndex;
-	std::string m_sPublishmodel;
-	std::string m_sDataType;
-	PandarSwiftSDK *m_pPandarSwiftSDK;
-	int m_iPandarScanArraySize;
-    bool m_bGetScanArraySizeFlag;
-	bool m_bPaserPacp;
+  boost::shared_ptr<Input> m_spInput;
+  boost::function<void(PandarPacketsArray *)> m_funcRawCallback;
+  std::string m_sFrameId;
+  std::array<PandarPacketsArray, 2> m_arrPandarPackets;
+  bool m_bNeedPublish;
+  int m_iPktPushIndex;
+  int m_iPktPopIndex;
+  std::string m_sPublishmodel;
+  std::string m_sDataType;
+  PandarSwiftSDK *m_pPandarSwiftSDK;
+  int m_iPandarScanArraySize;
+  bool m_bGetScanArraySizeFlag;
+  bool m_bPaserPacp;
 };
 
 #endif  // _PANDAR_DRIVER_H_
