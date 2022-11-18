@@ -218,6 +218,10 @@ typedef struct __attribute__((__packed__)) Pandar128TailVersion14_s {
   uint32_t nTimestamp;
   uint8_t nFactoryInfo;
   uint32_t nSeqNum;
+  inline uint8_t getAngleState(int blockIndex) const {
+    return (nAzimuthFlag >> (2 * (7 - blockIndex))) & 0x03;
+  }
+  inline uint8_t getOperationMode() const { return nShutdownFlag & 0x0f; }
 } Pandar128TailVersion14;
 
 typedef struct __attribute__((__packed__)) PandarQT128Tail_s {
@@ -234,6 +238,29 @@ typedef struct __attribute__((__packed__)) PandarQT128Tail_s {
   uint8_t nFactoryInfo;
   uint32_t nSeqNum;
 } PandarQT128Tail;
+
+struct PandarFunctionSafety {
+  uint8_t fs_version;
+  uint8_t lidar_state;
+  uint8_t fault_code_number;
+  uint16_t fault_code;
+  uint64_t reserved;
+  uint32_t CRC;
+  inline uint8_t getFSVersion() {return fs_version;};
+  inline uint8_t getLidarState() {return lidar_state & 0xe0;};
+  inline uint8_t getFaultCodeType() {return lidar_state & 0x18;};
+  inline uint8_t getRollingCount() {return lidar_state & 0x07;};
+  inline uint8_t getFaultCodeNumber() {return fault_code_number & 0xf0;};
+  inline uint8_t getFaultCodeId() {return fault_code_number & 0x0f;};
+  inline uint16_t getFaultCode() {return fault_code;};
+  inline uint64_t getReserved() {return reserved;};
+  inline uint32_t getCRC() {return CRC;};
+  void Print() {
+    printf("FSVersion %u, LidarState %u, FaultCodeType %u, RollingCount %u, FaultCodeNumber %u, FaultCodeI1d %u, FaultCode %u, CRC %u \n", \
+    getFSVersion(), getLidarState(), getFaultCodeType(), getRollingCount(), \
+    getFaultCodeNumber(), getFaultCodeId(), getFaultCode(), getCRC());
+  };
+};
 
 typedef struct __attribute__((__packed__)) Pandar128PacketVersion13_t {
   Pandar128HeadVersion13 head;
@@ -378,6 +405,7 @@ class PandarSwiftSDK {
 	~PandarSwiftSDK() {}
 
 	void driverReadThread();
+  void getPandarFunctionSafety(PandarFunctionSafety &functionSafety);
 	void publishRawDataThread();
 	void processGps(PandarGPS *gpsMsg);
 	void pushLiDARData(PandarPacket packet);
@@ -450,6 +478,7 @@ class PandarSwiftSDK {
   bool m_bClockwise;
   bool m_bCoordinateCorrectionFlag;
   PandarQTChannelConfig m_PandarQTChannelConfig;
+  PandarFunctionSafety m_functionSafety;
 };
 
 #endif  // _PANDAR_POINTCLOUD_Pandar128SDK_H_

@@ -74,7 +74,7 @@ PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uin
 							std::string certFile, std::string privateKeyFile, std::string caFile, \
 							int startangle, int timezone, std::string publishmode, bool coordinateCorrectionFlag, \
 							std::string channelconfigflie, std::string datatype) {
-	m_sSdkVersion = "PandarSwiftSDK_1.2.32";
+	m_sSdkVersion = "PandarSwiftSDK_1.2.42";
 	printf("\n--------PandarSwift SDK version: %s--------\n",m_sSdkVersion.c_str());
 	m_sDeviceIpAddr = deviceipaddr;
 	m_sFrameId = frameid;
@@ -1086,6 +1086,12 @@ void PandarSwiftSDK::calcPointXYZIT(PandarPacket &pkt, int cursor) {
 					PANDAR128_AZIMUTH_SIZE * header->u8BlockNum + 
 					PANDAR128_CRC_SIZE + 
 					(header->hasFunctionSafety()? PANDAR128_FUNCTION_SAFETY_SIZE : 0));
+		if (header->hasFunctionSafety()) {
+			m_functionSafety = *((PandarFunctionSafety*)(&pkt.data[0] + PANDAR128_HEAD_SIZE + 
+				header->unitSize() * header->u8LaserNum * header->u8BlockNum + 
+				PANDAR128_AZIMUTH_SIZE * header->u8BlockNum + 
+				PANDAR128_CRC_SIZE));
+		}			
 		struct tm t = {0};
 		t.tm_year = tail->nUTCTime[0];
 		t.tm_mon = tail->nUTCTime[1] - 1;
@@ -1100,12 +1106,8 @@ void PandarSwiftSDK::calcPointXYZIT(PandarPacket &pkt, int cursor) {
 		for (int blockid = 0; blockid < header->u8BlockNum; blockid++) {
 			uint16_t u16Azimuth = *(uint16_t*)(&pkt.data[0] + index);
 			index += PANDAR128_AZIMUTH_SIZE;
-			int mode = tail->nShutdownFlag & 0x03;
-			int state = 0;
-			if(0 == blockid)
-				state = (tail->nShutdownFlag & 0xC0) >> 6;
-			if(1 == blockid)
-				state = (tail->nShutdownFlag & 0x30) >> 4;
+			int mode = tail->getOperationMode();
+			int state = tail->getAngleState(blockid);
 			for (int i = 0; i < header->u8LaserNum; i++) {
 				/* for all the units in a block */
 				uint16_t u16Distance = *(uint16_t*)(&pkt.data[0] + index);
@@ -1192,6 +1194,12 @@ void PandarSwiftSDK::calcQT128PointXYZIT(PandarPacket &pkt, int cursor) {
 				PANDAR128_AZIMUTH_SIZE * header->u8BlockNum + 
 				PANDAR128_CRC_SIZE + 
 				(header->hasFunctionSafety()? PANDAR128_FUNCTION_SAFETY_SIZE : 0));
+	if (header->hasFunctionSafety()) {
+		m_functionSafety = *((PandarFunctionSafety*)(&pkt.data[0] + PANDAR128_HEAD_SIZE + 
+				(header->hasConfidence() ? PANDAR128_UNIT_WITH_CONFIDENCE_SIZE * header->u8LaserNum * header->u8BlockNum : PANDAR128_UNIT_WITHOUT_CONFIDENCE_SIZE * header->u8LaserNum * header->u8BlockNum) + 
+				PANDAR128_AZIMUTH_SIZE * header->u8BlockNum + 
+				PANDAR128_CRC_SIZE));
+	}				
 	if (pkt.data[0] != 0xEE && pkt.data[1] != 0xFF) {    
 		return ;
 	}
@@ -1420,4 +1428,8 @@ bool PandarSwiftSDK::isNeedPublish(){
   else{
     return false;
   }
+}
+
+void PandarSwiftSDK::getPandarFunctionSafety(PandarFunctionSafety &functionSafety) {
+	functionSafety = m_functionSafety;
 }
