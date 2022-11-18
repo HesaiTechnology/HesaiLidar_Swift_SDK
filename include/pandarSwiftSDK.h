@@ -239,7 +239,7 @@ typedef struct __attribute__((__packed__)) PandarQT128Tail_s {
   uint32_t nSeqNum;
 } PandarQT128Tail;
 
-struct PandarFunctionSafety {
+struct __attribute__((__packed__)) PandarFunctionSafety {
   uint8_t fs_version;
   uint8_t lidar_state;
   uint8_t fault_code_number;
@@ -247,10 +247,10 @@ struct PandarFunctionSafety {
   uint64_t reserved;
   uint32_t CRC;
   inline uint8_t getFSVersion() {return fs_version;};
-  inline uint8_t getLidarState() {return lidar_state & 0xe0;};
-  inline uint8_t getFaultCodeType() {return lidar_state & 0x18;};
+  inline uint8_t getLidarState() {return (lidar_state & 0xe0) >> 5;};
+  inline uint8_t getFaultCodeType() {return (lidar_state & 0x18) >> 3;};
   inline uint8_t getRollingCount() {return lidar_state & 0x07;};
-  inline uint8_t getFaultCodeNumber() {return fault_code_number & 0xf0;};
+  inline uint8_t getFaultCodeNumber() {return (fault_code_number & 0xf0) >> 4;};
   inline uint8_t getFaultCodeId() {return fault_code_number & 0x0f;};
   inline uint16_t getFaultCode() {return fault_code;};
   inline uint64_t getReserved() {return reserved;};
