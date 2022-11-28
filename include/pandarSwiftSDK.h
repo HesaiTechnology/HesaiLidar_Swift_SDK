@@ -187,9 +187,10 @@
   (PANDAR_AT128_PACKET_SIZE + PANDAR_AT128_SEQ_NUM_SIZE)
 #define PANDAR_AT128_WITHOUT_CONF_UNIT_SIZE (DISTANCE_SIZE + INTENSITY_SIZE)
 #define PANDAR_AT128_FRAME_ANGLE_SIZE (6250)
+#define PANDAR_AT128_FRAME_BUFFER_SIZE (7500)
 #define PANDAR_AT128_FRAME_ANGLE_INTERVAL_SIZE (5600)
 #define PANDAR_AT128_EDGE_AZIMUTH_OFFSET (4500)
-#define PANDAR_AT128_EDGE_AZIMUTH_SIZE (1600)
+#define PANDAR_AT128_EDGE_AZIMUTH_SIZE (1200)
 #define PANDAR_AT128_CRC_SIZE (4)
 #define PANDAR_AT128_FUNCTION_SAFETY_SIZE (17)
 #define PANDAR_AT128_SIGNATURE_SIZE (32)
@@ -199,6 +200,7 @@
 #define RX_TDM_ID (26)
 #define MB_TDM_ID (27)
 #define PB_TDM_ID (28)
+#define PACKET_NUM_PER_FRAME (630)
 /************************************* AT 128
  * *********************************************/
 
@@ -435,9 +437,6 @@ typedef struct PacketsBuffer_s {
       m_startFlag = true;
       return 1;
     } else {
-      if (m_buffers.end() == m_iterPush) {
-        m_iterPush = m_buffers.begin();
-      }
       // static bool lastOverflowed = false;
       // if(m_iterPush == m_iterTaskBegin) {
       // 	static uint32_t tmp = m_iterTaskBegin - m_buffers.begin();
@@ -453,6 +452,9 @@ typedef struct PacketsBuffer_s {
       // 	printf("buffer recovered\n");
       // }
       *(m_iterPush++) = pkt;
+      if (m_buffers.end() == m_iterPush) {
+        m_iterPush = m_buffers.begin();
+      }
       return 1;
     }
   }
@@ -460,12 +462,11 @@ typedef struct PacketsBuffer_s {
   inline bool hasEnoughPackets() {
     // printf("%d %d %d\n",m_iterPush - m_buffers.begin(), m_iterTaskBegin -
     // m_buffers.begin(), m_iterTaskEnd - m_buffers.begin());
-    return ((m_iterPush > m_buffers.begin()) &&
+    return (m_iterPush > m_buffers.begin()) &&
             (((m_iterPush - m_pcapFlag) > m_iterTaskBegin &&
               (m_iterPush - m_pcapFlag) > m_iterTaskEnd) ||
              ((m_iterPush - m_pcapFlag) < m_iterTaskBegin &&
-              (m_iterPush - m_pcapFlag) < m_iterTaskEnd)) &&
-            ((m_iterPush - m_buffers.begin()) > 2));
+              (m_iterPush - m_pcapFlag) < m_iterTaskEnd));
   }
   inline bool empty() {
     // static int count = 0;
@@ -482,7 +483,7 @@ typedef struct PacketsBuffer_s {
     // }
     // return false;
     return (abs(m_iterPush - m_iterTaskBegin) <= m_pcapFlag ||
-            abs(m_iterTaskEnd - m_iterTaskBegin) <= 1);
+            abs(m_iterTaskEnd - m_iterTaskBegin) <= 1 );
   }
 
   inline PktArray::iterator getTaskBegin() { return m_iterTaskBegin; }
@@ -674,6 +675,11 @@ class PandarSwiftSDK {
   bool m_bGetCorrectionSuccess;
   int m_iGetCorrectionCount;
   int m_iWithoutDataWarningTime;
+  uint32_t m_u32SequenceNum;
+  int m_iLastPushIndex;
+  uint32_t m_u32LastTaskEndAzimuth;
+  bool m_bIsSwitchFrameFail;
+  double m_dSystemTime;
 };
 
 #endif  // _PANDAR_POINTCLOUD_Pandar128SDK_H_

@@ -211,7 +211,6 @@ PandarSwiftSDK_1.2.36
 
 ##modify
 1. Support PTCS
-2. Remove the pcl library dependency
 
 
 Friday,September 23th, 2022 17:30
@@ -220,3 +219,11 @@ PandarSwiftSDK_1.2.37
 
 ##modify
 1. Support Parser TX/RX/PB/MB temperature
+
+Monday,November 28th, 2022 17:30
+##version
+PandarSwiftSDK_1.2.43
+
+##modify
+1. Support multcast
+2. Fix bug in switch frame

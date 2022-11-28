@@ -320,6 +320,7 @@ PacketType InputSocket::getPacket(PandarPacket *pkt, bool &isTimeout,
   nbytes = recvfrom(m_iSockfd, &pkt->data[0], 10000, 0,
                     (sockaddr *)&sender_address, &sender_address_len);
   pkt->size = nbytes;
+  pkt->stamp = getNowTimeSec();
   skipSleep = false;
   if (nbytes == -1) {
     skipSleep = true;
