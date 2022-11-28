@@ -69,7 +69,7 @@ PandarSwiftSDK(std::string("192.168.1.201"), 2368, 10110, std::string("PandarAT1
                                 std::string(""), \
                                 std::string(""), \
                                 std::string(""), \
-                                0, 0, 1, std::string("both_point_raw"), threadPriority));
+                                0, 0, 1, std::string("both_point_raw"), "", threadPriority));
 
 ```
 Parameter description
@@ -94,6 +94,7 @@ Parameter description
         publishMode          The mode of publish
         threadPriority       The priority of thread 
         dataType             The model of input data
+        multCastIp           The multicast IP address of connected Lidar, will be used to get udp packets from multicast ip address
 
 ```
 Set the pcap flie path only when you what to read a pcap
