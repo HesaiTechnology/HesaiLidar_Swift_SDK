@@ -47,15 +47,15 @@ void rawcallback(PandarPacketsArray *array) {
 
 int main(int argc, char** argv) {
     boost::shared_ptr<PandarSwiftSDK> spPandarSwiftSDK;
-    spPandarSwiftSDK.reset(new PandarSwiftSDK(std::string("192.168.1.201"), 2368, 10110, std::string("Pandar128"), \
+    spPandarSwiftSDK.reset(new PandarSwiftSDK(std::string("192.168.1.201"), "", 2368, 10110, std::string("Pandar128"), \
                                 std::string("../params/Pandar128_Correction.csv"), \
                                 std::string("../params/Pandar128_Firetimes.csv"), \
-                                std::string(""), lidarCallback, rawcallback, gpsCallback, \
+                                std::string("/home/hesai/Downloads/pcap/testing_p128_w.pcap"), lidarCallback, rawcallback, gpsCallback, \
                                 std::string(""), \
                                 std::string(""), \
                                 std::string(""), \
                                 0, 0, std::string("both_point_raw"), false, \
-                                std::string("../params/QT128C2X_Channel_Cofig.csv")));
+                                std::string("../params/QT128C2X_Channel_Cofig.csv"), ""));
     while (true) {
         // PandarFunctionSafety functionSafety;
         // spPandarSwiftSDK->getPandarFunctionSafety(functionSafety);

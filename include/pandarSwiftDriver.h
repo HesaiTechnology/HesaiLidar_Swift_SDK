@@ -32,9 +32,9 @@ class PandarSwiftSDK;
 
 class PandarSwiftDriver {
  public:
-	PandarSwiftDriver(std::string deviceipaddr, uint16_t lidarport, uint16_t gpsport, std::string frameid, std::string pcapfile,
+	PandarSwiftDriver(std::string deviceipaddr, std::string hostipaddr, uint16_t lidarport, uint16_t gpsport, std::string frameid, std::string pcapfile,
                 	boost::function<void(PandarPacketsArray*)> rawcallback, \
-					PandarSwiftSDK *pandarSwiftSDK, std::string publishmode, std::string datatype);
+					PandarSwiftSDK *pandarSwiftSDK, std::string multicast_ip, std::string publishmode, std::string datatype);
 	~PandarSwiftDriver() {}
 
 /** poll the device
