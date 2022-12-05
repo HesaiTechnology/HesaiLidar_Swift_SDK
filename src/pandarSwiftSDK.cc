@@ -577,6 +577,9 @@ int PandarSwiftSDK::processLiDARData() {
 			} 
 			else
 				printf("publishPoints not done yet, new publish is comming\n");
+				while (m_bPublishPointsFlag) {
+					usleep(100);
+				}
 			m_OutMsgArray[cursor]->clear();
 			m_OutMsgArray[cursor]->resize(CIRCLE_ANGLE / m_iAngleSize * m_iLaserNum * m_iReturnBlockSize );
 			if(m_RedundantPointBuffer.size() > 0 && m_RedundantPointBuffer.size() < 1000){
@@ -1105,6 +1108,7 @@ void PandarSwiftSDK::calcPointXYZIT(PandarPacket &pkt, int cursor) {
 		index += PANDAR128_HEAD_SIZE;
 		for (int blockid = 0; blockid < header->u8BlockNum; blockid++) {
 			uint16_t u16Azimuth = *(uint16_t*)(&pkt.data[0] + index);
+			// printf("%d\n", u16Azimuth);
 			index += PANDAR128_AZIMUTH_SIZE;
 			int mode = tail->getOperationMode();
 			int state = tail->getAngleState(blockid);
@@ -1178,8 +1182,11 @@ void PandarSwiftSDK::calcPointXYZIT(PandarPacket &pkt, int cursor) {
 				}
 				else{
 					pthread_mutex_lock(&m_RedundantPointLock);
-					if (fabs(point.timestamp - m_OutMsgArray[cursor]->points[point_index].timestamp) > 0.01)
+					if (point.timestamp - m_OutMsgArray[cursor]->points[point_index].timestamp  > 0.01 && point.timestamp - m_OutMsgArray[cursor]->points[point_index].timestamp  < 0.11) {
 						m_RedundantPointBuffer.push_back(RedundantPoint{point_index, point});
+					}
+						
+						
 					pthread_mutex_unlock(&m_RedundantPointLock);
 				}
 			}
@@ -1356,7 +1363,7 @@ void PandarSwiftSDK::calcQT128PointXYZIT(PandarPacket &pkt, int cursor) {
 			}
 			else{
 				pthread_mutex_lock(&m_RedundantPointLock);
-				if (fabs(point.timestamp - m_OutMsgArray[cursor]->points[point_index].timestamp) > 0.01)
+				if (point.timestamp - m_OutMsgArray[cursor]->points[point_index].timestamp  > 0.01 && point.timestamp - m_OutMsgArray[cursor]->points[point_index].timestamp  < 0.11)
 						m_RedundantPointBuffer.push_back(RedundantPoint{point_index, point});
 				pthread_mutex_unlock(&m_RedundantPointLock);
 			}
