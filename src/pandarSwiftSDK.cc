@@ -81,7 +81,7 @@ PandarSwiftSDK::PandarSwiftSDK(
     int startangle, int timezone, int viewMode, \ 
 							std::string publishmode, std::string multicast_ip,
     std::map<std::string, int32_t> threadPriority, std::string datatype) {
-  m_sSdkVersion = "PandarSwiftSDK_1.2.43";
+  m_sSdkVersion = "PandarSwiftSDK_1.2.44";
   printf("\n--------PandarSwift SDK version: %s--------\n",
          m_sSdkVersion.c_str());
   m_sDeviceIpAddr = deviceipaddr;

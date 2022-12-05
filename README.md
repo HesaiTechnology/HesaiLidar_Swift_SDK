@@ -75,6 +75,7 @@ PandarSwiftSDK(std::string("192.168.1.201"), 2368, 10110, std::string("PandarAT1
 Parameter description
 ```
         deviceIpaddr  	     The ip of the device
+        hostIpaddr  	       The ip of the host ip address
         lidarPort 	         The port number of lidar data
         gpsPort              The port number of gps data
         frameId              The id of the point cloud data published to ROS

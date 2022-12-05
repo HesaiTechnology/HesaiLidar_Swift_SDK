@@ -227,3 +227,11 @@ PandarSwiftSDK_1.2.43
 ##modify
 1. Support multcast
 2. Fix bug in switch frame
+
+Monday,December 5th, 2022 17:30
+##version
+PandarSwiftSDK_1.2.44
+
+##modify
+1. Optimize multcast
+
