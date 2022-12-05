@@ -139,3 +139,10 @@ PandarSwiftSDK_1.2.42
 ##modify
 1. Support to parser function safety
 
+Monday,December 5th, 2022 17:30
+##version
+PandarSwiftSDK_1.2.44
+
+##modify
+1. Support multcast
+

@@ -67,14 +67,14 @@ static const float azimuthOffset[] = {
 };
 
 /** @brief Constructor. */
-PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uint16_t gpsport, std::string frameid, std::string correctionfile, std::string firtimeflie, std::string pcapfile, \
+PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, std::string hostipaddr, uint16_t lidarport, uint16_t gpsport, std::string frameid, std::string correctionfile, std::string firtimeflie, std::string pcapfile, \
 							boost::function<void(boost::shared_ptr<PPointCloud>, double)> pclcallback, \
 							boost::function<void(PandarPacketsArray*)> rawcallback, \
 							boost::function<void(double)> gpscallback, \
 							std::string certFile, std::string privateKeyFile, std::string caFile, \
 							int startangle, int timezone, std::string publishmode, bool coordinateCorrectionFlag, \
-							std::string channelconfigflie, std::string datatype) {
-	m_sSdkVersion = "PandarSwiftSDK_1.2.42";
+							std::string channelconfigflie, std::string multicast_ip, std::string datatype) {
+	m_sSdkVersion = "PandarSwiftSDK_1.2.44";
 	printf("\n--------PandarSwift SDK version: %s--------\n",m_sSdkVersion.c_str());
 	m_sDeviceIpAddr = deviceipaddr;
 	m_sFrameId = frameid;
@@ -100,7 +100,7 @@ PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uin
 	m_funcPclCallback = pclcallback;
 	m_funcGpsCallback = gpscallback;
 	m_bCoordinateCorrectionFlag = coordinateCorrectionFlag;
-	m_spPandarDriver.reset(new PandarSwiftDriver(deviceipaddr, lidarport, gpsport, frameid, pcapfile, rawcallback, this, publishmode, datatype));
+	m_spPandarDriver.reset(new PandarSwiftDriver(deviceipaddr, hostipaddr, lidarport, gpsport, frameid, pcapfile, rawcallback, this, multicast_ip, publishmode, datatype));
 	TcpCommandSetSsl(certFile.c_str(), privateKeyFile.c_str(), caFile.c_str());
 	printf("frame id: %s\n", m_sFrameId.c_str());
 	printf("lidar firetime file: %s\n", m_sLidarFiretimeFile.c_str());
@@ -577,6 +577,9 @@ int PandarSwiftSDK::processLiDARData() {
 			} 
 			else
 				printf("publishPoints not done yet, new publish is comming\n");
+				while (m_bPublishPointsFlag) {
+					usleep(100);
+				}
 			m_OutMsgArray[cursor]->clear();
 			m_OutMsgArray[cursor]->resize(CIRCLE_ANGLE / m_iAngleSize * m_iLaserNum * m_iReturnBlockSize );
 			if(m_RedundantPointBuffer.size() > 0 && m_RedundantPointBuffer.size() < 1000){
@@ -1105,6 +1108,7 @@ void PandarSwiftSDK::calcPointXYZIT(PandarPacket &pkt, int cursor) {
 		index += PANDAR128_HEAD_SIZE;
 		for (int blockid = 0; blockid < header->u8BlockNum; blockid++) {
 			uint16_t u16Azimuth = *(uint16_t*)(&pkt.data[0] + index);
+			// printf("%d\n", u16Azimuth);
 			index += PANDAR128_AZIMUTH_SIZE;
 			int mode = tail->getOperationMode();
 			int state = tail->getAngleState(blockid);
@@ -1178,7 +1182,11 @@ void PandarSwiftSDK::calcPointXYZIT(PandarPacket &pkt, int cursor) {
 				}
 				else{
 					pthread_mutex_lock(&m_RedundantPointLock);
-					m_RedundantPointBuffer.push_back(RedundantPoint{point_index, point});
+					if (point.timestamp - m_OutMsgArray[cursor]->points[point_index].timestamp  > 0.01 && point.timestamp - m_OutMsgArray[cursor]->points[point_index].timestamp  < 0.11) {
+						m_RedundantPointBuffer.push_back(RedundantPoint{point_index, point});
+					}
+						
+						
 					pthread_mutex_unlock(&m_RedundantPointLock);
 				}
 			}
@@ -1355,7 +1363,8 @@ void PandarSwiftSDK::calcQT128PointXYZIT(PandarPacket &pkt, int cursor) {
 			}
 			else{
 				pthread_mutex_lock(&m_RedundantPointLock);
-				m_RedundantPointBuffer.push_back(RedundantPoint{point_index, point});
+				if (point.timestamp - m_OutMsgArray[cursor]->points[point_index].timestamp  > 0.01 && point.timestamp - m_OutMsgArray[cursor]->points[point_index].timestamp  < 0.11)
+						m_RedundantPointBuffer.push_back(RedundantPoint{point_index, point});
 				pthread_mutex_unlock(&m_RedundantPointLock);
 			}
 		}

@@ -377,6 +377,7 @@ class PandarSwiftSDK {
   /**
    * @brief Constructor
    * @param deviceipaddr  	  The ip of the device
+   *        hostipaddr  	  The ip of the host pc
    *        lidarport 		  The port number of lidar data
    *        gpsport   		  The port number of gps data
    *        frameid           The id of the point cloud data published to ROS
@@ -395,13 +396,13 @@ class PandarSwiftSDK {
    *        publishmode       The mode of publish
    *        datatype          The model of input data
    */
-	PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uint16_t gpsport, std::string frameid, std::string correctionfile, std::string firtimeflie, std::string pcapfile, \
+	PandarSwiftSDK(std::string deviceipaddr, std::string hostipaddr, uint16_t lidarport, uint16_t gpsport, std::string frameid, std::string correctionfile, std::string firtimeflie, std::string pcapfile, \
 								boost::function<void(boost::shared_ptr<PPointCloud>, double)> pclcallback, \
 								boost::function<void(PandarPacketsArray*)> rawcallback, \
 								boost::function<void(double)> gpscallback, \
 								std::string certFile, std::string privateKeyFile, std::string caFile, \
 								int startangle, int timezone, std::string publishmode, bool coordinateCorrectionFlag, \
-                std::string channelconfigflie, std::string datatype=LIDAR_DATA_TYPE);
+                std::string channelconfigflie, std::string multicast_ip, std::string datatype=LIDAR_DATA_TYPE);
 	~PandarSwiftSDK() {}
 
 	void driverReadThread();
