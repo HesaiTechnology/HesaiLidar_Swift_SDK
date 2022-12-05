@@ -520,6 +520,7 @@ class PandarSwiftSDK {
   /**
    * @brief Constructor
    * @param deviceipaddr  	  The ip of the device
+   *        deviceipaddr  	  The ip of the host pc
    *        lidarport 		  The port number of lidar data
    *        gpsport   		  The port number of gps data
    *        frameid           The id of the point cloud data published to ROS
@@ -539,7 +540,7 @@ class PandarSwiftSDK {
    *        datatype          The model of input data
    */
   PandarSwiftSDK(
-      std::string deviceipaddr, uint16_t lidarport, uint16_t gpsport,
+      std::string deviceipaddr, std::string hostipaddr, uint16_t lidarport, uint16_t gpsport,
       std::string frameid, std::string correctionfile, std::string firtimeflie,
       std::string pcapfile,
       boost::function<void(boost::shared_ptr<PPointCloud>, double)> pclcallback,

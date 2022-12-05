@@ -23,7 +23,7 @@
 #include "platUtil.h"
 
 PandarSwiftDriver::PandarSwiftDriver(
-    std::string deviceipaddr, uint16_t lidarport, uint16_t gpsport,
+    std::string deviceipaddr, std::string hostipaddr, uint16_t lidarport, uint16_t gpsport,
     std::string frameid, std::string pcapfile,
     boost::function<void(PandarPacketsArray *)> rawcallback,
     PandarSwiftSDK *pandarSwiftSDK, std::string multicast_ip, std::string publishmode,
@@ -45,7 +45,7 @@ PandarSwiftDriver::PandarSwiftDriver(
     m_bPaserPacp = true;
   } else {
     // read data from live socket
-    m_spInput.reset(new InputSocket(deviceipaddr, lidarport, gpsport, multicast_ip));
+    m_spInput.reset(new InputSocket(deviceipaddr, hostipaddr, lidarport, gpsport, multicast_ip));
     m_bPaserPacp = false;
   }
 }

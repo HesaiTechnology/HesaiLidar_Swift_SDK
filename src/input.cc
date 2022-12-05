@@ -174,7 +174,7 @@ std::string Input::getUdpVersion() { return m_sUdpVresion; }
  *  @param deviceipaddr device ip address
  *  @param port UDP port number
  */
-InputSocket::InputSocket(std::string deviceipaddr, uint16_t lidarport,
+InputSocket::InputSocket(std::string deviceipaddr, std::string hostipaddr, uint16_t lidarport,
                          uint16_t gpsport, std::string multicast_ip)
     : Input(deviceipaddr, lidarport) {
   m_iSockfd = -1;
@@ -253,7 +253,7 @@ InputSocket::InputSocket(std::string deviceipaddr, uint16_t lidarport,
   if(multicast_ip != ""){
     struct ip_mreq mreq;                    
     mreq.imr_multiaddr.s_addr=inet_addr(multicast_ip.c_str());
-    mreq.imr_interface.s_addr = htonl(INADDR_ANY); 
+    mreq.imr_interface.s_addr = hostipaddr == "" ? htonl(INADDR_ANY) : inet_addr(hostipaddr.c_str()); 
     int ret = setsockopt(m_iSockfd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (const char *)&mreq, sizeof(mreq));
     if (ret < 0) {
       perror("Multicast IP error,set correct multicast ip address or keep it empty\n");

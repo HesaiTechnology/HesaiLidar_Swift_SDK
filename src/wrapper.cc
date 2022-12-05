@@ -48,7 +48,7 @@ void faultmessagecallback(AT128FaultMessageInfo &faultMessage) {
 
 void RunPandarSwiftSDK(char* deviceipaddr, int lidarport, int gpsport, char* correctionfile, char* firtimeflie, char* pcapfile, int viewMode,
 						char* certFile, char* privateKeyFile, char* caFile, int runTime) {
-    spPandarSwiftSDK.reset(new PandarSwiftSDK(deviceipaddr, lidarport, gpsport, std::string("Pandar128"), \
+    spPandarSwiftSDK.reset(new PandarSwiftSDK(deviceipaddr, "", lidarport, gpsport, std::string("Pandar128"), \
                                 correctionfile, \
                                 firtimeflie, \
                                 pcapfile, lidarCallback, rawcallback, gpsCallback, faultmessagecallback,\

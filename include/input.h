@@ -223,7 +223,7 @@ class Input {
 /** @brief Live pandar input from socket. */
 class InputSocket : public Input {
  public:
-  InputSocket(std::string deviceipaddr, uint16_t lidarport = DATA_PORT_NUMBER,
+  InputSocket(std::string deviceipaddr, std::string hostipaddr, uint16_t lidarport = DATA_PORT_NUMBER,
               uint16_t gpsport = GPS_PORT_NUMBER, std::string multicast_ip = "");
   virtual ~InputSocket();
   virtual PacketType getPacket(PandarPacket *pkt, bool &isTimeout,

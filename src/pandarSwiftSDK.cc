@@ -70,7 +70,7 @@ const char *PandarSwiftSDK::m_sPtcsModeSetFilePath = "../params/test.bin";
 
 /** @brief Constructor. */
 PandarSwiftSDK::PandarSwiftSDK(
-    std::string deviceipaddr, uint16_t lidarport, uint16_t gpsport,
+    std::string deviceipaddr, std::string hostipaddr, uint16_t lidarport, uint16_t gpsport,
     std::string frameid, std::string correctionfile, std::string firtimeflie,
     std::string pcapfile,
     boost::function<void(boost::shared_ptr<PPointCloud>, double)> pclcallback,
@@ -133,7 +133,7 @@ PandarSwiftSDK::PandarSwiftSDK(
   } else {
     m_iEdgeAzimuthSize = 200;
   }
-  m_spPandarDriver.reset(new PandarSwiftDriver(deviceipaddr, lidarport, gpsport,
+  m_spPandarDriver.reset(new PandarSwiftDriver(deviceipaddr, hostipaddr, lidarport, gpsport,
                                                frameid, pcapfile, rawcallback,
                                                this, multicast_ip, publishmode, datatype));
   TcpCommandSetSsl(certFile.c_str(), privateKeyFile.c_str(), caFile.c_str());

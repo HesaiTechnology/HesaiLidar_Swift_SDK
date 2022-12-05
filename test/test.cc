@@ -103,7 +103,7 @@ int main(int argc, char** argv) {
     configMap["without_pointcloud_udp_warning_time"] = 10000; // ms
     configMap["without_faultmessage_udp_warning_time"] = 10000; // ms
     configMap["untragger_pclcallback_warning_time"] = 10000; // ms
-    spPandarSwiftSDK.reset(new PandarSwiftSDK(std::string("192.168.1.201"), 2368, 10110, std::string("PandarAT128"), \
+    spPandarSwiftSDK.reset(new PandarSwiftSDK(std::string("192.168.1.201"), std::string(""), 2368, 10110, std::string("PandarAT128"), \
                                 std::string("../params/corrections1.5.dat"), \
                                 std::string("../params/AT128E2X_Firetime Correction File.csv"), \
                                 std::string(""), lidarCallback, rawcallback, gpsCallback, faultmessagecallback,\
