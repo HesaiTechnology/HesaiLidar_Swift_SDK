@@ -30,6 +30,7 @@ $ sudo apt install libpcl-dev libpcap-dev libyaml-cpp-dev libboost-dev
 ## Clone
 ```
 $ git clone https://github.com/HesaiTechnology/HesaiLidar_Swift_SDK.git
+$ git checkout UDP4.3
 ```
 
 ## Build
