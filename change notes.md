@@ -146,3 +146,10 @@ PandarSwiftSDK_1.2.44
 ##modify
 1. Support multcast
 
+Wednesday,December 14th, 2022 17:30
+##version
+PandarSwiftSDK_1.2.45
+
+##modify
+1. Support save pcd
+

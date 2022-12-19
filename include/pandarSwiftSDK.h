@@ -237,6 +237,10 @@ typedef struct __attribute__((__packed__)) PandarQT128Tail_s {
   uint32_t nTimestamp;
   uint8_t nFactoryInfo;
   uint32_t nSeqNum;
+  inline uint8_t getAngleState(int blockIndex) const {
+    return (nAzimuthFlag >> (2 * (7 - blockIndex))) & 0x03;
+  }
+  inline uint8_t getOperationMode() const { return nShutdownFlag & 0x0f; }
 } PandarQT128Tail;
 
 struct __attribute__((__packed__)) PandarFunctionSafety {
@@ -332,6 +336,14 @@ typedef struct PacketsBuffer_s {
 				lastOverflowed = false;
 				printf("buffer recovered\n");
 			}
+
+      if(((m_iterPush > m_iterTaskEnd) && (m_iterPush - m_iterTaskEnd) > 4 * m_stepSize) ||
+      ((m_iterPush < m_iterTaskBegin) && (m_iterTaskBegin - m_iterPush) < CIRCLE - 4 * m_stepSize)){
+
+        while((((m_iterPush > m_iterTaskEnd) && (m_iterPush - m_iterTaskEnd) > 4 * m_stepSize) ||
+        ((m_iterPush < m_iterTaskBegin) && (m_iterTaskBegin - m_iterPush) < CIRCLE - 4 * m_stepSize)))
+          usleep(1000);
+      }
 			*(m_iterPush++) = pkt;
 			return 1;
         }

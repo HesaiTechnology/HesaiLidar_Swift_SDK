@@ -74,7 +74,7 @@ PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, std::string hostipaddr,
 							std::string certFile, std::string privateKeyFile, std::string caFile, \
 							int startangle, int timezone, std::string publishmode, bool coordinateCorrectionFlag, \
 							std::string channelconfigflie, std::string multicast_ip, std::string datatype) {
-	m_sSdkVersion = "PandarSwiftSDK_1.2.44";
+	m_sSdkVersion = "PandarSwiftSDK_1.2.45";
 	printf("\n--------PandarSwift SDK version: %s--------\n",m_sSdkVersion.c_str());
 	m_sDeviceIpAddr = deviceipaddr;
 	m_sFrameId = frameid;
@@ -308,6 +308,10 @@ int PandarSwiftSDK::loadChannelConfigFile(std::string channel_config_content){
     std::getline(ifs, line);
     std::vector<std::string> ChannelLine;
     boost::split(ChannelLine, line, boost::is_any_of(","));
+	if (ChannelLine.size() != loop_num) {
+		printf("channel config file format is wrong\n");
+		return -1;
+	}
     for(int j = 0; j < loop_num; j++){
       if(ChannelLine.size() == loop_num){
         m_PandarQTChannelConfig.m_vChannelConfigTable[j][i] = std::stoi(ChannelLine[j].c_str());
@@ -722,7 +726,7 @@ void PandarSwiftSDK::init() {
 					PANDAR128_AZIMUTH_SIZE * header->u8BlockNum + 
 					PANDAR128_CRC_SIZE + 
 					(header->hasFunctionSafety()? PANDAR128_FUNCTION_SAFETY_SIZE : 0));
-				m_iWorkMode = tail->nShutdownFlag & 0x03;
+				m_iWorkMode = tail->getOperationMode();
 				m_iReturnMode = tail->nReturnMode;
 				m_spPandarDriver->setUdpVersion(m_u8UdpVersionMajor, m_u8UdpVersionMinor);
 				lidarmotorspeed = tail->nMotorSpeed;
@@ -841,7 +845,7 @@ int PandarSwiftSDK::checkLiadaMode() {
 					PANDAR128_AZIMUTH_SIZE * header->u8BlockNum + 
 					PANDAR128_CRC_SIZE + 
 					(header->hasFunctionSafety()? PANDAR128_FUNCTION_SAFETY_SIZE : 0));
-					lidarworkmode = tail->nShutdownFlag & 0x03;
+					lidarworkmode = tail->getOperationMode();
 					lidarreturnmode = tail->nReturnMode;
 					lidarmotorspeed = tail->nMotorSpeed;
 					laserNum = header->u8LaserNum;
@@ -1185,8 +1189,6 @@ void PandarSwiftSDK::calcPointXYZIT(PandarPacket &pkt, int cursor) {
 					if (point.timestamp - m_OutMsgArray[cursor]->points[point_index].timestamp  > 0.01 && point.timestamp - m_OutMsgArray[cursor]->points[point_index].timestamp  < 0.11) {
 						m_RedundantPointBuffer.push_back(RedundantPoint{point_index, point});
 					}
-						
-						
 					pthread_mutex_unlock(&m_RedundantPointLock);
 				}
 			}
@@ -1225,7 +1227,7 @@ void PandarSwiftSDK::calcQT128PointXYZIT(PandarPacket &pkt, int cursor) {
 	int index = 0;
 	index += PANDAR128_HEAD_SIZE;
 	for (int blockid = 0; blockid < header->u8BlockNum; blockid++) {
-		int loopIndex = blockid;
+		int loopIndex = (tail->nModeFlag + (blockid / ((tail->nReturnMode < 0x39) ? 1 : 2)) + 1) % header->u8BlockNum;
 		if((isSelfDefine && m_PandarQTChannelConfig.m_bIsChannelConfigObtained)){
 			loopIndex = (tail->nModeFlag + (blockid / ((tail->nReturnMode < 0x39) ? 1 : 2)) + 1) % m_PandarQTChannelConfig.m_vChannelConfigTable.size();
 		}
@@ -1363,8 +1365,9 @@ void PandarSwiftSDK::calcQT128PointXYZIT(PandarPacket &pkt, int cursor) {
 			}
 			else{
 				pthread_mutex_lock(&m_RedundantPointLock);
-				if (point.timestamp - m_OutMsgArray[cursor]->points[point_index].timestamp  > 0.01 && point.timestamp - m_OutMsgArray[cursor]->points[point_index].timestamp  < 0.11)
-						m_RedundantPointBuffer.push_back(RedundantPoint{point_index, point});
+				if (point.timestamp - m_OutMsgArray[cursor]->points[point_index].timestamp  > 0.01 && point.timestamp - m_OutMsgArray[cursor]->points[point_index].timestamp  < 0.11) {
+					m_RedundantPointBuffer.push_back(RedundantPoint{point_index, point});
+				}		
 				pthread_mutex_unlock(&m_RedundantPointLock);
 			}
 		}
