@@ -19,6 +19,7 @@
 
 #include <map>
 #include <vector>
+#include <string>
 
 #ifndef CIRCLE
 #define CIRCLE (36000)
