@@ -102,6 +102,7 @@ PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, std::string hostipaddr,
 	m_funcPclCallback = pclcallback;
 	m_funcGpsCallback = gpscallback;
 	m_bCoordinateCorrectionFlag = coordinateCorrectionFlag;
+	loadCorrectionFile();
 	m_spPandarDriver.reset(new PandarSwiftDriver(deviceipaddr, hostipaddr, lidarport, gpsport, frameid, pcapfile, rawcallback, this, publishmode, multicast_ip, datatype));
 	TcpCommandSetSsl(certFile.c_str(), privateKeyFile.c_str(), caFile.c_str());
 	printf("frame id: %s\n", m_sFrameId.c_str());
@@ -112,7 +113,6 @@ PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, std::string hostipaddr,
 		m_fElevAngle[i] = elevAngle[i];
 		m_fHorizatalAzimuth[i] = azimuthOffset[i];
 	}
-	loadCorrectionFile();
 	// loadOffsetFile(m_sLidarFiretimeFile);
 	pthread_mutex_init(&m_RedundantPointLock, NULL);
 	memset(m_fCosAllAngle, 0, sizeof(m_fCosAllAngle));
@@ -197,7 +197,7 @@ void PandarSwiftSDK::loadCorrectionFile() {
 }
 
 int PandarSwiftSDK::LoadCorrectionString(char *data) {
-  if (LoadCorrectionDatData(data)) {
+  if (LoadCorrectionDatData(data) == 0) {
     return 0;
   }
   return LoadCorrectionCsvData(data);
@@ -205,37 +205,40 @@ int PandarSwiftSDK::LoadCorrectionString(char *data) {
 
 
 int PandarSwiftSDK::LoadCorrectionCsvData(char *correction_string) {
-  std::istringstream ifs(correction_string);
+	std::istringstream ifs(correction_string);
 	std::string line;
-	if(std::getline(ifs, line)) {  // first line "Laser id,Elevation,Azimuth"
+	if(std::getline(ifs, line)) {  // first line 
 		printf("Parse Lidar Correction...\n");
 	}
 	int lineCounter = 0;
 	std::vector<std::string>  firstLine;
 	boost::split(firstLine, line, boost::is_any_of(","));
-  while (std::getline(ifs, line)) {
-    if(line.length() < strlen("1,1,1,1")) {
-      return -1;
-    } 
-    else {
-      lineCounter++;
-    }
-    float elev, azimuth;
-    int lineId = 0;
-    int cloumnId = 0;
-    std::stringstream ss(line);
-    std::string subline;
-    std::getline(ss, subline, ',');
-    std::stringstream(subline) >> lineId;
-    std::getline(ss, subline, ',');
-    std::stringstream(subline) >> cloumnId;
-    std::getline(ss, subline, ',');
-    std::stringstream(subline) >> elev;
-    std::getline(ss, subline, ',');
-    std::stringstream(subline) >> azimuth;
-    m_fPandarFTElevAngle[lineId - 1][cloumnId - 1] = elev;
-    m_fPandarFTAzimuth[lineId - 1][cloumnId - 1] = azimuth;
-  }
+	if(firstLine[0] == "EE" || firstLine[0] == "ee" || firstLine[0] == "0xee" || firstLine[0] == "0xEE") {
+		std::getline(ifs, line);
+	}
+	while (std::getline(ifs, line)) {
+		if(line.length() < strlen("1,1,1,1")) {
+			return -1;
+		} 
+		else {
+			lineCounter++;
+		}
+		float elev, azimuth;
+		int lineId = 0;
+		int cloumnId = 0;
+		std::stringstream ss(line);
+		std::string subline;
+		std::getline(ss, subline, ',');
+		std::stringstream(subline) >> lineId;
+		std::getline(ss, subline, ',');
+		std::stringstream(subline) >> cloumnId;
+		std::getline(ss, subline, ',');
+		std::stringstream(subline) >> elev;
+		std::getline(ss, subline, ',');
+		std::stringstream(subline) >> azimuth;
+		m_fPandarFTElevAngle[lineId - 1][cloumnId - 1] = elev;
+		m_fPandarFTAzimuth[lineId - 1][cloumnId - 1] = azimuth;
+	}
 	return 0;
 }
 
@@ -306,6 +309,7 @@ int PandarSwiftSDK::LoadCorrectionDatData(char *correction_string) {
           break;
       }
     }
+	printf("asdwwwwwwwwwwwww\n");
 
     return -1;
   } catch (const std::exception &e) {

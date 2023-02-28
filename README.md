@@ -60,7 +60,7 @@ target_link_libraries(<Your project>
 Set the parameters of class PandarSwiftSDK in test.cc
 ```
 // for Pandar128
-PandarSwiftSDK(std::string("192.168.1.201"), 2368, 10110, std::string("Pandar128"), \
+PandarSwiftSDK(std::string("192.168.1.201"), "", 2368, 10110, std::string("Pandar128"), \
                                 std::string("../params/Pandar128_Correction.csv"), \
                                 std::string("../params/Pandar128_Firetimes.csv"), \
                                 std::string(""), \
@@ -72,7 +72,7 @@ PandarSwiftSDK(std::string("192.168.1.201"), 2368, 10110, std::string("Pandar128
 
 
 // for PandarQT128
-PandarSwiftSDK(std::string("192.168.1.201"), 2368, 10110, std::string("PandarQT128"), \
+PandarSwiftSDK(std::string("192.168.1.201"), "", 2368, 10110, std::string("PandarQT128"), \
                                 std::string("../params/PandarQT128_Correction.csv"), \
                                 std::string("../params/PandarQT128_Firetimes.csv"), \
                                 std::string(""), \
@@ -83,7 +83,7 @@ PandarSwiftSDK(std::string("192.168.1.201"), 2368, 10110, std::string("PandarQT1
                                 0, 0, std::string("both_point_raw"), false, "");
 
 // for PandarFT
-PandarSwiftSDK(std::string("192.168.1.201"), 2368, 10110, std::string("PandarFT"), \
+PandarSwiftSDK(std::string("192.168.1.201"), "", 2368, 10110, std::string("PandarFT"), \
                                 std::string("../params/PandarFT_Correction.csv"), \
                                 std::string(""), \
                                 std::string(""), \
@@ -97,7 +97,8 @@ PandarSwiftSDK(std::string("192.168.1.201"), 2368, 10110, std::string("PandarFT"
 Parameter description
 ```
         deviceipaddr  	  The ip of the device
-        lidarport 	      The port number of lidar data
+        hostipaddr  	  The ip of the host PC
+        lidarport 	  The port number of lidar data
         gpsport           The port number of gps data
         frameid           The id of the point cloud data published to ROS
         correctionfile    The correction file path

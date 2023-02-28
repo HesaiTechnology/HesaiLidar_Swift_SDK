@@ -330,7 +330,7 @@ InputSocket::InputSocket(std::string deviceipaddr, std::string hostipaddr, uint1
 	  mreq.imr_interface.s_addr = hostipaddr == "" ? htons(INADDR_ANY) : inet_addr(hostipaddr.c_str());
       int ret = setsockopt(m_iSockfd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (const char *)&mreq, sizeof(mreq));
       if (ret < 0) {
-        perror("Multicast IP error,set correct multicast ip address or keep it empty\n");
+        printf("Multicast IP error,set correct multicast ip address or keep it empty %s  %s\n", hostipaddr.c_str(), multicast_ip.c_str());
       } 
       else {
         printf("Recive data from multicast ip address %s\n", multicast_ip.c_str());

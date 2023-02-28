@@ -138,3 +138,10 @@ PandarSwiftSDK_1.2.33
 
 ##modify
 1. Support FT
+
+Tuesday, February 28th, 2023 17:30
+##version
+PandarSwiftSDK_1.2.46
+
+##modify
+1. Support FT A3
