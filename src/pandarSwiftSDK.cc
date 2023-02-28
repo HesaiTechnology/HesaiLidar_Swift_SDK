@@ -309,7 +309,6 @@ int PandarSwiftSDK::LoadCorrectionDatData(char *correction_string) {
           break;
       }
     }
-	printf("asdwwwwwwwwwwwww\n");
 
     return -1;
   } catch (const std::exception &e) {
