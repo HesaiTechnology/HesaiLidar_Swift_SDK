@@ -66,14 +66,14 @@ static const float azimuthOffset[] = {
 };
 
 /** @brief Constructor. */
-PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uint16_t gpsport, std::string frameid, std::string correctionfile, std::string firtimeflie, std::string pcapfile, \
+PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, std::string hostipaddr, uint16_t lidarport, uint16_t gpsport, std::string frameid, std::string correctionfile, std::string firtimeflie, std::string pcapfile, \
 							boost::function<void(boost::shared_ptr<PPointCloud>, double)> pclcallback, \
 							boost::function<void(PandarPacketsArray*)> rawcallback, \
 							boost::function<void(double)> gpscallback, \
 							std::string certFile, std::string privateKeyFile, std::string caFile, \
 							int startangle, int timezone, std::string publishmode, bool coordinateCorrectionFlag, \
 							std::string multicast_ip, std::string datatype) {
-	m_sSdkVersion = "PandarSwiftSDK_1.2.33";
+	m_sSdkVersion = "PandarSwiftSDK_1.2.46";
 	printf("\n--------PandarSwift SDK version: %s--------\n",m_sSdkVersion.c_str());
 	m_sDeviceIpAddr = deviceipaddr;
 	m_sFrameId = frameid;
@@ -102,7 +102,7 @@ PandarSwiftSDK::PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uin
 	m_funcPclCallback = pclcallback;
 	m_funcGpsCallback = gpscallback;
 	m_bCoordinateCorrectionFlag = coordinateCorrectionFlag;
-	m_spPandarDriver.reset(new PandarSwiftDriver(deviceipaddr, lidarport, gpsport, frameid, pcapfile, rawcallback, this, publishmode, multicast_ip, datatype));
+	m_spPandarDriver.reset(new PandarSwiftDriver(deviceipaddr, hostipaddr, lidarport, gpsport, frameid, pcapfile, rawcallback, this, publishmode, multicast_ip, datatype));
 	TcpCommandSetSsl(certFile.c_str(), privateKeyFile.c_str(), caFile.c_str());
 	printf("frame id: %s\n", m_sFrameId.c_str());
 	printf("lidar firetime file: %s\n", m_sLidarFiretimeFile.c_str());
@@ -151,7 +151,7 @@ void PandarSwiftSDK::loadCorrectionFile() {
 			if(ret == 0 && buffer) {
 				printf("Load correction file from lidar now!\n");
 				correntionString = std::string(buffer);
-				ret = loadCorrectionString(correntionString);
+				ret = LoadCorrectionString(buffer);
 				if(ret != 0) {
 					printf("Parse Lidar Correction Error\n");
 				} 
@@ -180,7 +180,7 @@ void PandarSwiftSDK::loadCorrectionFile() {
 			fin.read(buffer, length);
 			fin.close();
 			strlidarCalibration = buffer;
-			ret = loadCorrectionString(strlidarCalibration);
+			ret = LoadCorrectionString(buffer);
 			if(ret != 0) {
 				printf("Parse local Correction file Error\n");
 			} 
@@ -196,79 +196,125 @@ void PandarSwiftSDK::loadCorrectionFile() {
 	}
 }
 
-int PandarSwiftSDK::loadCorrectionString(std::string correction_content) {
-    std::istringstream ifs(correction_content);
+int PandarSwiftSDK::LoadCorrectionString(char *data) {
+  if (LoadCorrectionDatData(data)) {
+    return 0;
+  }
+  return LoadCorrectionCsvData(data);
+}
+
+
+int PandarSwiftSDK::LoadCorrectionCsvData(char *correction_string) {
+  std::istringstream ifs(correction_string);
 	std::string line;
 	if(std::getline(ifs, line)) {  // first line "Laser id,Elevation,Azimuth"
 		printf("Parse Lidar Correction...\n");
 	}
-	float pitchList[PANDAR128_LASER_NUM * 4];
-	float azimuthList[PANDAR128_LASER_NUM * 4];
-
 	int lineCounter = 0;
 	std::vector<std::string>  firstLine;
 	boost::split(firstLine, line, boost::is_any_of(","));
-	if(firstLine.size() == 3){
-		while (std::getline(ifs, line)) {
-			if(line.length() < strlen("1,1,1")) {
-				return -1;
-			} 
-			else {
-				lineCounter++;
-			}
-			float elev, azimuth;
-			int lineId = 0;
-			std::stringstream ss(line);
-			std::string subline;
-			std::getline(ss, subline, ',');
-			std::stringstream(subline) >> lineId;
-			std::getline(ss, subline, ',');
-			std::stringstream(subline) >> elev;
-			std::getline(ss, subline, ',');
-			std::stringstream(subline) >> azimuth;
-			if(lineId != lineCounter) {
-				printf("laser id error %d %d\n", lineId, lineCounter);
-				return -1;
-			}
-			pitchList[lineId - 1] = elev;
-			azimuthList[lineId - 1] = azimuth;
-		}
-		for (int i = 0; i < lineCounter; ++i) {
-			m_fElevAngle[i] = pitchList[i];
-			m_fHorizatalAzimuth[i] = azimuthList[i];
-		}
-	}
-	else{
-		while (std::getline(ifs, line)) {
-			if(line.length() < strlen("1,1,1,1")) {
-				return -1;
-			} 
-			else {
-				lineCounter++;
-			}
-			float elev, azimuth;
-			int lineId = 0;
-			int cloumnId = 0;
-			std::stringstream ss(line);
-			std::string subline;
-			std::getline(ss, subline, ',');
-			std::stringstream(subline) >> lineId;
-			std::getline(ss, subline, ',');
-			std::stringstream(subline) >> cloumnId;
-			std::getline(ss, subline, ',');
-			std::stringstream(subline) >> elev;
-			std::getline(ss, subline, ',');
-			std::stringstream(subline) >> azimuth;
-			m_fPandarFTElevAngle[lineId - 1][cloumnId - 1] = elev;
-			m_fPandarFTAzimuth[lineId - 1][cloumnId - 1] = azimuth;
-		}
-
-	}
-	
-	
+  while (std::getline(ifs, line)) {
+    if(line.length() < strlen("1,1,1,1")) {
+      return -1;
+    } 
+    else {
+      lineCounter++;
+    }
+    float elev, azimuth;
+    int lineId = 0;
+    int cloumnId = 0;
+    std::stringstream ss(line);
+    std::string subline;
+    std::getline(ss, subline, ',');
+    std::stringstream(subline) >> lineId;
+    std::getline(ss, subline, ',');
+    std::stringstream(subline) >> cloumnId;
+    std::getline(ss, subline, ',');
+    std::stringstream(subline) >> elev;
+    std::getline(ss, subline, ',');
+    std::stringstream(subline) >> azimuth;
+    m_fPandarFTElevAngle[lineId - 1][cloumnId - 1] = elev;
+    m_fPandarFTAzimuth[lineId - 1][cloumnId - 1] = azimuth;
+  }
 	return 0;
 }
 
+int PandarSwiftSDK::LoadCorrectionDatData(char *correction_string) {
+
+  try {
+    char *p = correction_string;
+    PandarFTCorrectionsHeader header = *(PandarFTCorrectionsHeader *)p;
+    if (0xee == header.pilot[0] && 0xff == header.pilot[1]) {
+      switch (header.version[1]) {
+        case 0: {
+          int column_num = header.column_number;
+          int channel_num = header.channel_number;
+          int resolution = header.resolution;
+          float fResolution = float(resolution);
+          int angleNum = column_num * channel_num;
+          int doubleAngleNum = angleNum * 2;
+          int16_t* angles = new int16_t[doubleAngleNum]{0};
+          int readLen = sizeof(int16_t) * doubleAngleNum;
+          memcpy((void*)angles, correction_string, readLen);
+          int hashLen = 32;
+          uint8_t* hashValue = new uint8_t[hashLen];
+          memcpy((void*)hashValue, correction_string + readLen, hashLen);
+          for (int row = 0; row < column_num; row++) {
+            for (int col = 0; col < channel_num; col++) {
+              int idx = row * channel_num + col;
+              m_fPandarFTAzimuth[row][col] = angles[idx] * fResolution / 100.0f;
+            }
+          }
+
+          for (int row = 0; row < column_num; row++) {
+            for (int col = 0; col < channel_num; col++) {
+              int idx = angleNum + row * channel_num + col;
+              m_fPandarFTElevAngle[row][col] = angles[idx] * fResolution / 100.0f;
+            }
+          }
+          return 0;
+        } break;
+        case 1: {
+          int column_num = header.column_number;
+          int channel_num = header.channel_number;
+          int resolution = header.resolution;
+          float fResolution = float(resolution);
+          int angleNum = column_num * channel_num;
+          int doubleAngleNum = angleNum * 2;
+          int32_t* angles = new int32_t[doubleAngleNum]{0};
+          int readLen = sizeof(int32_t) * doubleAngleNum;
+          memcpy((void*)angles, correction_string + sizeof(PandarFTCorrectionsHeader), readLen);
+          int hashLen = 32;
+          uint8_t* hashValue = new uint8_t[hashLen];
+          memcpy((void*)hashValue, correction_string + readLen + sizeof(PandarFTCorrectionsHeader), hashLen);
+          for (int row = 0; row < column_num; row++) {
+            for (int col = 0; col < channel_num; col++) {
+              int idx = row * channel_num + col;
+              m_fPandarFTAzimuth[col][row] = angles[idx] * fResolution / 100.0f;
+            }
+          }
+
+          for (int row = 0; row < column_num; row++) {
+            for (int col = 0; col < channel_num; col++) {
+              int idx = angleNum + row * channel_num + col;
+              m_fPandarFTElevAngle[col][row] = angles[idx] * fResolution / 100.0f;
+            }
+          }
+          return 0;
+        } break;
+        default:
+          break;
+      }
+    }
+
+    return -1;
+  } catch (const std::exception &e) {
+    std::cerr << e.what() << '\n';
+    return -1;
+  }
+  return -1;
+
+}
 void PandarSwiftSDK::driverReadThread() {
 	SetThreadPriority(SCHED_RR, 99);
 	while (1) {
@@ -618,9 +664,12 @@ void PandarSwiftSDK::init() {
 			switch (m_u8UdpVersionMinor)
 			{
 				case 1:
+				case 2:
 				{
+					int unitSize = PANDARFT_UNIT_SIZE; 
 					auto header = (PandarFTHead*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]));
-					auto tail = (PandarFTTail*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]) + PANDARFT_HEAD_SIZE + (PANDARFT_UNIT_SIZE * header->u8ChannelNum));
+					if (header->u8VersionMinor == 2) unitSize = PANDARFT_UNIT_V2_SIZE;
+					auto tail = (PandarFTTail*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]) + PANDARFT_HEAD_SIZE + (unitSize * header->u8ChannelNum));
 						m_spPandarDriver->setUdpVersion(m_u8UdpVersionMajor, m_u8UdpVersionMinor);
 						m_iReturnMode = tail->nReturnMode;;
 						lidarmotorspeed = tail->nMotorSpeed;
@@ -629,7 +678,7 @@ void PandarSwiftSDK::init() {
 						// blockNum = header->u8BlockNum;
 						m_iPandarFTCloumnNum = header->u16TotalColumnNum;
 						m_iPandarFTRowNum = header->u16TotalRowNum;
-						m_iCloumnIdIndex = PANDARFT_HEAD_SIZE + (PANDARFT_UNIT_SIZE * header->u8ChannelNum) + PANDARFT_TAIL_RESERVED1_SIZE +  PANDARFT_TAIL_RESERVED2_SIZE;
+						m_iCloumnIdIndex = PANDARFT_HEAD_SIZE + (unitSize * header->u8ChannelNum) + PANDARFT_TAIL_RESERVED1_SIZE +  PANDARFT_TAIL_RESERVED2_SIZE;
 				}
 				break;
 				default:
@@ -752,15 +801,18 @@ int PandarSwiftSDK::checkLiadaMode() {
 		switch (m_u8UdpVersionMinor)
 		{
 			case 1:
+			case 2:
 			{
+			int unitSize = PANDARFT_UNIT_SIZE; 
 			auto header = (PandarFTHead*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]));
-			auto tail = (PandarFTTail*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]) + PANDARFT_HEAD_SIZE + (PANDARFT_UNIT_SIZE * header->u8ChannelNum));
+			if (header->u8VersionMinor == 2) unitSize = PANDARFT_UNIT_V2_SIZE;
+			auto tail = (PandarFTTail*)(&((m_PacketsBuffer.getTaskEnd() - 1)->data[0]) + PANDARFT_HEAD_SIZE + (unitSize * header->u8ChannelNum));
 					// lidarworkmode = tail->nShutdownFlag & 0x03;
 					lidarreturnmode = tail->nReturnMode;
 					lidarmotorspeed = tail->nMotorSpeed;
 					m_iPandarFTCloumnNum = header->u16TotalColumnNum;
 					m_iPandarFTRowNum = header->u16TotalRowNum;
-					m_iCloumnIdIndex = PANDARFT_HEAD_SIZE + (PANDARFT_UNIT_SIZE * header->u8ChannelNum) + PANDARFT_TAIL_RESERVED1_SIZE +  PANDARFT_TAIL_RESERVED2_SIZE;
+					m_iCloumnIdIndex = PANDARFT_HEAD_SIZE + (unitSize * header->u8ChannelNum) + PANDARFT_TAIL_RESERVED1_SIZE +  PANDARFT_TAIL_RESERVED2_SIZE;
 			}
 			break;
 			default:
@@ -1181,27 +1233,36 @@ void PandarSwiftSDK::calcQT128PointXYZIT(PandarPacket &pkt, int cursor) {
 }
 
 void PandarSwiftSDK::calcFTPointXYZIT(PandarPacket &packet, int cursor) {
+	int unitSize = PANDARFT_UNIT_SIZE;
 	auto header = (PandarFTHead*)(&packet.data[0]);
+	if (header->u8VersionMinor == 2) unitSize = PANDARFT_UNIT_V2_SIZE;
 	auto tail = (PandarFTTail*)(&packet.data[0] + PANDARFT_HEAD_SIZE  + \
-				(PANDARFT_UNIT_SIZE * header->u8ChannelNum));
+				(unitSize * header->u8ChannelNum));
 	if (packet.data[0] != 0xEE && packet.data[1] != 0xFF) {    
 		return ;
 	}
-	struct tm t = {0};
-
-	t.tm_year = tail->nUTCTime[0] + 100;
-	if (t.tm_year >= 200) {
+	double unix_second = 0;
+	if (tail->nUTCTime[0] != 0) {
+		struct tm t = {0};
+		t.tm_year = tail->nUTCTime[0] + 100;
+		if (t.tm_year >= 200) {
 		t.tm_year -= 100;
+		}
+		t.tm_mon = tail->nUTCTime[1] - 1;
+		t.tm_mday = tail->nUTCTime[2];
+		t.tm_hour = tail->nUTCTime[3];
+		t.tm_min = tail->nUTCTime[4];
+		t.tm_sec = tail->nUTCTime[5];
+		t.tm_isdst = 0;
+		unix_second = static_cast<double>(mktime(&t) + m_iTimeZoneSecond);
 	}
-	t.tm_mon = tail->nUTCTime[1] - 1;
-	t.tm_mday = tail->nUTCTime[2];
-	t.tm_hour = tail->nUTCTime[3];
-	t.tm_min = tail->nUTCTime[4];
-	t.tm_sec = tail->nUTCTime[5];
-	t.tm_isdst = 0;
-	// printf("%d\n", tail->nCloumnIndex);
-
-	double unix_second = static_cast<double>(mktime(&t) + m_iTimeZoneSecond);
+	else {
+		uint32_t utc_time_big = *(uint32_t*)(&tail->nUTCTime[0] + 2);
+		unix_second = ((utc_time_big >> 24) & 0xff) |
+				((utc_time_big >> 8) & 0xff00) |
+				((utc_time_big << 8) & 0xff0000) |
+				((utc_time_big << 24)) + m_iTimeZoneSecond;
+	}
 	// ROS_WARN("#####block.fAzimuth[%u][%u]",pkt.blocks[0].fAzimuth,pkt.blocks[1].fAzimuth);
 	int index = 0;
 	index += PANDARFT_HEAD_SIZE;
@@ -1212,13 +1273,12 @@ void PandarSwiftSDK::calcFTPointXYZIT(PandarPacket &packet, int cursor) {
 		index += DISTANCE_SIZE;
 		uint8_t u8Intensity = *(uint8_t*)(&packet.data[0] + index);
 		index += INTENSITY_SIZE;
-		index += ENV_LIGHT_SIZE;
+		if (header->u8VersionMinor == 1) index += ENV_LIGHT_SIZE;
+		if (header->u8VersionMinor == 2) index += ENV_LIGHT_V2_SIZE;
 		index += CONFIDENCE_SIZE;
 		PPoint point;
 
-		float distance =
-			static_cast<float>(u16Distance) * PANDARFT_DISTANCE_UNIT * header->u8DistUnit;
-        
+		float distance = static_cast<float>(u16Distance) * PANDARFT_DISTANCE_UNIT * header->u8DistUnit;
 		float azimuth = m_fPandarFTAzimuth[i][tail->nCloumnIndex];
 		float pitch = m_fPandarFTElevAngle[i][tail->nCloumnIndex];
 		int pitchIdx = static_cast<int>(pitch * 100 + 0.5);
@@ -1245,9 +1305,9 @@ void PandarSwiftSDK::calcFTPointXYZIT(PandarPacket &packet, int cursor) {
 		point.timestamp = unix_second + (static_cast<double>(tail->nTimestamp)) / 1000000.0;
 
 		if (0 == m_dTimestamp) {
-		m_dTimestamp = point.timestamp;
+			m_dTimestamp = point.timestamp;
 		} else if (m_dTimestamp > point.timestamp) {
-		m_dTimestamp = point.timestamp;
+			m_dTimestamp = point.timestamp;
 		}
 
 		point.ring = i + 1;	

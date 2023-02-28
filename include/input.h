@@ -50,6 +50,7 @@
 #define UDP_VERSION_1_4 "1.4"
 #define UDP_VERSION_3_2 "3.2"
 #define UDP_VERSION_7_1 "7.1"
+#define UDP_VERSION_7_2 "7.2"
 #define GPS_PACKET_SIZE (512)
 #define PANDAR128_SOB_SIZE (2)
 #define PANDAR128_VERSION_MAJOR_SIZE (1)
@@ -114,10 +115,16 @@
 #define DISTANCE_SIZE (2)
 #define INTENSITY_SIZE (1)
 #define ENV_LIGHT_SIZE (2)
+#define ENV_LIGHT_V2_SIZE (1)
 #define CONFIDENCE_SIZE (1)
 #define PANDARFT_UNIT_SIZE \
         (CONFIDENCE_SIZE + \
         ENV_LIGHT_SIZE + \
+        DISTANCE_SIZE + \
+        INTENSITY_SIZE)
+#define PANDARFT_UNIT_V2_SIZE \
+        (CONFIDENCE_SIZE + \
+        ENV_LIGHT_V2_SIZE + \
         DISTANCE_SIZE + \
         INTENSITY_SIZE)
 #define PANDARFT_TAIL_RESERVED1_SIZE (3)
@@ -131,6 +138,8 @@
 #define PANDARFT_FACTORY_INFO (1)
 #define PANDARFT_UTC_SIZE (6)
 #define PANDARFT_SEQ_NUM_SIZE (4)
+#define PANDARFT_SAFETY_SECURITY_SIZE (20)
+
 
 
 
@@ -168,6 +177,14 @@ static std::map<enumIndex, int> udpVersion71 = {
 	{SEQUENCE_NUMBER_INDEX, 831},
 	{PACKET_SIZE, 893},
 };
+
+static std::map<enumIndex, int> udpVersion72 = {
+	{TIMESTAMP_INDEX, 826},
+	{UTC_INDEX, 820},
+	{SEQUENCE_NUMBER_INDEX, 831},
+	{PACKET_SIZE, 893},
+};
+
 
 
 typedef struct PandarPacket_s {
@@ -213,7 +230,7 @@ protected:
 class InputSocket: public Input
 {
 public:
-	InputSocket(std::string deviceipaddr, uint16_t lidarport = DATA_PORT_NUMBER, uint16_t gpsport = GPS_PORT_NUMBER,  std::string multicast_ip = "");
+	InputSocket(std::string deviceipaddr, std::string hostipaddr, uint16_t lidarport = DATA_PORT_NUMBER, uint16_t gpsport = GPS_PORT_NUMBER,  std::string multicast_ip = "");
 	virtual ~InputSocket();
 	virtual int getPacket(PandarPacket *pkt);
 	void calcPacketLoss(PandarPacket *pkt);

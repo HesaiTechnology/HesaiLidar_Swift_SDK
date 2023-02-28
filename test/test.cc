@@ -47,7 +47,7 @@ void rawcallback(PandarPacketsArray *array) {
 
 int main(int argc, char** argv) {
     boost::shared_ptr<PandarSwiftSDK> spPandarSwiftSDK;
-    spPandarSwiftSDK.reset(new PandarSwiftSDK(std::string("192.168.1.201"), 51221, 10110, std::string("PandarFT"), \
+    spPandarSwiftSDK.reset(new PandarSwiftSDK(std::string("192.168.1.201"), "", 51221, 10110, std::string("PandarFT"), \
                                 std::string("../params/PandarFT_Correction.csv"), \
                                 std::string(""), \
                                 std::string(""), lidarCallback, rawcallback, gpsCallback, \

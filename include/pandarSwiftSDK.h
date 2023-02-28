@@ -145,10 +145,16 @@
 #define DISTANCE_SIZE (2)
 #define INTENSITY_SIZE (1)
 #define ENV_LIGHT_SIZE (2)
+#define ENV_LIGHT_V2_SIZE (1)
 #define CONFIDENCE_SIZE (1)
 #define PANDARFT_UNIT_SIZE \
         (CONFIDENCE_SIZE + \
         ENV_LIGHT_SIZE + \
+        DISTANCE_SIZE + \
+        INTENSITY_SIZE)
+#define PANDARFT_UNIT_V2_SIZE \
+        (CONFIDENCE_SIZE + \
+        ENV_LIGHT_V2_SIZE + \
         DISTANCE_SIZE + \
         INTENSITY_SIZE)
 #define PANDARFT_TAIL_RESERVED1_SIZE (3)
@@ -318,6 +324,32 @@ struct PandarGPS_s {
   uint32_t fineTime;
 };
 
+constexpr int CHANNEL_MAX = 256;
+constexpr int COLUMN_MAX = 384;
+constexpr int HASH_BYTES_LENGTH = 64;
+
+struct PandarFTCorrectionsHeader {
+    uint8_t pilot[2];
+    uint8_t version[2];
+    uint8_t reversed[2];
+    uint8_t column_number;
+    uint8_t channel_number;
+    uint8_t resolution;
+    PandarFTCorrectionsHeader() 
+    : resolution(1)
+    {}
+};
+struct PandarFTCorrections {
+public:
+    using ColumnFloatArray = std::array<float, COLUMN_MAX>;
+    using CorrectionMatrix = std::array<ColumnFloatArray, CHANNEL_MAX>;
+public:
+    std::array<ColumnFloatArray, CHANNEL_MAX> elevations, azimuths;
+    uint8_t major_version;
+    uint8_t min_version;
+    std::string hash_value;
+};
+
 typedef std::array<PandarPacket, 36000> PktArray;
 
 typedef struct PacketsBuffer_s {
@@ -359,6 +391,13 @@ typedef struct PacketsBuffer_s {
 				lastOverflowed = false;
 				printf("buffer recovered\n");
 			}
+      if(((m_iterPush > m_iterTaskEnd) && (m_iterPush - m_iterTaskEnd) > 4 * m_stepSize) ||
+      ((m_iterPush < m_iterTaskBegin) && (m_iterTaskBegin - m_iterPush) < CIRCLE - 4 * m_stepSize)){
+
+        while((((m_iterPush > m_iterTaskEnd) && (m_iterPush - m_iterTaskEnd) > 4 * m_stepSize) ||
+        ((m_iterPush < m_iterTaskBegin) && (m_iterTaskBegin - m_iterPush) < CIRCLE - 4 * m_stepSize)))
+          usleep(1000);
+      }
 			*(m_iterPush++) = pkt;
 			return 1;
         }
@@ -422,7 +461,7 @@ class PandarSwiftSDK {
    *        publishmode       The mode of publish
    *        datatype          The model of input data
    */
-	PandarSwiftSDK(std::string deviceipaddr, uint16_t lidarport, uint16_t gpsport, std::string frameid, std::string correctionfile, std::string firtimeflie, std::string pcapfile, \
+	PandarSwiftSDK(std::string deviceipaddr, std::string hostipaddr, uint16_t lidarport, uint16_t gpsport, std::string frameid, std::string correctionfile, std::string firtimeflie, std::string pcapfile, \
 								boost::function<void(boost::shared_ptr<PPointCloud>, double)> pclcallback, \
 								boost::function<void(PandarPacketsArray*)> rawcallback, \
 								boost::function<void(double)> gpscallback, \
@@ -448,7 +487,9 @@ class PandarSwiftSDK {
   void doTaskFlow(int cursor);
 	void loadOffsetFile(std::string file);
 	void loadCorrectionFile();
-	int loadCorrectionString(std::string correctionstring);
+	int LoadCorrectionString(char *correction_string);
+  int LoadCorrectionDatData(char *correction_string);
+  int LoadCorrectionCsvData(char *correction_string);
 	int checkLiadaMode();
 	void init();
 	void changeAngleSize();

@@ -77,6 +77,7 @@ bool Input::checkPacketSize(PandarPacket *pkt) {
   uint8_t blockNum = pkt->data[7];
   uint8_t flags = pkt->data[11];
   uint8_t majorVersion = pkt->data[2];
+  uint8_t minorVersion = pkt->data[3];
 
   bool hasSeqNum = (flags & 1); 
   bool hasImu = (flags & 2);
@@ -85,6 +86,7 @@ bool Input::checkPacketSize(PandarPacket *pkt) {
   bool hasConfidence = (flags & 0x10);
   uint32_t calc_size = 0;
   int channelNum = 0;
+  int unitSize = PANDARFT_UNIT_SIZE;  
   switch(majorVersion){
     case 1:
     case 3:
@@ -129,7 +131,8 @@ bool Input::checkPacketSize(PandarPacket *pkt) {
 	  channelNum = pkt->data[PANDARFT_SOB_SIZE + PANDARFT_VERSION_MAJOR_SIZE + \
 							PANDARFT_VERSION_MINOR_SIZE + PANDARFT_VERSION_TDM_SIZE + \
 							PANDARFT_HEAD_RESERVED1_SIZE + PANDARFT_TOTAL_COLUMN_NUM_SIZE];
-      m_iUtcIindex = PANDARFT_HEAD_SIZE + channelNum * PANDARFT_UNIT_SIZE + 
+	  if (minorVersion == 2) unitSize = PANDARFT_UNIT_V2_SIZE;						
+      m_iUtcIindex = PANDARFT_HEAD_SIZE + channelNum * unitSize + 
               PANDARFT_TAIL_RESERVED1_SIZE + 
               PANDARFT_TAIL_RESERVED2_SIZE +
               PANDARFT_TAIL_CLOUMN_ID_SIZE +
@@ -143,6 +146,7 @@ bool Input::checkPacketSize(PandarPacket *pkt) {
                  PANDARFT_FACTORY_INFO;
 
       calc_size = m_iSequenceNumberIndex + PANDARFT_SEQ_NUM_SIZE;
+	  if (minorVersion == 2) calc_size += PANDARFT_SAFETY_SECURITY_SIZE;
   
     break;
     default:
@@ -221,6 +225,15 @@ void Input::setUdpVersion(uint8_t major, uint8_t minor) {
         m_iPacketSize = udpVersion71[PACKET_SIZE];
         m_bGetUdpVersion = true;
         break;
+	case UDP_VERSION_MINOR_2:
+        m_sUdpVresion = UDP_VERSION_7_2;
+        m_iTimestampIndex = udpVersion72[TIMESTAMP_INDEX];
+        m_iUtcIindex = udpVersion72[UTC_INDEX];
+        m_iSequenceNumberIndex = udpVersion72[SEQUENCE_NUMBER_INDEX];
+        m_iPacketSize = udpVersion72[PACKET_SIZE];
+        m_bGetUdpVersion = true;
+        break; 
+	
 
       default:
         printf("error udp version minor: %d\n", minor);
@@ -247,7 +260,7 @@ std::string Input::getUdpVersion() {
  *  @param deviceipaddr device ip address
  *  @param port UDP port number
  */
-InputSocket::InputSocket(std::string deviceipaddr, uint16_t lidarport, uint16_t gpsport, std::string multicast_ip)
+InputSocket::InputSocket(std::string deviceipaddr, std::string hostipaddr, uint16_t lidarport, uint16_t gpsport, std::string multicast_ip)
 	: Input(deviceipaddr, lidarport) {
 	m_iSockfd = -1;
 	m_iSockGpsfd = -1;
@@ -313,7 +326,8 @@ InputSocket::InputSocket(std::string deviceipaddr, uint16_t lidarport, uint16_t 
 	if(multicast_ip != ""){
       struct ip_mreq mreq;                    
       mreq.imr_multiaddr.s_addr=inet_addr(multicast_ip.c_str());
-      mreq.imr_interface.s_addr = htonl(INADDR_ANY); 
+    //   mreq.imr_interface.s_addr = htonl(INADDR_ANY); 
+	  mreq.imr_interface.s_addr = hostipaddr == "" ? htons(INADDR_ANY) : inet_addr(hostipaddr.c_str());
       int ret = setsockopt(m_iSockfd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (const char *)&mreq, sizeof(mreq));
       if (ret < 0) {
         perror("Multicast IP error,set correct multicast ip address or keep it empty\n");
@@ -455,7 +469,7 @@ InputPCAP::InputPCAP(std::string deviceipaddr, uint16_t lidarport, std::string p
 	}
 	filter << "udp dst port " << lidarport;
 	pcap_compile(m_pcapt, &m_objPcapPacketFilter, filter.str().c_str(), 1, PCAP_NETMASK_UNKNOWN);
-	m_iTimeGap = 100;
+	m_iTimeGap = 10;
 	m_i64LastPktTimestamp = 0;
 	m_iPktCount = 0;
 	m_i64LastTime = 0;
