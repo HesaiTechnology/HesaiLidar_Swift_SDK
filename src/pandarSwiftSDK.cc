@@ -9,6 +9,7 @@
  *   This class PandarSwiftSDKs raw Pandar128 3D LIDAR packets to PointCloud2.
  */
 #include "pandarSwiftSDK.h"
+#include <boost/algorithm/string.hpp>
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
