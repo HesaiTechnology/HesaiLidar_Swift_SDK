@@ -425,6 +425,7 @@ class PandarSwiftSDK {
 	int processLiDARData();
 	void publishPointsThread();
   void stop();
+  void standBy(bool standBy);
 
  private:
 
